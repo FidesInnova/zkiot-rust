@@ -1,0 +1,2 @@
+export LIBCLANG_PATH="/Users/reza/.espressif/tools/xtensa-esp32-elf-clang/esp-16.0.0-20230516-aarch64-apple-darwin/esp-clang/lib/"
+export PATH="/Users/reza/.espressif/tools/xtensa-esp32-elf-gcc/12.2.0_20230208-aarch64-apple-darwin/bin/:/Users/reza/.espressif/tools/xtensa-esp32s2-elf-gcc/12.2.0_20230208-aarch64-apple-darwin/bin/:/Users/reza/.espressif/tools/xtensa-esp32s3-elf-gcc/12.2.0_20230208-aarch64-apple-darwin/bin/:$PATH"
