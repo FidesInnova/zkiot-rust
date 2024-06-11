@@ -1,3 +1,13 @@
+[workspace]
+members = [
+    "Merkle"
+]
+
+
+[[bin]]
+name = "Merkle"
+path = "src/main.rs"
+
 [build]
 # Uncomment the relevant target for your chip here (ESP32, ESP32-S2, ESP32-S3 or ESP32-C3)
 target = "riscv32imc-esp-espidf"
