@@ -1,0 +1,18 @@
+[package]
+name = "Merkle"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.86"
+ark-bn254 = "0.4.0"
+ark-ff = "0.4.2"
+light-poseidon = "0.2.0"
+rand = "0.8.5"
+rs_merkle = "1.4.2"
+serde = "1.0.203"
+
+[dependencies.mongodb]
+version = "2.8.2"
+default-features = false
+features = ["sync"]
