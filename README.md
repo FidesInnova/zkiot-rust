@@ -1,1 +1,1 @@
-# zkIoT-RUST
+# zk-IoT
