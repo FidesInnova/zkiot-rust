@@ -23,7 +23,7 @@ pub mod client {
     use crate::{
         mongodb::{database_connection, database_save_root_hash},
         poseidon_hash::PoseidonHash,
-        records::UserRecord,
+        records::{user_record_create, UserRecord},
         MERKLE_ORIGINAL_ROOT, MERKLE_PROOF_PATH, MERKLE_QUERY_RESULT, MERKLE_TREE, MONGODB_URI,
         QUERY, RECORD_NUM,
     };
@@ -50,7 +50,7 @@ pub mod client {
     // set original root
     pub fn insert_random_records() -> Result<()> {
         let user_collection = database_connection::<UserRecord>("DB1", "Col1")?;
-        // user_collection.insert_many((0..*RECORD_NUM.lock().unwrap()).map(|_| user_record_create()), None)?;
+        user_collection.insert_many((0..*RECORD_NUM.lock().unwrap()).map(|_| user_record_create()), None)?;
 
         let mut leaves: Vec<HashType> = vec![];
         let cursor = user_collection.find(None, None)?;
