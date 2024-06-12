@@ -1,8 +1,5 @@
 [workspace]
 members = [
-    "Merkle"
+    "Merkle",
+    "Merkle/merkle_lib"
 ]
-
-
-
-

@@ -1,5 +1,5 @@
 [package]
-name = "Merkle"
+name = "merkle_lib"
 version = "0.1.0"
 edition = "2021"
 
@@ -11,9 +11,11 @@ light-poseidon = "0.2.0"
 rand = "0.8.5"
 rs_merkle = "1.4.2"
 serde = "1.0.203"
-merkle_lib = { path = "merkle_lib" }
+lazy_static = "1.4.0"
 
 [dependencies.mongodb]
 version = "2.8.2"
 default-features = false
 features = ["sync"]
+
+
