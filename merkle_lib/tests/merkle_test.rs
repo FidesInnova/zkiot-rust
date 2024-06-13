@@ -9,7 +9,7 @@ mod test {
         set_uri("mongodb://localhost:27017/");
         set_record_number(1000);
         insert_random_records().unwrap();
-        set_query(doc! {"name": "ali"});
+        set_query(doc! {"name": "hvshnmbmeb"});
         read_query().unwrap();
         let result = verify_path().unwrap();
         
