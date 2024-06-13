@@ -6,12 +6,11 @@ use records::UserRecord;
 use rs_merkle::MerkleTree;
 use std::sync::Mutex;
 
-
-const DATABASE_NAME: &str = "DB1";
-const DATABASE_COLLECTION_USERS: &str = "Col1";
 const DATABASE_COLLECTION_ROOT: &str = "Root";
 
 lazy_static! {
+    static ref DATABASE_NAME: Mutex<String> = Mutex::new(String::new());
+    static ref DATABASE_COLLECTION_USERS: Mutex<String> = Mutex::new(String::new());
     static ref MONGODB_URI: Mutex<String> = Mutex::new(String::new());
     static ref RECORD_NUM: Mutex<usize> = Mutex::new(0);
     static ref QUERY: Mutex<Document> = Mutex::new(Document::new());
@@ -40,6 +39,14 @@ pub mod client {
         Ok(merkle_root)
     }
 
+    pub fn set_database_name(name: &str) {
+        *DATABASE_NAME.lock().unwrap() = name.to_string();
+    }
+
+    pub fn set_collection_name(name: &str) {
+        *DATABASE_COLLECTION_USERS.lock().unwrap() = name.to_string();
+    }
+
     pub fn set_uri(uri: &str) {
         *MONGODB_URI.lock().unwrap() = uri.to_string();
     }
@@ -50,7 +57,7 @@ pub mod client {
 
     // set original root
     pub fn insert_random_records() -> Result<()> {
-        let user_collection = database_connection::<UserRecord>(DATABASE_NAME, DATABASE_COLLECTION_USERS)?;
+        let user_collection = database_connection::<UserRecord>(&DATABASE_NAME.lock().unwrap(), &DATABASE_COLLECTION_USERS.lock().unwrap())?;
         user_collection.insert_many((0..*RECORD_NUM.lock().unwrap()).map(|_| user_record_create()), None)?;
 
         let mut leaves: Vec<HashType> = vec![];
@@ -79,7 +86,7 @@ pub mod client {
     // returns Ok(false) when no results are found in the database
     pub fn read_query() -> Result<bool> {
         let mut query_res = vec![];
-        let user_collection = database_connection::<UserRecord>(DATABASE_NAME, DATABASE_COLLECTION_USERS)?;
+        let user_collection = database_connection::<UserRecord>(&DATABASE_NAME.lock().unwrap(), &DATABASE_COLLECTION_USERS.lock().unwrap())?;
         let cursor = user_collection.find(QUERY.lock().unwrap().clone(), None)?;
         for value in cursor {
             query_res.push(value?);
@@ -193,7 +200,7 @@ mod mongodb {
     }
 
     pub fn database_save_root_hash(root: HashType) -> Result<()> {
-        let root_collection = database_connection::<RootHash>(DATABASE_NAME, DATABASE_COLLECTION_ROOT)?;
+        let root_collection = database_connection::<RootHash>(&DATABASE_NAME.lock().unwrap(), DATABASE_COLLECTION_ROOT)?;
 
         root_collection.insert_one(RootHash { hash: root }, None)?;
         Ok(())
