@@ -110,9 +110,14 @@ pub mod client {
         Ok(true)
     }
 
-    // Calculate a new root and compare it with the original root. Return true if the original root and the new root are the same
+    // Calculate a new root and compare it with the original root. 
+    // Returns Ok(true) if all paths are proven.
     pub fn verify_path() -> Result<bool> {
         let leaves = &MERKLE_TREE.lock().unwrap().leaves().unwrap();
+        
+        if MERKLE_PROOF_PATH.lock().unwrap().is_empty() {
+            return Err(anyhow!("No merkle proof path found."));
+        }
 
         for (_, index, _) in MERKLE_PROOF_PATH.lock().unwrap().clone().into_iter() {
             let indices_to_prove = vec![index];
