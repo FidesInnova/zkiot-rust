@@ -6,6 +6,11 @@ use records::UserRecord;
 use rs_merkle::MerkleTree;
 use std::sync::Mutex;
 
+
+const DATABASE_NAME: &str = "DB1";
+const DATABASE_COLLECTION_USERS: &str = "Col1";
+const DATABASE_COLLECTION_ROOT: &str = "Root";
+
 lazy_static! {
     static ref MONGODB_URI: Mutex<String> = Mutex::new(String::new());
     static ref RECORD_NUM: Mutex<usize> = Mutex::new(0);
@@ -21,11 +26,7 @@ pub mod client {
     pub type HashType = [u8; 32];
 
     use crate::{
-        mongodb::{database_connection, database_save_root_hash},
-        poseidon_hash::PoseidonHash,
-        records::{user_record_create, UserRecord},
-        MERKLE_ORIGINAL_ROOT, MERKLE_PROOF_PATH, MERKLE_QUERY_RESULT, MERKLE_TREE, MONGODB_URI,
-        QUERY, RECORD_NUM,
+        mongodb::{database_connection, database_save_root_hash}, poseidon_hash::PoseidonHash, records::{user_record_create, UserRecord}, DATABASE_COLLECTION_USERS, DATABASE_NAME, MERKLE_ORIGINAL_ROOT, MERKLE_PROOF_PATH, MERKLE_QUERY_RESULT, MERKLE_TREE, MONGODB_URI, QUERY, RECORD_NUM
     };
     use anyhow::{anyhow, Ok, Result};
     use mongodb::bson::{doc, Document};
@@ -49,7 +50,7 @@ pub mod client {
 
     // set original root
     pub fn insert_random_records() -> Result<()> {
-        let user_collection = database_connection::<UserRecord>("DB1", "Col1")?;
+        let user_collection = database_connection::<UserRecord>(DATABASE_NAME, DATABASE_COLLECTION_USERS)?;
         user_collection.insert_many((0..*RECORD_NUM.lock().unwrap()).map(|_| user_record_create()), None)?;
 
         let mut leaves: Vec<HashType> = vec![];
@@ -78,7 +79,7 @@ pub mod client {
     // returns Ok(false) when no results are found in the database
     pub fn read_query() -> Result<bool> {
         let mut query_res = vec![];
-        let user_collection = database_connection::<UserRecord>("DB1", "Col1")?;
+        let user_collection = database_connection::<UserRecord>(DATABASE_NAME, DATABASE_COLLECTION_USERS)?;
         let cursor = user_collection.find(QUERY.lock().unwrap().clone(), None)?;
         for value in cursor {
             query_res.push(value?);
@@ -178,6 +179,8 @@ mod records {
 mod mongodb {
     use crate::client::HashType;
     use crate::records::RootHash;
+    use crate::DATABASE_COLLECTION_ROOT;
+    use crate::DATABASE_NAME;
     use crate::MONGODB_URI;
     use anyhow::Result;
     use mongodb::sync::Client;
@@ -190,7 +193,7 @@ mod mongodb {
     }
 
     pub fn database_save_root_hash(root: HashType) -> Result<()> {
-        let root_collection = database_connection::<RootHash>("DB1", "Root")?;
+        let root_collection = database_connection::<RootHash>(DATABASE_NAME, DATABASE_COLLECTION_ROOT)?;
 
         root_collection.insert_one(RootHash { hash: root }, None)?;
         Ok(())
