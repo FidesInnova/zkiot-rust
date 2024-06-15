@@ -17,4 +17,19 @@ mod test {
         
         assert!(result);
     } 
+
+    #[test]
+    #[should_panic]
+    fn merkle_verify_path_failure() {
+        set_uri("mongodb://localhost:27017/");
+        set_database_name("DB1");
+        set_collection_name("Col1");
+        set_record_number(10);
+        insert_random_records().unwrap();
+        set_query(doc! {"name": "NO_RECORD_NAME"});
+        read_query().unwrap();
+        let result = verify_path().unwrap();
+        
+        assert!(result);
+    }
 }
