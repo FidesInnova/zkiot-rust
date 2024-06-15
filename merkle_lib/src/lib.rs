@@ -28,11 +28,11 @@ pub mod client {
         mongodb::{database_connection, database_save_root_hash}, poseidon_hash::PoseidonHash, records::{user_record_create, UserRecord}, DATABASE_COLLECTION_USERS, DATABASE_NAME, MERKLE_ORIGINAL_ROOT, MERKLE_PROOF_PATH, MERKLE_QUERY_RESULT, MERKLE_TREE, MONGODB_URI, QUERY, RECORD_NUM
     };
     use anyhow::{anyhow, Ok, Result};
-    use mongodb::bson::{doc, Document};
+    use mongodb::bson::{Document};
     use rs_merkle::{MerkleProof, MerkleTree};
 
     fn merkle_root(leaves: &Vec<HashType>) -> Result<HashType> {
-        let merkle_tree = MerkleTree::<PoseidonHash>::from_leaves(&leaves);
+        let merkle_tree = MerkleTree::<PoseidonHash>::from_leaves(leaves);
         let merkle_root = merkle_tree
             .root()
             .ok_or(anyhow!("couldn't get the merkle root"))?;
@@ -95,7 +95,7 @@ pub mod client {
             return Ok(false);
         }
         // set Result
-        *MERKLE_QUERY_RESULT.lock().unwrap() = query_res.clone();
+        MERKLE_QUERY_RESULT.lock().unwrap().clone_from(&query_res);
 
         for rec in query_res {
             let index: usize = MERKLE_TREE
