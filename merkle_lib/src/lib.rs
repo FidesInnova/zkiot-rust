@@ -28,7 +28,7 @@ pub mod client {
         mongodb::{database_connection, database_save_root_hash}, poseidon_hash::PoseidonHash, records::{user_record_create, UserRecord}, DATABASE_COLLECTION_USERS, DATABASE_NAME, MERKLE_ORIGINAL_ROOT, MERKLE_PROOF_PATH, MERKLE_QUERY_RESULT, MERKLE_TREE, MONGODB_URI, QUERY, RECORD_NUM
     };
     use anyhow::{anyhow, Ok, Result};
-    use mongodb::bson::{Document};
+    use mongodb::{bson::Document, sync::Collection};
     use rs_merkle::{MerkleProof, MerkleTree};
 
     fn merkle_root(leaves: &Vec<HashType>) -> Result<HashType> {
@@ -43,8 +43,9 @@ pub mod client {
         *DATABASE_NAME.lock().unwrap() = name.to_string();
     }
 
-    pub fn set_collection_name(name: &str) {
+    pub fn set_collection_name(name: &str) -> Result<Collection<UserRecord>> {
         *DATABASE_COLLECTION_USERS.lock().unwrap() = name.to_string();
+        database_connection::<UserRecord>(&DATABASE_NAME.lock().unwrap(), &DATABASE_COLLECTION_USERS.lock().unwrap())
     }
 
     pub fn set_uri(uri: &str) {
@@ -80,6 +81,17 @@ pub mod client {
 
     pub fn set_query(query: Document) {
         *QUERY.lock().unwrap() = query
+    }
+
+    pub fn reset_all() {
+        DATABASE_NAME.lock().unwrap().clear();
+        DATABASE_COLLECTION_USERS.lock().unwrap().clear();
+        MONGODB_URI.lock().unwrap().clear();
+        QUERY.lock().unwrap().clear();
+        *MERKLE_ORIGINAL_ROOT.lock().unwrap() = [0u8; 32];
+        MERKLE_PROOF_PATH.lock().unwrap().clear();
+        MERKLE_QUERY_RESULT.lock().unwrap().clear();
+        *MERKLE_TREE.lock().unwrap() = MerkleTree::<PoseidonHash>::new();
     }
 
     // set the Result and Proof variables
@@ -152,7 +164,7 @@ pub mod client {
     }
 }
 
-mod records {
+pub mod records {
     use crate::{client::HashType, poseidon_hash::hash_leaf};
     use rand::*;
     use serde::{Deserialize, Serialize};
@@ -164,7 +176,7 @@ mod records {
         pub hash: HashType,
     }
     impl UserRecord {
-        fn new(name: String, number: u32, hash: HashType) -> Self {
+        pub fn new(name: String, number: u32, hash: HashType) -> Self {
             Self { name, number, hash }
         }
     }
@@ -207,7 +219,7 @@ mod mongodb {
     }
 }
 
-mod poseidon_hash {
+pub mod poseidon_hash {
     use ark_bn254::Fr;
     use ark_ff::{BigInteger, PrimeField};
     use light_poseidon::{Poseidon, PoseidonHasher};
