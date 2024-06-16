@@ -26,7 +26,6 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     fn merkle_verify_path_failure() {
         reset_all();
 
@@ -40,8 +39,8 @@ mod test {
 
         set_query(doc! {"name": "NO_RECORD_NAME"});
         read_query().unwrap();
-        let result = verify_path().unwrap();        
-        assert!(result);
+        let result = verify_path(); 
+        assert_eq!(result.err().unwrap().to_string(), "No merkle proof path found.");
     }
 
     #[test]
