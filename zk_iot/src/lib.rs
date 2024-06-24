@@ -3,6 +3,20 @@
 
 use nalgebra::DMatrix;
 
+
+#[derive(Clone, Copy)]
+enum GateType {
+    Addition,
+    Multiplication,
+}
+
+struct Gate {
+    left: usize,
+    right: usize,
+    gate_type: GateType,
+}
+
+
 pub struct ZKPScheme {
     pub a: DMatrix<u32>,
     pub b: DMatrix<u32>,
