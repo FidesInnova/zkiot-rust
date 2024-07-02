@@ -4,4 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+ark-ff = "0.4.2"
 nalgebra = "0.32.6"
+rustnomial = "0.3.2"
