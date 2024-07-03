@@ -120,10 +120,6 @@ pub fn init<const N: u64>(gates: Vec<Gate>, ni: usize, a_mat: &mut DMatrix<MFp<N
 pub fn exp_mod<const N: u64>(g: u64, exp: u64) -> MFp<N> {
     let mut res: MFp<N> = MFp::ONE;
 
-    if MFp::<N>::from(exp) == MFp::ONE {
-        return MFp::from(g);
-    }
-
     for _ in 0..exp {
         res *= MFp::from(g);
     }
@@ -210,7 +206,12 @@ pub fn commit<const N: u64>(o: Vec<Polynomial<MFp<N>>>, d: u64, g: u64) -> Vec<M
                 res_poly *= value;
             }
         }
-        res.push(res_poly);
+
+        if res_poly == MFp::ONE {
+            res.push(MFp::<N>::from(g));
+        } else {
+            res.push(res_poly);
+        }
     }
     
     res
@@ -263,6 +264,41 @@ pub fn get_poinsts_val<const N: u64>(mat: &DMatrix<MFp<N>>, h: &Vec<MFp<N>> , k:
                 c += 1;
             }
         }
+    }
+
+    points
+}
+
+
+
+pub fn generate_set_eval<const N: u64>(ms_gen: u64, n: usize, t: usize, len: usize) -> Vec<MFp<N>> {
+    let mut set: Vec<MFp<N>> = vec![];
+
+    for i in t..n {
+        set.push(exp_mod(ms_gen, i as u64));
+    }
+
+    let zeros = len as isize - n as isize + t as isize; 
+
+    // assert!(zeros >= 0);
+    
+    if zeros > 0 {
+        for _ in 0..zeros {
+            set.push(MFp::ZERO);
+        }
+    }
+
+    set
+}
+
+
+pub fn get_points_set<const N: u64>(seq_k: &Vec<MFp<N>> , k: &Vec<MFp<N>>) -> Vec<(MFp<N>, MFp<N>)> {
+    let mut points: Vec<(MFp<N>, MFp<N>)> = vec![];
+    
+    assert!(seq_k.len() == k.len(), "sets are not equal");
+
+    for point in k.iter().zip(seq_k.iter()) {
+        points.push((*point.0, *point.1));
     }
 
     points

@@ -1,14 +1,14 @@
-use std::{collections::HashSet, ops::Neg, process::exit, u64};
 use ark_ff::{BigInt, Field, One, PrimeField, Zero};
 use nalgebra::{DMatrix, DVector, SVector};
 use rustnomial::{Degree, FreeSizePolynomial, Polynomial, SizedPolynomial};
+use std::{collections::HashSet, ops::Neg, process::exit, u64};
 use zk_iot::*;
-
 
 // field finit parameter
 const P: u64 = 181;
 
 fn main() {
+    println!("setup: -------------------------------------------------------------------");
     // Setup ================================================================================
     // init ----------------------------------
     // the number of gates
@@ -56,7 +56,14 @@ fn main() {
     // ---------------------------------------
 
     // A, B, C, z
-    init(gates, ni, &mut a_matrix, &mut  b_matrix, &mut  c_matrix, &mut z_poly);
+    init(
+        gates,
+        ni,
+        &mut a_matrix,
+        &mut b_matrix,
+        &mut c_matrix,
+        &mut z_poly,
+    );
 
     zero_t_rows(&mut a_matrix, t);
     zero_t_rows(&mut b_matrix, t);
@@ -85,52 +92,48 @@ fn main() {
 
     println!();
     println!("proof path: {:?}", pp);
-    // ======================================================================================
+
     // Commit ===============================================================================
+    println!("commit: ------------------------------------------------------------------");
     let n = 5;
     let m = 9;
 
     let generator_h = exp_mod::<P>(g, (P - 1) / n).into_bigint().0[0];
     let generator_k = exp_mod::<P>(g, (P - 1) / m).into_bigint().0[0];
 
-    let set_mul_sub_h = generate_set::<P>(generator_h, n);
-    let set_mul_sub_k = generate_set::<P>(generator_k, m);
+    let set_h = generate_set::<P>(generator_h, n);
+    let set_k = generate_set::<P>(generator_k, m);
 
+    println!("H= {:?}\nK= {:?}", set_h, set_k);
 
-    println!("H= {:?}\nK= {:?}", set_mul_sub_h, set_mul_sub_k);
-    
     // A matrix --------------------------------------
     println!("A mat: =================================");
-    let points = get_poinsts_row(&a_matrix, &set_mul_sub_h, &set_mul_sub_k);
+    let points = get_poinsts_row(&a_matrix, &set_h, &set_k);
     let a_row = lagrange_interpolate::<P>(&points);
     println!("lag row: {:?}", a_row);
 
-    
-    let points = get_poinsts_col(&a_matrix, &set_mul_sub_h, &set_mul_sub_k);
+    let points = get_poinsts_col(&a_matrix, &set_h, &set_k);
     let a_col = lagrange_interpolate::<P>(&points);
     println!("lag col: {:?}", a_col);
 
-
-    let points = get_poinsts_val(&a_matrix, &set_mul_sub_h, &set_mul_sub_k);
+    let points = get_poinsts_val(&a_matrix, &set_h, &set_k);
     let a_val = lagrange_interpolate::<P>(&points);
     println!("lag val: {:?}", a_val);
 
     let a_matrix_encode = vec![a_row, a_col, a_val];
     // ---------------------------------------
 
-
     // B matrix --------------------------------------
     println!("B mat: =================================");
-    let points = get_poinsts_row(&b_matrix, &set_mul_sub_h, &set_mul_sub_k);
+    let points = get_poinsts_row(&b_matrix, &set_h, &set_k);
     let b_row = lagrange_interpolate::<P>(&points);
     println!("lag row: {:?}", b_row);
 
-    
-    let points = get_poinsts_col(&b_matrix, &set_mul_sub_h, &set_mul_sub_k);
+    let points = get_poinsts_col(&b_matrix, &set_h, &set_k);
     let b_col = lagrange_interpolate::<P>(&points);
     println!("lag col: {:?}", b_col);
-    
-    let points = get_poinsts_val(&b_matrix, &set_mul_sub_h, &set_mul_sub_k);
+
+    let points = get_poinsts_val(&b_matrix, &set_h, &set_k);
     let b_val = lagrange_interpolate::<P>(&points);
     println!("lag val: {:?}", b_val);
 
@@ -138,22 +141,21 @@ fn main() {
     // ---------------------------------------
 
     // C matrix --------------------------------------
-    // new K: 
-    let n = 3;
-    let generator_k = exp_mod::<P>(g, (P - 1) / n).into_bigint().0[0];
-    let set_mul_sub_k = generate_set::<P>(generator_k, n);
+    // new K:
+    let n_c = 3;
+    let generator_k_c = exp_mod::<P>(g, (P - 1) / n_c).into_bigint().0[0];
+    let set_sub_k = generate_set::<P>(generator_k_c, n_c);
 
     println!("C mat: =================================");
-    let points = get_poinsts_row(&c_matrix, &set_mul_sub_h, &set_mul_sub_k);
+    let points = get_poinsts_row(&c_matrix, &set_h, &set_sub_k);
     let c_row = lagrange_interpolate::<P>(&points);
     println!("lag row: {:?}", c_row);
 
-    let points = get_poinsts_col(&c_matrix, &set_mul_sub_h, &set_mul_sub_k);
+    let points = get_poinsts_col(&c_matrix, &set_h, &set_sub_k);
     let c_col = lagrange_interpolate::<P>(&points);
     println!("lag col: {:?}", c_col);
 
-
-    let points = get_poinsts_val(&c_matrix, &set_mul_sub_h, &set_mul_sub_k);
+    let points = get_poinsts_val(&c_matrix, &set_h, &set_sub_k);
     let c_val = lagrange_interpolate::<P>(&points);
     println!("lag val: {:?}", c_val);
 
@@ -168,14 +170,59 @@ fn main() {
 
     println!("O_i: {:?}", o_i);
 
-
-    println!("commit: =================================");
     let c = commit(o_i, d, g);
     println!("{:?}", c);
 
-
-    // ======================================================================================
-    // EVal =================================================================================
+    // Eval =================================================================================
+    println!("eval: --------------------------------------------------------------------");
+    let seq_k = generate_set_eval::<P>(generator_h, n as usize, t, set_k.len());
+    let points_h = get_points_set(&seq_k, &set_k);
+    let lag_h = lagrange_interpolate::<P>(&points_h);
     
-}
+    println!("seq_k:\t\t{:?}", seq_k);
+    println!("points_h:\t{:?}", points_h);
+    println!("lag h:\t\t{:?}", lag_h);
 
+
+    let a = vec![set_h[2], MFp::ZERO];
+
+    let r = set_h[1];
+
+    let c = vec![
+        (n as isize - t as isize),
+        m as isize - (n as isize - t as isize),
+    ];
+
+    let p = vec![0, 3];
+
+    points_h.iter().find(|v| **v == (MFp::ONE, MFp::ONE));
+
+    let res = a.iter().zip(p.iter()).all(|(a_i, p_i)| {
+        let e = exp_mod::<P>(generator_k, *p_i);
+        points_h.iter().any(|v| v.0 == e && v.1 == *a_i)
+    });
+    println!("Geo Seq Test result:\t{:?}", res);
+
+
+    let mut res = false;
+
+    for k in set_k {
+        if let Some((_,h_gamma_k)) = points_h.iter().find(|v| v.0 == k * MFp::<P>::from(generator_k)) {
+            if let Some((_,h_k)) = points_h.iter().find(|v| v.0 == k) {
+                if *h_gamma_k == *h_k * r {
+                    res = true;
+                    break;
+                }
+            } 
+        }
+        for (p_i, c_i) in p.iter().zip(c.iter()) {
+            if k == exp_mod(generator_k, *p_i + *c_i as u64 - 1) {
+                res = true;
+                break;
+            }
+        }
+    }
+
+    
+    println!("Zero Over K result:\t{:?}", res);
+}
