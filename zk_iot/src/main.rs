@@ -49,7 +49,7 @@ fn main() {
     // R1(4)−R1(3)/7=0                      => R1(4) = R1(3) * 1/7
 
     
-    let gates = parser(PathBuf::from("sample.txt"));
+    let gates = parser(PathBuf::from("sample.txt")).unwrap();
     // ---------------------------------------
 
     // A, B, C, z

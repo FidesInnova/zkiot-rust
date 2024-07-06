@@ -9,8 +9,9 @@ use ark_ff::{BigInteger256, Field, Fp256, MontFp, PrimeField};
 use ark_ff::{Fp, Fp64};
 use na::{DMatrix, DVector};
 use rustnomial::{Degree, Polynomial, SizedPolynomial};
-use std::{fs::File, io::{self, BufRead}, ops::Neg, path::PathBuf};
+use std::{fs::File, io::{self, BufRead, BufReader}, ops::Neg, path::PathBuf};
 use std::u64;
+use anyhow::{anyhow, Result};
 
 pub struct P64MontConfig<const N: u64>;
 impl<const N: u64> MontConfig<1> for P64MontConfig<N> {
@@ -306,36 +307,47 @@ pub fn get_points_set<const N: u64>(seq_k: &Vec<MFp<N>> , k: &Vec<MFp<N>>) -> Ve
 }
 
 
-pub fn parser(file_path: PathBuf) -> Vec<Gate> {
-    let file = File::open(file_path).unwrap();
-    let reader = io::BufReader::new(file);
+pub fn parser(file_path: PathBuf) -> Result<Vec<Gate>> {
+    let reader = open_file(&file_path)?;
+    let gates = read_parse_lines(reader)?;
+    Ok(gates)
+}
 
-    let mut l_counter = 0; 
+fn open_file(file_path: &PathBuf) -> Result<BufReader<File>> {
+    let file = File::open(file_path)?;
+    Ok(BufReader::new(file))
+}
 
+fn read_parse_lines(reader: BufReader<File>) -> Result<Vec<Gate>> {
     let mut gates = Vec::new();
-    for (index, line) in reader.lines().enumerate() {
-        let line = line.unwrap();
-        let parts: Vec<&str> = line.split_whitespace().collect();
-        
-        if parts.len() < 4 {
-            continue;
+
+    for (index, line_result) in reader.lines().enumerate() {
+        let line = line_result?;
+        if let Some((operation, operands)) = parse_line(&line, index)? {
+            let gate_type = match operation {
+                "mul" => GateType::Mul,
+                "addi" => GateType::Add,
+                _ => continue,
+            };
+
+            let constant = operands.get(2).unwrap().parse::<u64>()?;
+            let gate = Gate::new(index + 1, 0, None, Some(constant), gate_type);
+            gates.push(gate);
         }
-
-        let operation = parts[2];
-        let operands = parts[3].split(',').collect::<Vec<&str>>();
-        let constant = operands[2].parse::<u64>().unwrap();
-
-        let gate_type = match operation {
-            "mul" => GateType::Mul,
-            "addi" => GateType::Add,
-            _ => continue, 
-        };
-
-        let gate = Gate::new(index + 1, 0, None, Some(constant), gate_type);
-
-        gates.push(gate);
     }
 
-    println!("{:?}", gates);
-    gates
+    Ok(gates)
+}
+
+fn parse_line(line: &str, index: usize) -> Result<Option<(&str, Vec<&str>)>> {
+    let parts: Vec<&str> = line.split_whitespace().collect();
+    if parts.len() >= 4 {
+        let operation = *parts.get(2).ok_or_else(|| {
+            anyhow!("Operation not found in line {}", index + 1)
+        })?;
+        let operands: Vec<&str> = parts.get(3).unwrap().split(',').collect();
+        Ok(Some((operation, operands)))
+    } else {
+        Ok(None)
+    }
 }
