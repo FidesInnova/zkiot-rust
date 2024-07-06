@@ -1,7 +1,7 @@
 use ark_ff::{BigInt, Field, One, PrimeField, Zero};
 use nalgebra::{DMatrix, DVector, SVector};
 use rustnomial::{Degree, FreeSizePolynomial, Polynomial, SizedPolynomial};
-use std::{collections::HashSet, ops::Neg, process::exit, u64};
+use std::{collections::HashSet, ops::Neg, path::PathBuf, process::exit, u64};
 use zk_iot::*;
 
 // field finit parameter
@@ -48,11 +48,8 @@ fn main() {
     // R1(3)−R1(2)−11=0R1(3)​−R1(2)​−11=0     => R1(3) = R1(2) + 11
     // R1(4)−R1(3)/7=0                      => R1(4) = R1(3) * 1/7
 
-    let gates = vec![
-        Gate::new(1, 0, None, Some(5), GateType::Mul),
-        Gate::new(2, 0, None, Some(11), GateType::Add),
-        Gate::new(3, 0, None, Some(26), GateType::Mul),
-    ];
+    
+    let gates = parser(PathBuf::from("sample.txt"));
     // ---------------------------------------
 
     // A, B, C, z

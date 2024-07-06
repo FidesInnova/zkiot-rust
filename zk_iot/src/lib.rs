@@ -9,7 +9,7 @@ use ark_ff::{BigInteger256, Field, Fp256, MontFp, PrimeField};
 use ark_ff::{Fp, Fp64};
 use na::{DMatrix, DVector};
 use rustnomial::{Degree, Polynomial, SizedPolynomial};
-use std::ops::Neg;
+use std::{fs::File, io::{self, BufRead}, ops::Neg, path::PathBuf};
 use std::u64;
 
 pub struct P64MontConfig<const N: u64>;
@@ -23,12 +23,13 @@ impl<const N: u64> MontConfig<1> for P64MontConfig<N> {
 #[allow(warnings)]
 pub type MFp<const N: u64> = Fp64<MontBackend<P64MontConfig<N>, 1>>;
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum GateType {
     Add,
     Mul,
 }
 
+#[derive(Debug)]
 pub struct Gate {
     pub inx_left: usize,
     pub inx_right: usize,
@@ -302,4 +303,39 @@ pub fn get_points_set<const N: u64>(seq_k: &Vec<MFp<N>> , k: &Vec<MFp<N>>) -> Ve
     }
 
     points
+}
+
+
+pub fn parser(file_path: PathBuf) -> Vec<Gate> {
+    let file = File::open(file_path).unwrap();
+    let reader = io::BufReader::new(file);
+
+    let mut l_counter = 0; 
+
+    let mut gates = Vec::new();
+    for (index, line) in reader.lines().enumerate() {
+        let line = line.unwrap();
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        
+        if parts.len() < 4 {
+            continue;
+        }
+
+        let operation = parts[2];
+        let operands = parts[3].split(',').collect::<Vec<&str>>();
+        let constant = operands[2].parse::<u64>().unwrap();
+
+        let gate_type = match operation {
+            "mul" => GateType::Mul,
+            "addi" => GateType::Add,
+            _ => continue, 
+        };
+
+        let gate = Gate::new(index + 1, 0, None, Some(constant), gate_type);
+
+        gates.push(gate);
+    }
+
+    println!("{:?}", gates);
+    gates
 }
