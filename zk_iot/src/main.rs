@@ -7,6 +7,7 @@ use zk_iot::*;
 // field finit parameter
 const P: u64 = 181;
 
+
 fn main() {
     println!("setup: -------------------------------------------------------------------");
     // Setup ================================================================================
@@ -29,8 +30,7 @@ fn main() {
     // d is a big u64 int
     let d = 111213119_u64;
     // according to the example, we should have this seq: 2, 2^119, 2^(119^2), ..., so we should find the exp-base which is 119.
-    let d = exp_calc::<P>(d);
-    let l = 8_u32;
+    let l: u64 = 8;
 
     // in the matrices, the cells are elements of the finite field P
     let mut a_matrix = DMatrix::<MFp<P>>::zeros(size, size);
@@ -80,16 +80,17 @@ fn main() {
 
     // calculate proof path
     let mut pp = vec![];
-    for i in 0..=l {
-        let exp = d.pow(i);
-        let exp = exp_calc::<P>(exp);
-        let value = exp_mod::<P>(g, exp);
-        pp.push(value);
+    
+    let mut s = MFp::<P>::from(g);
+    let d = d % (P - 1);
+
+    for _ in 0..=l {
+        pp.push(s);
+        s = exp_mod::<P>(s.into_bigint().0[0], d);
     }
 
     println!();
     println!("proof path: {:?}", pp);
-
     // Commit ===============================================================================
     println!("commit: ------------------------------------------------------------------");
     let n = 5;
@@ -139,20 +140,20 @@ fn main() {
 
     // C matrix --------------------------------------
     // new K:
-    let n_c = 3;
-    let generator_k_c = exp_mod::<P>(g, (P - 1) / n_c).into_bigint().0[0];
-    let set_sub_k = generate_set::<P>(generator_k_c, n_c);
+    // let n_c = 3;
+    // let generator_k_c = exp_mod::<P>(g, (P - 1) / n_c).into_bigint().0[0];
+    // let set_sub_k = generate_set::<P>(generator_k_c, n_c);
 
     println!("C mat: =================================");
-    let points = get_poinsts_row(&c_matrix, &set_h, &set_sub_k);
+    let points = get_poinsts_row(&c_matrix, &set_h, &set_k);
     let c_row = lagrange_interpolate::<P>(&points);
     println!("lag row: {:?}", c_row);
 
-    let points = get_poinsts_col(&c_matrix, &set_h, &set_sub_k);
+    let points = get_poinsts_col(&c_matrix, &set_h, &set_k);
     let c_col = lagrange_interpolate::<P>(&points);
     println!("lag col: {:?}", c_col);
 
-    let points = get_poinsts_val(&c_matrix, &set_h, &set_sub_k);
+    let points = get_poinsts_val(&c_matrix, &set_h, &set_k);
     let c_val = lagrange_interpolate::<P>(&points);
     println!("lag val: {:?}", c_val);
 
