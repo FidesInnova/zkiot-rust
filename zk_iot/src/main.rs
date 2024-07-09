@@ -1,7 +1,6 @@
-use ark_ff::{BigInt, Field, One, PrimeField, Zero};
-use nalgebra::{DMatrix, DVector, SVector};
-use rustnomial::{Degree, FreeSizePolynomial, Polynomial, SizedPolynomial};
-use std::{collections::HashSet, ops::Neg, path::PathBuf, process::exit, u64};
+use ark_ff::{Field, PrimeField};
+use nalgebra::{DMatrix, DVector};
+use std::{path::PathBuf, u64};
 use zk_iot::*;
 
 // field finit parameter
@@ -114,7 +113,7 @@ fn main() {
     let a_col = lagrange_interpolate::<P>(&points);
     println!("lag col: {:?}", a_col);
 
-    let points = get_poinsts_val(&a_matrix, &set_h, &set_k);
+    let points = get_poinsts_val(&a_matrix, &set_h);
     let a_val = lagrange_interpolate::<P>(&points);
     println!("lag val: {:?}", a_val);
 
@@ -131,7 +130,7 @@ fn main() {
     let b_col = lagrange_interpolate::<P>(&points);
     println!("lag col: {:?}", b_col);
 
-    let points = get_poinsts_val(&b_matrix, &set_h, &set_k);
+    let points = get_poinsts_val(&b_matrix, &set_h);
     let b_val = lagrange_interpolate::<P>(&points);
     println!("lag val: {:?}", b_val);
 
@@ -139,11 +138,6 @@ fn main() {
     // ---------------------------------------
 
     // C matrix --------------------------------------
-    // new K:
-    // let n_c = 3;
-    // let generator_k_c = exp_mod::<P>(g, (P - 1) / n_c).into_bigint().0[0];
-    // let set_sub_k = generate_set::<P>(generator_k_c, n_c);
-
     println!("C mat: =================================");
     let points = get_poinsts_row(&c_matrix, &set_h, &set_k);
     let c_row = lagrange_interpolate::<P>(&points);
@@ -153,7 +147,7 @@ fn main() {
     let c_col = lagrange_interpolate::<P>(&points);
     println!("lag col: {:?}", c_col);
 
-    let points = get_poinsts_val(&c_matrix, &set_h, &set_k);
+    let points = get_poinsts_val(&c_matrix, &set_h);
     let c_val = lagrange_interpolate::<P>(&points);
     println!("lag val: {:?}", c_val);
 
@@ -169,7 +163,7 @@ fn main() {
     println!("O_i: {:?}", o_i);
 
     let c = commit(o_i, d, g);
-    println!("{:?}", c);
+    println!("commit: {:?}", c);
 
     // Eval =================================================================================
     println!("eval: --------------------------------------------------------------------");
@@ -182,16 +176,14 @@ fn main() {
     println!("lag h:\t\t{:?}", lag_h);
 
 
-    let a = vec![set_h[2], MFp::ZERO];
+    let a = [set_h[2], MFp::ZERO];
 
     let r = set_h[1];
 
-    let c = vec![
-        (n as isize - t as isize),
-        m as isize - (n as isize - t as isize),
-    ];
+    let c = [(n as isize - t as isize),
+        m as isize - (n as isize - t as isize)];
 
-    let p = vec![0, 3];
+    let p = [0, 3];
 
     points_h.iter().find(|v| **v == (MFp::ONE, MFp::ONE));
 
