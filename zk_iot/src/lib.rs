@@ -10,6 +10,7 @@ use ark_ff::{
 use ark_ff::{Field, PrimeField};
 use na::{DMatrix, DVector};
 use rustnomial::{Degree, Polynomial, SizedPolynomial};
+use std::io::Read;
 use std::u64;
 use std::{
     fs::File,
@@ -294,19 +295,29 @@ fn read_parse_lines(reader: BufReader<File>) -> Result<Vec<Gate>> {
     for (index, line_result) in reader.lines().enumerate() {
         let line = line_result?;
         if let Some((operation, operands)) = parse_line(&line, index)? {
-            let gate_type = match operation {
-                "mul" => GateType::Mul,
-                "addi" => GateType::Add,
-                _ => continue,
-            };
+            // let gate_type = gate_type(operation)?;
+            let gate_type = gate_type(operation);
+            if let Err(ref e) = gate_type { 
+                // return Err(e);
+                eprintln!("{}", e);
+                continue;
+            }
 
             let constant = operands.get(2).unwrap().parse::<u64>()?;
-            let gate = Gate::new(index + 1, 0, None, Some(constant), gate_type);
+            let gate = Gate::new(index + 1, 0, None, Some(constant), gate_type?);
             gates.push(gate);
         }
     }
 
     Ok(gates)
+}
+
+fn gate_type(op: &str) -> Result<GateType> {
+    match op {
+        "mul" => Ok(GateType::Mul),
+        "addi" => Ok(GateType::Add),
+        _ => Err(anyhow!("operation is not support: {}", op))
+    }
 }
 
 fn parse_line(line: &str, index: usize) -> Result<Option<(&str, Vec<&str>)>> {
@@ -339,4 +350,29 @@ pub fn mat_to_vec<const N: u64>(
     }
 
     v
+}
+
+pub fn parse_from_lines(line_file: &PathBuf, opcodes_file: &PathBuf) -> Result<Vec<Gate>> {
+    let mut gates = Vec::new();
+
+    let line_file = open_file(line_file).unwrap();
+
+    for line in line_file.lines() {
+        let line_num = line.unwrap().trim().parse::<usize>().unwrap();
+        let gates_file = open_file(opcodes_file).unwrap();
+        let line = gates_file.lines().nth(line_num - 1).unwrap().unwrap();
+        if let Some((operation, operands)) = parse_line(&line, line_num).unwrap() {
+            let gate_type = gate_type(operation);
+            if let Err(ref e) = gate_type { 
+                // return Err(e);
+                eprintln!("{}", e);
+                continue;
+            }
+            let constant = operands.get(2).unwrap().parse::<u64>().unwrap();
+            let gate = Gate::new(line_num, 0, None, Some(constant), gate_type.unwrap());
+            gates.push(gate);
+        }
+    }
+
+    Ok(gates)
 }

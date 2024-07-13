@@ -1,6 +1,7 @@
 use ark_ff::{Field, PrimeField};
 use nalgebra::{Const, DMatrix, DVector, SMatrix, U1};
-use std::{path::PathBuf, u64};
+use rustnomial::Polynomial;
+use std::{path::PathBuf, process::exit, u64};
 use zk_iot::*;
 
 // field finit parameter
@@ -46,8 +47,11 @@ fn main() {
     // R1(3)−R1(2)−11=0R1(3)​−R1(2)​−11=0     => R1(3) = R1(2) + 11
     // R1(4)−R1(3)/7=0                      => R1(4) = R1(3) * 1/7
 
-    let gates = parser(PathBuf::from("sample.txt")).unwrap();
+    // let gates = parser(PathBuf::from("sample.txt")).unwrap();
+
+    let gates = parse_from_lines(&PathBuf::from("line_num.txt"), &PathBuf::from("sample.txt")).unwrap();
     // ---------------------------------------
+    println!("gates: {:?}", gates);
 
     // A, B, C, z
     init(
@@ -227,19 +231,60 @@ fn main() {
     println!("Matrix Bz: {}", bz);
     println!("Matrix Cz: {}", cz);
 
-    let points_za = get_points_set(&mat_to_vec::<P>(&az), &set_h);
-    println!("{:?}", points_za);
+    let mut points_za = get_points_set(&mat_to_vec::<P>(&az), &set_h);
+    println!("points_za: {:?}", points_za);
 
-    let points_zb = get_points_set(&mat_to_vec::<P>(&bz), &set_h);
-    println!("{:?}", points_zb);
+    let mut points_zb = get_points_set(&mat_to_vec::<P>(&bz), &set_h);
+    println!("points_zb: {:?}", points_zb);
 
-    let points_zc = get_points_set(&mat_to_vec::<P>(&cz), &set_h);
-    println!("{:?}", points_zc);
+    let mut points_zc = get_points_set(&mat_to_vec::<P>(&cz), &set_h);
+    println!("points_zc: {:?}", points_zc);
 
+    let b = 2; 
+    // push_random_points(b, &mut points_za);
+    // push_random_points(b, &mut points_zb);
+    // push_random_points(b, &mut points_zc);
 
-    let points_za = get_points_set(&mat_to_vec::<P>(&az), &set_h);
-    println!("{:?}", points_za);
+    // for za: 
+    points_za.push((MFp::<P>::from(150), MFp::<P>::from(5)));
+    points_za.push((MFp::<P>::from(80), MFp::<P>::from(47)));
+
+    // for zb: 
+    points_zb.push((MFp::<P>::from(150), MFp::<P>::from(15)));
+    points_zb.push((MFp::<P>::from(80), MFp::<P>::from(170)));
+
+    // for zc: 
+    points_zc.push((MFp::<P>::from(150), MFp::<P>::from(1)));
+    points_zc.push((MFp::<P>::from(80), MFp::<P>::from(100)));
+
     
-    let za = lagrange_interpolate::<P>(&points_za);
-    println!("za: {:?}", za);
+    let inter_za = lagrange_interpolate::<P>(&points_za);
+    println!("^za(x): {:?}", inter_za);
+
+
+    let inter_zb = lagrange_interpolate::<P>(&points_zb);
+    println!("^zb(x): {:?}", inter_zb);
+
+
+    let inter_zc = lagrange_interpolate::<P>(&points_zc);
+    println!("^zb(x): {:?}", inter_zc);
+
+
+    // println!("hx: {:?}", get_poly::<P>((1,1), (59, 4))); 
+
 }
+
+
+fn push_random_points<const N: u64>(b: u64, points: &mut Vec<(MFp<N>, MFp<N>)>) {
+
+}
+
+// fn get_poly<const N: u64>((x1, x2): (i64, i64), (y1, y2): (i64, i64)) -> Polynomial<MFp<N>> {
+//     let m = (y2 - y1) / (x2 - x1);
+
+//     let poly: Polynomial<MFp<N>> = Polynomial::new(vec![MFp::ONE, MFp::ZERO]);
+
+//     let y = Polynomial::new(vec![MFp::from(m)]) * (poly - Polynomial::new(vec![MFp::from(x1)])) + Polynomial::new(vec![MFp::from(y1)]);
+
+//     y
+// }
