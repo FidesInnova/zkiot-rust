@@ -2,12 +2,12 @@
 // initializes and partially fills matrices A, B, C
 extern crate nalgebra as na;
 use anyhow::{anyhow, Result};
+use ark_ff::Fp64;
 use ark_ff::{
     fields::{MontBackend, MontConfig},
     FpConfig,
 };
 use ark_ff::{Field, PrimeField};
-use ark_ff::Fp64;
 use na::{DMatrix, DVector};
 use rustnomial::{Degree, Polynomial, SizedPolynomial};
 use std::u64;
@@ -167,7 +167,7 @@ pub fn commit<const N: u64>(o: Vec<Polynomial<MFp<N>>>, d: u64, g: u64) -> Vec<M
         if let Degree::Num(deg) = poly.degree() {
             let mut s = MFp::<N>::from(g);
             let d = d % (N - 1);
-            
+
             for i in 0..=deg {
                 let coef = poly.terms[deg - i].into_bigint().0[0];
                 let value = exp_mod::<N>(s.into_bigint().0[0], coef);
@@ -320,4 +320,23 @@ fn parse_line(line: &str, index: usize) -> Result<Option<(&str, Vec<&str>)>> {
     } else {
         Ok(None)
     }
+}
+
+pub fn mat_to_vec<const N: u64>(
+    mat: &nalgebra::Matrix<
+        MFp<N>,
+        nalgebra::Dyn,
+        na::Const<1>,
+        nalgebra::VecStorage<MFp<N>, nalgebra::Dyn, na::Const<1>>,
+    >,
+) -> Vec<MFp<N>> {
+    assert!(mat.ncols() < 2, "cannot convet to vec mat.ncols() < 2");
+
+    let mut v: Vec<MFp<N>> = vec![];
+
+    for i in 0..mat.nrows() {
+        v.push(mat[(i, 0)]);
+    }
+
+    v
 }

@@ -1,11 +1,10 @@
 use ark_ff::{Field, PrimeField};
-use nalgebra::{DMatrix, DVector};
+use nalgebra::{Const, DMatrix, DVector, SMatrix, U1};
 use std::{path::PathBuf, u64};
 use zk_iot::*;
 
 // field finit parameter
 const P: u64 = 181;
-
 
 fn main() {
     println!("setup: -------------------------------------------------------------------");
@@ -47,7 +46,6 @@ fn main() {
     // R1(3)−R1(2)−11=0R1(3)​−R1(2)​−11=0     => R1(3) = R1(2) + 11
     // R1(4)−R1(3)/7=0                      => R1(4) = R1(3) * 1/7
 
-    
     let gates = parser(PathBuf::from("sample.txt")).unwrap();
     // ---------------------------------------
 
@@ -79,7 +77,7 @@ fn main() {
 
     // calculate proof path
     let mut pp = vec![];
-    
+
     let mut s = MFp::<P>::from(g);
     let d = d % (P - 1);
 
@@ -170,18 +168,19 @@ fn main() {
     let seq_k = generate_set_eval::<P>(generator_h, n as usize, t, set_k.len());
     let points_h = get_points_set(&seq_k, &set_k);
     let lag_h = lagrange_interpolate::<P>(&points_h);
-    
+
     println!("seq_k:\t\t{:?}", seq_k);
     println!("points_h:\t{:?}", points_h);
     println!("lag h:\t\t{:?}", lag_h);
-
 
     let a = [set_h[2], MFp::ZERO];
 
     let r = set_h[1];
 
-    let c = [(n as isize - t as isize),
-        m as isize - (n as isize - t as isize)];
+    let c = [
+        (n as isize - t as isize),
+        m as isize - (n as isize - t as isize),
+    ];
 
     let p = [0, 3];
 
@@ -193,17 +192,19 @@ fn main() {
     });
     println!("Geo Seq Test result:\t{:?}", res);
 
-
     let mut res = false;
 
     for k in set_k {
-        if let Some((_,h_gamma_k)) = points_h.iter().find(|v| v.0 == k * MFp::<P>::from(generator_k)) {
-            if let Some((_,h_k)) = points_h.iter().find(|v| v.0 == k) {
+        if let Some((_, h_gamma_k)) = points_h
+            .iter()
+            .find(|v| v.0 == k * MFp::<P>::from(generator_k))
+        {
+            if let Some((_, h_k)) = points_h.iter().find(|v| v.0 == k) {
                 if *h_gamma_k == *h_k * r {
                     res = true;
                     break;
                 }
-            } 
+            }
         }
         for (p_i, c_i) in p.iter().zip(c.iter()) {
             if k == exp_mod(generator_k, *p_i + *c_i as u64 - 1) {
@@ -213,6 +214,32 @@ fn main() {
         }
     }
 
-    
     println!("Zero Over K result:\t{:?}", res);
+
+    let seq_kh = vec![1, 56, 59, 46, 42];
+
+    let az: nalgebra::Matrix<MFp<P>, nalgebra::Dyn, Const<1>, nalgebra::VecStorage<MFp<P>, nalgebra::Dyn, Const<1>>> = &a_matrix * &z_poly;
+    
+    let bz = &b_matrix * &z_poly;
+    let cz = &c_matrix * &z_poly;
+
+    println!("Matrix Az: {}", az);
+    println!("Matrix Bz: {}", bz);
+    println!("Matrix Cz: {}", cz);
+
+    let points_za = get_points_set(&mat_to_vec::<P>(&az), &set_h);
+    println!("{:?}", points_za);
+
+    let points_zb = get_points_set(&mat_to_vec::<P>(&bz), &set_h);
+    println!("{:?}", points_zb);
+
+    let points_zc = get_points_set(&mat_to_vec::<P>(&cz), &set_h);
+    println!("{:?}", points_zc);
+
+
+    let points_za = get_points_set(&mat_to_vec::<P>(&az), &set_h);
+    println!("{:?}", points_za);
+    
+    let za = lagrange_interpolate::<P>(&points_za);
+    println!("za: {:?}", za);
 }
