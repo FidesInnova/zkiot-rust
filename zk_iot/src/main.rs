@@ -1,7 +1,7 @@
 use ark_ff::{Field, PrimeField};
-use nalgebra::{Const, DMatrix, DVector, SMatrix, U1};
-use rustnomial::Polynomial;
-use std::{path::PathBuf, process::exit, u64};
+use nalgebra::{Const, DMatrix, DVector};
+use rustnomial::{Evaluable, Polynomial};
+use std::{path::PathBuf, u64};
 use zk_iot::*;
 
 // field finit parameter
@@ -15,21 +15,24 @@ fn main() {
     let ng = 3;
     // the number of outputs
     let no = 1;
-    // the number of inputs
+    // the number of inputs or register number 
     let ni = 1;
-    // matrix size
-    let size = ng + ni + 1;
 
-    // t rows of the matrices are set to zero
+    // t rows of the matrices are set to zero 
+    // or we can use for divie set_H in AHP
+    // Actully: |x| = t
     let t = ni + 1;
 
-    // gate number
+    // generator number
     let g = 2;
 
     // d is a big u64 int
     let d = 111213119_u64;
     // according to the example, we should have this seq: 2, 2^119, 2^(119^2), ..., so we should find the exp-base which is 119.
     let l: u64 = 8;
+
+    // matrix size
+    let size = ng + ni + 1;
 
     // in the matrices, the cells are elements of the finite field P
     let mut a_matrix = DMatrix::<MFp<P>>::zeros(size, size);
@@ -42,16 +45,11 @@ fn main() {
     // R1(1)​−4=0                            => R1(1) = 4
     let r1 = MFp::<P>::from(4);
     z_poly[1] = r1;
-    // gates according to wiki example
-    // R1(2)−5R1(1)=0R1(2)​−5R1(1)​=0         => R1(2) = R1(1) * 5
-    // R1(3)−R1(2)−11=0R1(3)​−R1(2)​−11=0     => R1(3) = R1(2) + 11
-    // R1(4)−R1(3)/7=0                      => R1(4) = R1(3) * 1/7
 
     // let gates = parser(PathBuf::from("sample.txt")).unwrap();
 
     let gates = parse_from_lines(&PathBuf::from("line_num.txt"), &PathBuf::from("sample.txt")).unwrap();
     // ---------------------------------------
-    println!("gates: {:?}", gates);
 
     // A, B, C, z
     init(
@@ -68,16 +66,17 @@ fn main() {
     zero_t_rows(&mut c_matrix, t);
     let cz = (&a_matrix * &z_poly).component_mul(&(&b_matrix * &z_poly));
 
-    println!("Matrix A:");
-    print_mat(&a_matrix);
+    println!("A:");
+    mat_dsp!(&a_matrix);
 
-    println!("Matrix B:");
-    print_mat(&b_matrix);
+    println!("B:");
+    mat_dsp!(&b_matrix);
 
-    println!("Matrix C:");
-    print_mat(&c_matrix);
+    println!("C:");
+    mat_dsp!(&c_matrix);
 
-    println!("cz=\n{}", cz);
+    println!("Cz:");
+    mat_dsp!(cz);
 
     // calculate proof path
     let mut pp = vec![];
@@ -87,23 +86,23 @@ fn main() {
 
     for _ in 0..=l {
         pp.push(s);
-        s = exp_mod::<P>(s.into_bigint().0[0], d);
+        s = exp_mod::<P>(to_bint!(s), d);
     }
 
     println!();
-    println!("proof path: {:?}", pp);
+    println!("proof path:\t{}", vec_dsp!(pp));
     // Commit ===============================================================================
     println!("commit: ------------------------------------------------------------------");
     let n = 5;
     let m = 9;
 
-    let generator_h = exp_mod::<P>(g, (P - 1) / n).into_bigint().0[0];
-    let generator_k = exp_mod::<P>(g, (P - 1) / m).into_bigint().0[0];
+    let generator_h = to_bint!(exp_mod::<P>(g, (P - 1) / n));
+    let generator_k = to_bint!(exp_mod::<P>(g, (P - 1) / m));
 
     let set_h = generate_set::<P>(generator_h, n);
     let set_k = generate_set::<P>(generator_k, m);
 
-    println!("H= {:?}\nK= {:?}", set_h, set_k);
+    println!("H:\t{{ {}}}\nK:\t{{ {}}}", vec_dsp!(set_h), vec_dsp!(set_k));
 
     // A matrix --------------------------------------
     println!("A mat: =================================");
@@ -220,16 +219,21 @@ fn main() {
 
     println!("Zero Over K result:\t{:?}", res);
 
-    let seq_kh = vec![1, 56, 59, 46, 42];
+    let seq_kh = [1, 56, 59, 46, 42];
 
     let az: nalgebra::Matrix<MFp<P>, nalgebra::Dyn, Const<1>, nalgebra::VecStorage<MFp<P>, nalgebra::Dyn, Const<1>>> = &a_matrix * &z_poly;
     
     let bz = &b_matrix * &z_poly;
     let cz = &c_matrix * &z_poly;
 
-    println!("Matrix Az: {}", az);
-    println!("Matrix Bz: {}", bz);
-    println!("Matrix Cz: {}", cz);
+    println!("Matrix Az:");
+    mat_dsp!(az);
+
+    println!("Matrix Bz");
+    mat_dsp!(bz);
+
+    println!("Matrix Cz");
+    mat_dsp!(cz);
 
     let mut points_za = get_points_set(&mat_to_vec::<P>(&az), &set_h);
     println!("points_za: {:?}", points_za);
@@ -240,51 +244,122 @@ fn main() {
     let mut points_zc = get_points_set(&mat_to_vec::<P>(&cz), &set_h);
     println!("points_zc: {:?}", points_zc);
 
-    let b = 2; 
-    // push_random_points(b, &mut points_za);
-    // push_random_points(b, &mut points_zb);
-    // push_random_points(b, &mut points_zc);
+    let b = 2;
+    // push_random_points(&mut points_za, b, &vec_to_hashset(&set_h));
+    // push_random_points(&mut points_za, b, &vec_to_hashset(&set_h));
+    // push_random_points(&mut points_za, b, &vec_to_hashset(&set_h));
 
-    // for za: 
+    // random inertation for za: 
     points_za.push((MFp::<P>::from(150), MFp::<P>::from(5)));
     points_za.push((MFp::<P>::from(80), MFp::<P>::from(47)));
 
-    // for zb: 
+    // random inertation for zb: 
     points_zb.push((MFp::<P>::from(150), MFp::<P>::from(15)));
     points_zb.push((MFp::<P>::from(80), MFp::<P>::from(170)));
 
-    // for zc: 
+    // random inertation for zc: 
     points_zc.push((MFp::<P>::from(150), MFp::<P>::from(1)));
     points_zc.push((MFp::<P>::from(80), MFp::<P>::from(100)));
 
     
-    let inter_za = lagrange_interpolate::<P>(&points_za);
-    println!("^za(x): {:?}", inter_za);
+    let poly_za = lagrange_interpolate::<P>(&points_za);
+    println!("^za(x):\t{}", print_poly(&poly_za));
 
 
-    let inter_zb = lagrange_interpolate::<P>(&points_zb);
-    println!("^zb(x): {:?}", inter_zb);
+    let poly_zb = lagrange_interpolate::<P>(&points_zb);
+    println!("^zb(x):\t{}", print_poly(&poly_zb));
 
 
-    let inter_zc = lagrange_interpolate::<P>(&points_zc);
-    println!("^zb(x): {:?}", inter_zc);
+    let poly_zc = lagrange_interpolate::<P>(&points_zc);
+    println!("^zc(x):\t{}", print_poly(&poly_zc));
+
+    // H[>∣x∣]
+    let set_h_1 = &set_h[0..t].to_vec();
+
+    // H[<=∣x∣]
+    let set_h_2 = &set_h[t..].to_vec();
+
+    // x^(h):
+    let z_vec = &mat_to_vec::<P>(&z_poly);
+    let points = get_points_set(&z_vec[0..t].to_vec(), set_h_1);
+    let poly_xh = lagrange_interpolate::<P>(&points);
+    
+    // w(h): 
+    let z_vec = &mat_to_vec::<P>(&z_poly);
+    let points = get_points_set(&z_vec[t..].to_vec(), set_h_2);
+    let wh = lagrange_interpolate::<P>(&points);
+
+    // v(h): vanishing polynomial V of set h1 or H[<=∣x∣]
+    let van_poly_vh1 = vanishing_poly(set_h_1);
+
+    let mut points_w = vec![];
+    for i in set_h_2 {
+        // wˉ(h): 
+        let w_bar_h = (wh.eval(*i) - poly_xh.eval(*i)) * van_poly_vh1.eval(*i).inverse().unwrap();
+        points_w.push((*i, w_bar_h));
+    }
+    // push_random_points(&mut points_w, b, &vec_to_hashset(&set_h));
+
+    // insert random points for wˉ(h)
+    // push_random_points(&mut points_w, b, &vec_to_hashset(&set_h));
+
+    points_w.push((MFp::<P>::from(150), MFp::<P>::from(42)));
+    points_w.push((MFp::<P>::from(80), MFp::<P>::from(180)));
+
+    let poly_wh = lagrange_interpolate::<P>(&points_w);
+
+    println!("w_hat:\t{}", print_poly(&poly_wh));
+
+    // h_zero
+    let vh_div = vanishing_poly(&set_h);
+    let poly_hz = (&poly_za * &poly_zb - &poly_zc).div_mod(&vh_div);
+    
+    println!("h0(x):\t{}", print_poly(&poly_hz.0));
 
 
-    // println!("hx: {:?}", get_poly::<P>((1,1), (59, 4))); 
+    // random polynomial
+    // let poly_sx = poly_gen_randomly::<P>((2 * set_h.len()) + b - 1);
+    let poly_sx = [5, 0, 101, 17, 0, 1, 20, 0, 0, 3, 115];
+    let poly_sx = poly_sx.iter().map(|v| MFp::<P>::from(*v)).collect::<Vec<MFp<P>>>();
+    let poly_sx = Polynomial::from(poly_sx);
+    
+    let sig_1 = set_h.iter().fold(MFp::ZERO, |acc, &v| acc + poly_sx.eval(v));
+    println!("sig:\t{}", sig_1);
+    
+    // all genrate radomnly in F
+    // let alpha = MFp::<P>::from(thread_rng().gen_range(0..P));
+    // let eta_a = MFp::<P>::from(thread_rng().gen_range(0..P));
+    // let eta_b = MFp::<P>::from(thread_rng().gen_range(0..P));
+    // let eta_c = MFp::<P>::from(thread_rng().gen_range(0..P));
+
+    let alpha = MFp::<P>::from(10);
+    let eta_a = MFp::<P>::from(2);
+    let eta_b = MFp::<P>::from(30);
+    let eta_c = MFp::<P>::from(100);
+
+    // Z^(x):
+    let poly_z_hat_x = poly_wh * van_poly_vh1 + poly_xh; 
+    
+    // ∑ η​z​(x):
+    let sigma_eta_z_x = Polynomial::new(vec![eta_a]) * &poly_za +
+                        Polynomial::new(vec![eta_b]) * &poly_zb + 
+                        Polynomial::new(vec![eta_c]) * &poly_zc;
+    println!("sigma eta zx:\t{}", print_poly(&sigma_eta_z_x));
+
+    // ∑ ηr(α,x): INCOMPLETE
+    let sigma_eta_r = Polynomial::new(vec![eta_a])     +
+                      Polynomial::new(vec![eta_b])     + 
+                      Polynomial::new(vec![eta_c]);
+
+    let poly_r = r_func(alpha, set_h.len());
+    println!("r:\t{}", print_poly(&(poly_r)));
+    println!("r * sigma:\t{}", print_poly(&(&poly_r * &sigma_eta_z_x)));
+    
+    // Sum Check Protocol Formula:
+    // TOTALLY INCOMPLETE
+     let poly_scp = poly_sx 
+                    + poly_r * sigma_eta_z_x 
+                    - poly_z_hat_x * sigma_eta_r;
+
 
 }
-
-
-fn push_random_points<const N: u64>(b: u64, points: &mut Vec<(MFp<N>, MFp<N>)>) {
-
-}
-
-// fn get_poly<const N: u64>((x1, x2): (i64, i64), (y1, y2): (i64, i64)) -> Polynomial<MFp<N>> {
-//     let m = (y2 - y1) / (x2 - x1);
-
-//     let poly: Polynomial<MFp<N>> = Polynomial::new(vec![MFp::ONE, MFp::ZERO]);
-
-//     let y = Polynomial::new(vec![MFp::from(m)]) * (poly - Polynomial::new(vec![MFp::from(x1)])) + Polynomial::new(vec![MFp::from(y1)]);
-
-//     y
-// }

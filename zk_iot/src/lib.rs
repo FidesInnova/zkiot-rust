@@ -1,5 +1,5 @@
-// incomplete ZKP scheme with "nalgebra" lib
-// initializes and partially fills matrices A, B, C
+//! incomplete ZKP scheme with "nalgebra" lib
+
 extern crate nalgebra as na;
 use anyhow::{anyhow, Result};
 use ark_ff::Fp64;
@@ -9,8 +9,9 @@ use ark_ff::{
 };
 use ark_ff::{Field, PrimeField};
 use na::{DMatrix, DVector};
-use rustnomial::{Degree, Polynomial, SizedPolynomial};
-use std::io::Read;
+use rand::{thread_rng, Rng};
+use rustnomial::{Degree, FreeSizePolynomial, Polynomial, SizedPolynomial};
+use std::collections::HashSet;
 use std::u64;
 use std::{
     fs::File,
@@ -18,6 +19,8 @@ use std::{
     ops::Neg,
     path::PathBuf,
 };
+
+const P: u64 = 181;
 
 pub struct P64MontConfig<const N: u64>;
 impl<const N: u64> MontConfig<1> for P64MontConfig<N> {
@@ -115,21 +118,89 @@ pub fn exp_mod<const N: u64>(g: u64, exp: u64) -> MFp<N> {
     res
 }
 
-pub fn print_mat<const N: u64>(mat: &DMatrix<MFp<N>>) {
-    for i in 0..mat.nrows() {
-        for j in 0..mat.ncols() {
-            let derr = mat[(i, j)];
-            print!(
-                "{}\t",
-                if derr == MFp::ZERO {
-                    "0".to_owned()
-                } else {
-                    format!("{}", derr)
-                }
-            );
+
+pub fn r_func<const N: u64>(alpha: MFp<N>, exp: usize) -> Polynomial<MFp<N>> {
+    let mut de = Polynomial::new(vec![exp_mod(to_bint!(alpha), exp as u64)]);
+    de.add_term(-MFp::<N>::ONE, exp);
+
+    let mut fr = Polynomial::new(vec![alpha]);
+    fr.add_term(-MFp::<N>::ONE, 1);
+
+    de.div_mod(&fr).0
+}
+
+#[macro_export]
+macro_rules! mat_dsp {
+    ($mat: expr) => {
+        for i in 0..$mat.nrows() {
+            for j in 0..$mat.ncols() {
+                let derr = $mat[(i, j)];
+                print!(
+                    "{}\t",
+                    if derr == MFp::ZERO {
+                        "0".to_owned()
+                    } else {
+                        format!("{}", derr)
+                    }
+                );
+            }
+            println!();
         }
         println!();
+    };
+}
+
+#[macro_export]
+macro_rules! vec_dsp {
+    ($ve: expr) => {
+        $ve.iter()
+            .fold(String::new(), |acc, x| acc + &format!("{}, ", *x))
+    };
+}
+
+#[macro_export]
+macro_rules! to_bint {
+    ($var: expr) => {
+        ($var).into_bigint().0[0]
+    };
+}
+
+#[macro_export]
+macro_rules! poly_dsp {
+    ($poly:expr) => {{
+        let mut result = String::new();
+        for (i, term) in $poly.terms.iter().enumerate() {
+            if i > 0 {
+                result.push_str(" + ");
+            }
+            result.push_str(&format!("{}x^{}", term, i));
+        }
+        result
+    }};
+}
+
+pub fn print_poly<const N: u64>(p: &Polynomial<MFp<N>>) -> String {
+    let mut result = String::new();
+    if let Degree::Num(deg) = p.degree() {
+        for (i, term) in p.terms.iter().enumerate() {
+            if *term != MFp::ZERO {
+                if i != 0 {
+                    result.push_str(" + ");
+                }
+                if *term == MFp::ONE {
+                    result.push_str(&format!("x^{}", deg - i));
+                } else if deg - i == 0 {
+                    result.push_str(&format!("{}", term));
+                } else if deg - i == 1 {
+                    result.push_str(&format!("{}x", term));
+                } else {
+                    result.push_str(&format!("{}x^{}", term, deg - i));
+                }
+            }
+        }
     }
+
+    result
 }
 
 pub fn lagrange_interpolate<const N: u64>(points: &Vec<(MFp<N>, MFp<N>)>) -> Polynomial<MFp<N>> {
@@ -294,19 +365,18 @@ fn read_parse_lines(reader: BufReader<File>) -> Result<Vec<Gate>> {
 
     for (index, line_result) in reader.lines().enumerate() {
         let line = line_result?;
-        if let Some((operation, operands)) = parse_line(&line, index)? {
-            // let gate_type = gate_type(operation)?;
-            let gate_type = gate_type(operation);
-            if let Err(ref e) = gate_type { 
-                // return Err(e);
-                eprintln!("{}", e);
-                continue;
-            }
-
-            let constant = operands.get(2).unwrap().parse::<u64>()?;
-            let gate = Gate::new(index + 1, 0, None, Some(constant), gate_type?);
-            gates.push(gate);
+        let (operation, operands) = parse_line(&line, index)?;
+        // let gate_type = gate_type(operation)?;
+        let gate_type = gate_type(operation);
+        if let Err(ref e) = gate_type {
+            // return Err(e);
+            eprintln!("{}", e);
+            continue;
         }
+
+        let constant = operands.get(2).unwrap().parse::<u64>()?;
+        let gate = Gate::new(index + 1, 0, None, Some(constant), gate_type?);
+        gates.push(gate);
     }
 
     Ok(gates)
@@ -316,20 +386,20 @@ fn gate_type(op: &str) -> Result<GateType> {
     match op {
         "mul" => Ok(GateType::Mul),
         "addi" => Ok(GateType::Add),
-        _ => Err(anyhow!("operation is not support: {}", op))
+        _ => Err(anyhow!("operation is not support: {}", op)),
     }
 }
 
-fn parse_line(line: &str, index: usize) -> Result<Option<(&str, Vec<&str>)>> {
-    let parts: Vec<&str> = line.split_whitespace().collect();
-    if parts.len() >= 4 {
-        let operation = *parts
-            .get(2)
-            .ok_or_else(|| anyhow!("Operation not found in line {}", index + 1))?;
-        let operands: Vec<&str> = parts.get(3).unwrap().split(',').collect();
-        Ok(Some((operation, operands)))
+fn parse_line(line: &str, index: usize) -> Result<(&str, Vec<&str>)> {
+    let parts: Vec<&str> = line
+        .trim()
+        .split(&[',', ' '])
+        .filter(|s| !s.trim().is_empty())
+        .collect();
+    if parts.len() >= 6 {
+        Ok((parts[2], parts[3..].to_vec()))
     } else {
-        Ok(None)
+        Err(anyhow!("a problem occurred in line {}", index))
     }
 }
 
@@ -361,18 +431,89 @@ pub fn parse_from_lines(line_file: &PathBuf, opcodes_file: &PathBuf) -> Result<V
         let line_num = line.unwrap().trim().parse::<usize>().unwrap();
         let gates_file = open_file(opcodes_file).unwrap();
         let line = gates_file.lines().nth(line_num - 1).unwrap().unwrap();
-        if let Some((operation, operands)) = parse_line(&line, line_num).unwrap() {
-            let gate_type = gate_type(operation);
-            if let Err(ref e) = gate_type { 
-                // return Err(e);
-                eprintln!("{}", e);
-                continue;
-            }
-            let constant = operands.get(2).unwrap().parse::<u64>().unwrap();
-            let gate = Gate::new(line_num, 0, None, Some(constant), gate_type.unwrap());
-            gates.push(gate);
+        let (operation, operands) = parse_line(&line, line_num).unwrap();
+        let gate_type = gate_type(operation);
+        if let Err(ref e) = gate_type {
+            // return Err(e);
+            eprintln!("Error: {}", e);
+            continue;
         }
+        let constant = operands.get(2).unwrap().parse::<u64>().unwrap();
+        let gate = Gate::new(line_num, 0, None, Some(constant), gate_type.unwrap());
+        gates.push(gate);
     }
 
     Ok(gates)
+}
+
+pub fn push_random_points<const N: u64>(
+    points: &mut Vec<(MFp<N>, MFp<N>)>,
+    b: u64,
+    set_h: &HashSet<MFp<N>>,
+) {
+    let mut rng = thread_rng();
+    for _ in 0..b {
+        let d = gen_rand_not_in_set(set_h);
+        let r = MFp::<N>::from(rng.gen_range(0..N));
+        points.push((d, r));
+    }
+}
+
+pub fn vec_to_hashset<const N: u64>(vec: &Vec<MFp<N>>) -> HashSet<MFp<N>> {
+    vec.iter().cloned().collect()
+}
+
+pub fn gen_rand_not_in_set<const N: u64>(set: &HashSet<MFp<N>>) -> MFp<N> {
+    let mut rng = rand::thread_rng();
+    let mut num;
+
+    loop {
+        num = MFp::<N>::from(rng.gen_range(0..N));
+        if !set.contains(&num) {
+            break;
+        }
+    }
+
+    num
+}
+
+pub fn vanishing_poly<const N: u64>(set: &Vec<MFp<N>>) -> Polynomial<MFp<N>> {
+    let mut vp = Polynomial::new(vec![MFp::ONE]);
+
+    for i in set {
+        vp *= Polynomial::new(vec![MFp::ONE, MFp::ZERO]) - Polynomial::new(vec![*i]);
+    }
+
+    vp
+}
+
+pub fn poly_gen_randomly<const N: u64>(deg: usize) -> Polynomial<MFp<N>> {
+    let mut rng = rand::thread_rng();
+    let mut poly = vec![];
+
+    for _ in 0..deg {
+        poly.push(MFp::<N>::from(rng.gen_range(0..N)));
+    }
+
+    Polynomial::new(poly)
+}
+
+#[cfg(test)]
+mod parser_test {
+    use crate::parse_line;
+
+    #[test]
+    fn parse_line_func() {
+        let line1 = "40380552:       02f407b3                mul     a1,s0,5";
+        let line2 = "40380552:       02f407b3                mul     a1, s0, 5";
+        let line3 = "40380552:       02f407b3                mul     a1  ,  s0  ,  5  ";
+
+        let parse1 = parse_line(line1, 1).unwrap();
+        let parse2 = parse_line(line2, 2).unwrap();
+        let parse3 = parse_line(line3, 3).unwrap();
+
+        assert_eq!(parse1, ("mul", ["a1", "s0", "5"].to_vec()));
+        assert_eq!(parse2, ("mul", ["a1", "s0", "5"].to_vec()));
+        assert_eq!(parse3, ("mul", ["a1", "s0", "5"].to_vec()));
+    }
 }
