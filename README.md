@@ -1,8 +1,7 @@
 # zk-IoT
 
 ## Overview
-
-The `zk-IoT` project focuses on a function-hiding functional commitment zero-knowledge proof (ZKP) scheme. This scheme is composed of a tuple `(Setup, Commit, Eval)` and leverages the following three core protocols:
+In this page, we will review function-hiding functional commitment zero-knowledge proof (ZKP) scheme. This scheme is a tuple `(Setup, Commit, Eval)` that utilizes three protocols:
 
 1. **Polynomial Commitment Scheme**
 2. **Proof of Function Relation (PFR)**
