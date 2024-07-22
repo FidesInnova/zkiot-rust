@@ -89,15 +89,7 @@ pub fn init(
 
 pub fn exp_mod(a: u64, b: u64) -> Mfp
 {
-    if b == 0 {
-        return Mfp::ONE;
-    }
-    let mut c = exp_mod(a, b/2);
-    c = c * c;
-    if b % 2 == 1 {
-        c *= Mfp::from(a);
-    }
-    c
+    Mfp::from(a).pow(&[b])
 }
 
 pub fn poly_div(coeff: Mfp, degree: usize) -> Polynomial<Mfp> {

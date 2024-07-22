@@ -1,7 +1,7 @@
 use ark_ff::{Field, PrimeField};
 use nalgebra::{Const, DMatrix, DVector};
 use parser::parse_from_lines;
-use rustnomial::{Evaluable, FreeSizePolynomial, Polynomial};
+use rustnomial::{Evaluable, Polynomial};
 use std::{path::PathBuf, u64};
 use zk_iot::*;
 
