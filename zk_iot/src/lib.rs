@@ -7,43 +7,18 @@ use ark_ff::{Field, PrimeField};
 use na::{DMatrix, DVector};
 use rand::{thread_rng, Rng};
 use rustnomial::{Degree, FreeSizePolynomial, Polynomial, SizedPolynomial};
+use utils::{Gate, GateType};
 use std::collections::HashSet;
 use std::ops::Neg;
 
 const P: u64 = 181;
 field!(Mfp, P);
 
-#[derive(Debug, Clone, Copy)]
-pub enum GateType {
-    Add,
-    Mul,
-}
+pub type Poly = Polynomial<Mfp>;
+pub type Poly2d = (Poly, Poly);
 
-#[derive(Debug)]
-pub struct Gate {
-    pub inx_left: usize,
-    pub inx_right: usize,
-    pub val_left: Option<u64>,
-    pub val_right: Option<u64>,
-    pub gate_type: GateType,
-}
-impl Gate {
-    pub fn new(
-        l: usize,
-        r: usize,
-        val_left: Option<u64>,
-        val_right: Option<u64>,
-        gtype: GateType,
-    ) -> Self {
-        Self {
-            inx_left: l,
-            inx_right: r,
-            val_left,
-            val_right,
-            gate_type: gtype,
-        }
-    }
-}
+pub type Point = (Mfp, Mfp);
+pub type Point2d = (Point, Mfp);
 
 pub fn rows_to_zero(mat: &mut DMatrix<Mfp>, t: usize) {
     for i in 0..t {
@@ -92,7 +67,7 @@ pub fn exp_mod(a: u64, b: u64) -> Mfp
     Mfp::from(a).pow(&[b])
 }
 
-pub fn poly_div(coeff: Mfp, degree: usize) -> Polynomial<Mfp> {
+pub fn poly_div(coeff: Mfp, degree: usize) -> Poly {
     let mut numerator = Polynomial::new(vec![exp_mod(to_bint!(coeff), degree as u64)]);
     numerator.add_term(-Mfp::ONE, degree);
 
@@ -102,15 +77,15 @@ pub fn poly_div(coeff: Mfp, degree: usize) -> Polynomial<Mfp> {
     numerator.div_mod(&denominator).0
 }
 
-pub fn lagrange_interpolate(points: &Vec<(Mfp, Mfp)>) -> Polynomial<Mfp> {
-    let mut poly_res: Polynomial<Mfp> = Polynomial::new(vec![Mfp::ZERO]);
+pub fn lagrange_interpolate(points: &Vec<Point>) -> Poly {
+    let mut poly_res: Poly = Polynomial::new(vec![Mfp::ZERO]);
 
     for (x_i, y_i) in points.iter() {
-        let mut poly_nume_all: Polynomial<Mfp> = Polynomial::new(vec![Mfp::ONE]);
+        let mut poly_nume_all: Poly = Polynomial::new(vec![Mfp::ONE]);
         let mut poly_deno_all = Mfp::ONE;
         for (x_j, _) in points.iter() {
             if x_i != x_j {
-                let poly_nume: Polynomial<Mfp> =
+                let poly_nume: Poly =
                     Polynomial::new(vec![Mfp::ONE, Mfp::from(*x_j).neg()]);
                 let poly_deno = Mfp::from(*x_i) - Mfp::from(*x_j);
 
@@ -129,7 +104,7 @@ pub fn generate_set(ms_gen: u64, len: u64) -> Vec<Mfp> {
     (0..len).map(|i| exp_mod(ms_gen, i)).collect()
 }
 
-pub fn commit(o: Vec<Polynomial<Mfp>>, d: u64, g: u64) -> Vec<Mfp> {
+pub fn commit(o: Vec<Poly>, d: u64, g: u64) -> Vec<Mfp> {
     let mut res = vec![];
 
     for poly in o {
@@ -157,9 +132,9 @@ pub fn commit(o: Vec<Polynomial<Mfp>>, d: u64, g: u64) -> Vec<Mfp> {
     res
 }
 
-define_get_points_fn!(get_points_row, "row");
-define_get_points_fn!(get_points_col, "col");
-define_get_points_fn!(get_points_val, "val");
+define_get_points_fn!(get_points_row, row);
+define_get_points_fn!(get_points_col, col);
+define_get_points_fn!(get_points_val, val);
 
 
 pub fn generate_set_eval(ms_gen: u64, n: usize, t: usize, len: usize) -> Vec<Mfp> {
@@ -179,12 +154,12 @@ pub fn generate_set_eval(ms_gen: u64, n: usize, t: usize, len: usize) -> Vec<Mfp
     set
 }
 
-pub fn get_points_set(seq_k: &Vec<Mfp>, k: &Vec<Mfp>) -> Vec<(Mfp, Mfp)> {
-    let mut points: Vec<(Mfp, Mfp)> = vec![];
+pub fn get_points_set(seq: &Vec<Mfp>, n: &Vec<Mfp>) -> Vec<Point> {
+    let mut points: Vec<Point> = vec![];
 
-    assert!(seq_k.len() == k.len(), "sets are not equal");
+    assert!(seq.len() == n.len(), "sets are not equal");
 
-    for point in k.iter().zip(seq_k.iter()) {
+    for point in n.iter().zip(seq.iter()) {
         points.push((*point.0, *point.1));
     }
     points
@@ -210,7 +185,7 @@ pub fn mat_to_vec(
 }
 
 pub fn push_random_points(
-    points: &mut Vec<(Mfp, Mfp)>,
+    points: &mut Vec<Point>,
     b: u64,
     set_h: &HashSet<Mfp>,
 ) {
@@ -239,7 +214,7 @@ pub fn gen_rand_not_in_set(set: &HashSet<Mfp>) -> Mfp {
     num
 }
 
-pub fn vanishing_poly(set: &Vec<Mfp>) -> Polynomial<Mfp> {
+pub fn vanishing_poly(set: &Vec<Mfp>) -> Poly {
     let mut vp = Polynomial::new(vec![Mfp::ONE]);
 
     for i in set {
@@ -249,7 +224,7 @@ pub fn vanishing_poly(set: &Vec<Mfp>) -> Polynomial<Mfp> {
     vp
 }
 
-pub fn poly_gen_randomly(deg: usize) -> Polynomial<Mfp> {
+pub fn poly_gen_randomly(deg: usize) -> Poly {
     let mut rng = rand::thread_rng();
     let mut poly = vec![];
 
@@ -260,6 +235,44 @@ pub fn poly_gen_randomly(deg: usize) -> Polynomial<Mfp> {
     Polynomial::new(poly)
 }
 
+
+pub fn lagrange_interpolate_2d(points_2d: &Vec<Point2d>) -> Poly2d {
+    let mut poly_res_y: Poly = Polynomial::new(vec![Mfp::ZERO]);
+    let mut poly_res_x: Poly = Polynomial::new(vec![Mfp::ZERO]);
+    
+    let points_x: Vec<Point> = points_2d.iter()
+        .map(|((x, _), fxy)| (*x, *fxy))
+        .collect();
+    
+    let points_y: Vec<Point> = points_2d.iter()
+        .map(|((_, y), fxy)| (*y, *fxy))
+        .collect();
+
+    let lagrange_x = lagrange_interpolate(&points_x);
+    let lagrange_y = lagrange_interpolate(&points_y);
+
+    poly_res_x += lagrange_x;
+    poly_res_y += lagrange_y;
+
+    poly_res_x.trim();
+    poly_res_y.trim();
+
+    (poly_res_y, poly_res_x)
+}
+
+pub fn get_2d_points(mat: &DMatrix<Mfp>, h: &Vec<Mfp>) ->  Vec<Point2d> {
+    let mut res = vec![];
+    
+    for i in 0..mat.nrows() {
+        for j in 0..mat.ncols() {
+            if mat[(i, j)] != Mfp::ZERO {
+                res.push(((h[i], h[j]), mat[(i, j)]));
+            }
+        }
+    }
+    
+    res
+}
 
 #[cfg(test)]
 mod math_test {

@@ -68,16 +68,16 @@ fn main() {
     let cz = (&a_matrix * &z_poly).component_mul(&(&b_matrix * &z_poly));
 
     println!("A:");
-    mat_dsp!(&a_matrix);
+    dsp_mat!(&a_matrix);
 
     println!("B:");
-    mat_dsp!(&b_matrix);
+    dsp_mat!(&b_matrix);
 
     println!("C:");
-    mat_dsp!(&c_matrix);
+    dsp_mat!(&c_matrix);
 
     println!("Cz:");
-    mat_dsp!(cz);
+    dsp_mat!(cz);
 
     // calculate proof path
     let mut pp = vec![];
@@ -91,7 +91,7 @@ fn main() {
     }
 
     println!();
-    println!("proof path:\t( {} )", vec_dsp!(pp));
+    println!("proof path:\t( {} )", dsp_vec!(pp));
     // Commit ===============================================================================
     println!("\ncommit: ------------------------------------------------------------------");
     let n = 5;
@@ -103,24 +103,24 @@ fn main() {
     let set_h = generate_set(generator_h, n);
     let set_k = generate_set(generator_k, m);
 
-    println!("H:\t{{ {} }}\nK:\t{{ {} }}", vec_dsp!(set_h), vec_dsp!(set_k));
+    println!("H:\t{{ {} }}\nK:\t{{ {} }}", dsp_vec!(set_h), dsp_vec!(set_k));
 
     // A matrix --------------------------------------
     println!("A mat: =================================");
     let points = get_points_row(&a_matrix, &set_h, &set_k);
     let a_row = lagrange_interpolate(&points);
     println!("lag row:");
-    poly_dsp!(a_row);
+    dsp_poly!(a_row);
 
     let points = get_points_col(&a_matrix, &set_h, &set_k);
     let a_col = lagrange_interpolate(&points);
     println!("lag col:");
-    poly_dsp!(a_col);
+    dsp_poly!(a_col);
     
     let points = get_points_val(&a_matrix, &set_h, &set_h);
     let a_val = lagrange_interpolate(&points);
     println!("lag val:");
-    poly_dsp!(a_val);
+    dsp_poly!(a_val);
 
     let a_matrix_encode = vec![a_row, a_col, a_val];
     // ---------------------------------------
@@ -130,17 +130,17 @@ fn main() {
     let points = get_points_row(&b_matrix, &set_h, &set_k);
     let b_row = lagrange_interpolate(&points);
     println!("lag row:");
-    poly_dsp!(b_row);
+    dsp_poly!(b_row);
 
     let points = get_points_col(&b_matrix, &set_h, &set_k);
     let b_col = lagrange_interpolate(&points);
     println!("lag col:");
-    poly_dsp!(b_col);
+    dsp_poly!(b_col);
 
     let points = get_points_val(&b_matrix, &set_h, &set_h);
     let b_val = lagrange_interpolate(&points);
     println!("lag val:");
-    poly_dsp!(b_val);
+    dsp_poly!(b_val);
 
     let b_matrix_encode = vec![b_row, b_col, b_val];
     // ---------------------------------------
@@ -150,17 +150,17 @@ fn main() {
     let points = get_points_row(&c_matrix, &set_h, &set_k);
     let c_row = lagrange_interpolate(&points);
     println!("lag row:");
-    poly_dsp!(c_row);
+    dsp_poly!(c_row);
 
     let points = get_points_col(&c_matrix, &set_h, &set_k);
     let c_col = lagrange_interpolate(&points);
     println!("lag col:");
-    poly_dsp!(c_col);
+    dsp_poly!(c_col);
 
     let points = get_points_val(&c_matrix, &set_h, &set_h);
     let c_val = lagrange_interpolate(&points);
     println!("lag val:");
-    poly_dsp!(c_val);
+    dsp_poly!(c_val);
     
     let c_matrix_encode = vec![c_row, c_col, c_val];
     // ---------------------------------------
@@ -172,7 +172,7 @@ fn main() {
     o_i.extend(c_matrix_encode);
 
     let c = commit(o_i, d, g);
-    println!("commit:\t( {} )", vec_dsp!(c));
+    println!("commit:\t( {} )", dsp_vec!(c));
 
     // Eval =================================================================================
     println!("\neval: --------------------------------------------------------------------");
@@ -181,7 +181,7 @@ fn main() {
     let lag_h = lagrange_interpolate(&points_h);
 
     println!("lag h:");
-    poly_dsp!(lag_h);
+    dsp_poly!(lag_h);
 
     let a = [set_h[2], Mfp::ZERO];
 
@@ -234,13 +234,13 @@ fn main() {
     let cz = &c_matrix * &z_poly;
 
     println!("Matrix Az:");
-    mat_dsp!(az);
+    dsp_mat!(az);
 
     println!("Matrix Bz");
-    mat_dsp!(bz);
+    dsp_mat!(bz);
 
     println!("Matrix Cz");
-    mat_dsp!(cz);
+    dsp_mat!(cz);
 
     let mut points_za = get_points_set(&mat_to_vec(&az), &set_h);
     let mut points_zb = get_points_set(&mat_to_vec(&bz), &set_h);
@@ -266,16 +266,16 @@ fn main() {
     
     let poly_za = lagrange_interpolate(&points_za);
     println!("^za(x):");
-    poly_dsp!(poly_za);
+    dsp_poly!(poly_za);
 
     let poly_zb = lagrange_interpolate(&points_zb);
     println!("^zb(x):");
-    poly_dsp!(poly_zb);
+    dsp_poly!(poly_zb);
 
 
     let poly_zc = lagrange_interpolate(&points_zc);
     println!("^zc(x):");
-    poly_dsp!(poly_zc);
+    dsp_poly!(poly_zc);
 
 
     // H[>∣x∣]
@@ -287,7 +287,7 @@ fn main() {
     // x^(h):
     let z_vec = &mat_to_vec(&z_poly);
     let points = get_points_set(&z_vec[0..t].to_vec(), set_h_1);
-    let poly_xh = lagrange_interpolate(&points);
+    let poly_x_hat = lagrange_interpolate(&points);
     
     // w(h): 
     let z_vec = &mat_to_vec(&z_poly);
@@ -300,7 +300,7 @@ fn main() {
     let mut points_w = vec![];
     for i in set_h_2 {
         // wˉ(h): 
-        let w_bar_h = (wh.eval(*i) - poly_xh.eval(*i)) * van_poly_vh1.eval(*i).inverse().unwrap();
+        let w_bar_h = (wh.eval(*i) - poly_x_hat.eval(*i)) * van_poly_vh1.eval(*i).inverse().unwrap();
         points_w.push((*i, w_bar_h));
     }
     // push_random_points(&mut points_w, b, &vec_to_hashset(&set_h));
@@ -314,14 +314,14 @@ fn main() {
     let poly_wh = lagrange_interpolate(&points_w);
 
     println!("w_hat:");
-    poly_dsp!(poly_zc);
+    dsp_poly!(poly_zc);
 
     // h_zero
     let vh_div = vanishing_poly(&set_h);
     let poly_hz = (&poly_za * &poly_zb - &poly_zc).div_mod(&vh_div);
     
     println!("h0(x):");
-    poly_dsp!(poly_hz.0);
+    dsp_poly!(poly_hz.0);
 
     // random polynomial
     // let poly_sx = poly_gen_randomly((2 * set_h.len()) + b - 1);
@@ -344,32 +344,51 @@ fn main() {
     let eta_c = Mfp::from(100);
 
     // Z^(x):
-    let poly_z_hat_x = poly_wh * van_poly_vh1 + poly_xh; 
+    let poly_z_hat_x = poly_wh * van_poly_vh1 + poly_x_hat; 
     
     // ∑ η​z​(x):
     let sigma_eta_z_x = Polynomial::new(vec![eta_a]) * &poly_za +
                         Polynomial::new(vec![eta_b]) * &poly_zb + 
                         Polynomial::new(vec![eta_c]) * &poly_zc;
     println!("sigma eta zx:");
-    poly_dsp!(sigma_eta_z_x);
+    dsp_poly!(sigma_eta_z_x);
+
+    
+    let poly_r = poly_div(alpha, set_h.len());
+    println!("r:");
+    dsp_poly!(poly_r);
+
+    println!("r * sigma:");
+    dsp_poly!((&poly_r * &sigma_eta_z_x));
+
+
+    
+    let points_2d = get_2d_points(&a_matrix, &set_h);
+    let poly_2d_mat_a = lagrange_interpolate_2d(&points_2d);
+    println!("{:?}", poly_2d_mat_a);
+
+
+    let points_2d = get_2d_points(&b_matrix, &set_h);
+    let poly_2d_mat_b = lagrange_interpolate_2d(&points_2d);
+    println!("{:?}", poly_2d_mat_b);
+
+    let points_2d = get_2d_points(&c_matrix, &set_h);
+    let poly_2d_mat_c = lagrange_interpolate_2d(&points_2d);
+    println!("{:?}", poly_2d_mat_c);
+
 
     // ∑ ηr(α,x): INCOMPLETE
     let sigma_eta_r = Polynomial::new(vec![eta_a])     +
                       Polynomial::new(vec![eta_b])     + 
                       Polynomial::new(vec![eta_c]);
 
-    let poly_r = poly_div(alpha, set_h.len());
-    println!("r:");
-    poly_dsp!(poly_r);
-
-    println!("r * sigma:");
-    poly_dsp!((&poly_r * &sigma_eta_z_x));
 
     // Sum Check Protocol Formula:
     // TOTALLY INCOMPLETE
-     let poly_scp = poly_sx 
-                    + poly_r * sigma_eta_z_x 
-                    - poly_z_hat_x * sigma_eta_r;
-
-
+    let poly_scp = poly_sx // s(x) 
+                    + poly_r * sigma_eta_z_x // r(a)*sigma 
+                    - &poly_z_hat_x * sigma_eta_r; // sigma*z_hat
+    
+    // println!("scp: ");
+    // dsp_poly!(poly_scp);
 }

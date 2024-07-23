@@ -1,5 +1,39 @@
 
 
+#[derive(Debug, Clone, Copy)]
+pub enum GateType {
+    Add,
+    Mul,
+}
+
+#[derive(Debug)]
+pub struct Gate {
+    pub inx_left: usize,
+    pub inx_right: usize,
+    pub val_left: Option<u64>,
+    pub val_right: Option<u64>,
+    pub gate_type: GateType,
+}
+impl Gate {
+    pub fn new(
+        l: usize,
+        r: usize,
+        val_left: Option<u64>,
+        val_right: Option<u64>,
+        gtype: GateType,
+    ) -> Self {
+        Self {
+            inx_left: l,
+            inx_right: r,
+            val_left,
+            val_right,
+            gate_type: gtype,
+        }
+    }
+}
+
+
+
 #[macro_export]
 macro_rules! field {
     ($name:ident, $num:expr) => {
@@ -17,26 +51,24 @@ macro_rules! field {
 }
 
 
-
 #[macro_export]
 macro_rules! get_val {
-    (row, $h:expr, $i:expr) => {
+    (row, $h:expr, $_:expr, $i:expr, $j:expr) => {
         $h[$i]
     };
-    (col, $h:expr, $j:expr) => {
+    (col, $h:expr, $_:expr, $i:expr, $j:expr)=> {
         $h[$j]
     };
-    (val, $mat:expr, $i:expr, $j:expr) => {
+    (val, $_:expr, $mat:expr, $i:expr, $j:expr) => {
         $mat[($i, $j)]
-    };
-    () => {
-        panic!("Invalid parameter")
     };
 }
 
 #[macro_export]
 macro_rules! define_get_points_fn {
-    ($name:ident, $value:expr) => {
+    ($name:ident, $mode:ident) => {
+
+        #[allow(unused_variables)]
         pub fn $name(
             mat: &DMatrix<Mfp>,
             h: &Vec<Mfp>,
@@ -48,12 +80,7 @@ macro_rules! define_get_points_fn {
             for i in 0..mat.nrows() {
                 for j in 0..mat.ncols() {
                     if mat[(i, j)] != Mfp::ZERO {
-                        let value = match $value {
-                            "row" => get_val!(row, h, i),
-                            "col" => get_val!(col, h, j),
-                            "val" => get_val!(val, mat, i, j),
-                            _ => get_val!(),
-                        };
+                        let value = get_val!($mode, h, mat, i, j);
                         points.push((k[c], value));
                         c += 1;
                     }
@@ -66,7 +93,15 @@ macro_rules! define_get_points_fn {
 
 
 #[macro_export]
-macro_rules! mat_dsp {
+macro_rules! to_bint {
+    ($var: expr) => {
+        ($var).into_bigint().0[0]
+    };
+}
+
+
+#[macro_export]
+macro_rules! dsp_mat {
     ($mat: expr) => {
         for i in 0..$mat.nrows() {
             for j in 0..$mat.ncols() {
@@ -87,7 +122,7 @@ macro_rules! mat_dsp {
 }
 
 #[macro_export]
-macro_rules! vec_dsp {
+macro_rules! dsp_vec {
     ($ve: expr) => {{
         let mut result = String::new();
 
@@ -104,14 +139,7 @@ macro_rules! vec_dsp {
 }
 
 #[macro_export]
-macro_rules! to_bint {
-    ($var: expr) => {
-        ($var).into_bigint().0[0]
-    };
-}
-
-#[macro_export]
-macro_rules! poly_dsp {
+macro_rules! dsp_poly {
     ($poly:expr) => {{
         use std::io::Write;
         use rustnomial::{SizedPolynomial, Degree};
