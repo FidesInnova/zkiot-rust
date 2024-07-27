@@ -1,8 +1,9 @@
 use ark_ff::{Field, PrimeField};
 use nalgebra::{Const, DMatrix, DVector};
 use parser::parse_from_lines;
-use rustnomial::{Evaluable, Polynomial};
-use std::{path::PathBuf, u64};
+use rand::thread_rng;
+use rustnomial::{Evaluable, FreeSizePolynomial, Polynomial};
+use std::{collections::HashMap, path::PathBuf, u64};
 use zk_iot::*;
 
 // field finit parameter
@@ -204,7 +205,7 @@ fn main() {
 
     let mut res = false;
 
-    for k in set_k {
+    for &k in &set_k {
         if let Some((_, h_gamma_k)) = points_h
             .iter()
             .find(|v| v.0 == k * Mfp::from(generator_k))
@@ -314,7 +315,7 @@ fn main() {
     let poly_wh = lagrange_interpolate(&points_w);
 
     println!("w_hat:");
-    dsp_poly!(poly_zc);
+    dsp_poly!(poly_wh);
 
     // h_zero
     let vh_div = vanishing_poly(&set_h);
@@ -345,36 +346,47 @@ fn main() {
 
     // Z^(x):
     let poly_z_hat_x = poly_wh * van_poly_vh1 + poly_x_hat; 
+    println!("z_hat: ");
+    dsp_poly!(poly_z_hat_x);
     
     // ∑ η​z​(x):
     let sigma_eta_z_x = Polynomial::new(vec![eta_a]) * &poly_za +
                         Polynomial::new(vec![eta_b]) * &poly_zb + 
                         Polynomial::new(vec![eta_c]) * &poly_zc;
-    println!("sigma eta zx:");
-    dsp_poly!(sigma_eta_z_x);
+    // println!("sigma eta zx:");
+    // dsp_poly!(sigma_eta_z_x);
 
     
-    let poly_r = poly_div(alpha, set_h.len());
-    println!("r:");
-    dsp_poly!(poly_r);
+    let poly_r = poly_r_xy(alpha, set_h.len());
+    // println!("r:");
+    // dsp_poly!(poly_r);
 
-    println!("r * sigma:");
-    dsp_poly!((&poly_r * &sigma_eta_z_x));
+    // println!("r * sigma:");
+    // dsp_poly!((&poly_r * &sigma_eta_z_x));
 
 
-    
+    // Matrix A: 
     let points_2d = get_2d_points(&a_matrix, &set_h);
-    let poly_2d_mat_a = lagrange_interpolate_2d(&points_2d);
-    println!("{:?}", poly_2d_mat_a);
+    let mut points_a = get_point(&a_matrix, &set_h, &set_k, t);
+    let mut points_add = vec![
+        (Mfp::from(48), Mfp::from(1)),
+        (Mfp::from(73), Mfp::from(135)),
+        (Mfp::from(62), Mfp::from(125)),
+        (Mfp::from(132), Mfp::from(59)),
+        (Mfp::from(65), Mfp::from(42)),
+        (Mfp::from(80), Mfp::from(1)),
+    ];
+    points_a.append(&mut points_add);
 
+    println!("{:?}", points_a.len());
 
-    let points_2d = get_2d_points(&b_matrix, &set_h);
-    let poly_2d_mat_b = lagrange_interpolate_2d(&points_2d);
-    println!("{:?}", poly_2d_mat_b);
+    // let a_hat = poly_m_xy(&set_k, alpha, set_h.len());
 
-    let points_2d = get_2d_points(&c_matrix, &set_h);
-    let poly_2d_mat_c = lagrange_interpolate_2d(&points_2d);
-    println!("{:?}", poly_2d_mat_c);
+    // let points_2d = get_2d_points(&b_matrix, &set_h);
+    
+
+    // let points_2d = get_2d_points(&c_matrix, &set_h);
+    
 
 
     // ∑ ηr(α,x): INCOMPLETE
@@ -392,3 +404,59 @@ fn main() {
     // println!("scp: ");
     // dsp_poly!(poly_scp);
 }
+
+
+fn poly_m_xy(set_k: &Vec<Mfp>, alpha: Mfp, set_h_len: usize, row_p: Vec<Mfp>, col_p: Vec<Mfp>, val_p: Vec<Mfp>) -> Poly {
+    let mut poly_res: Poly = Polynomial::new(vec![Mfp::ZERO]);
+    let alpha_exp = exp_mod(to_bint!(alpha), set_h_len as u64);
+
+    for &i in set_k {
+        poly_r_xy(alpha, set_h_len); // ? 
+    }
+
+    todo!()
+}
+
+use rand::prelude::SliceRandom;
+
+fn get_point(mat: &DMatrix<Mfp>, set_h: &Vec<Mfp>, set_k: &Vec<Mfp>, t: usize) -> Vec<Point> {
+    let mut res = vec![];
+    let mut c = 0;
+    for i in t..mat.nrows() {
+        for j in 0..mat.ncols() {
+            if mat[(i, j)] != Mfp::ZERO {
+                res.push((set_k[c], set_h[t + c]));
+                c += 1;
+            }
+        }
+    }
+
+    // TODO: uncomment it when you want choose randomly 
+    // for i in c..set_k.len() {
+    //     res.push((set_k[i], *set_h.choose(&mut thread_rng()).unwrap()));
+    // }
+    
+    res 
+}
+
+fn poly_r(val: Mfp, set_h_len: usize) -> Poly {
+    let mut numerator = Polynomial::new(vec![-exp_mod(to_bint!(val), set_h_len as u64)]);
+    numerator.add_term(Mfp::ONE, set_h_len);
+
+    let mut denominator = Polynomial::new(vec![-val]);
+    denominator.add_term(Mfp::ONE, 1);
+
+    numerator.div_mod(&denominator).0
+}
+
+
+
+// pub fn poly_r_xy(alpha: Mfp, degree: usize) -> Poly {
+//     let mut numerator = Polynomial::new(vec![exp_mod(to_bint!(alpha), degree as u64)]);
+//     numerator.add_term(-Mfp::ONE, degree);
+
+//     let mut denominator = Polynomial::new(vec![alpha]);
+//     denominator.add_term(-Mfp::ONE, 1);
+
+//     numerator.div_mod(&denominator).0
+// }

@@ -8,7 +8,7 @@ use na::{DMatrix, DVector};
 use rand::{thread_rng, Rng};
 use rustnomial::{Degree, FreeSizePolynomial, Polynomial, SizedPolynomial};
 use utils::{Gate, GateType};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::ops::Neg;
 
 const P: u64 = 181;
@@ -67,11 +67,11 @@ pub fn exp_mod(a: u64, b: u64) -> Mfp
     Mfp::from(a).pow(&[b])
 }
 
-pub fn poly_div(coeff: Mfp, degree: usize) -> Poly {
-    let mut numerator = Polynomial::new(vec![exp_mod(to_bint!(coeff), degree as u64)]);
+pub fn poly_r_xy(alpha: Mfp, degree: usize) -> Poly {
+    let mut numerator = Polynomial::new(vec![exp_mod(to_bint!(alpha), degree as u64)]);
     numerator.add_term(-Mfp::ONE, degree);
 
-    let mut denominator = Polynomial::new(vec![coeff]);
+    let mut denominator = Polynomial::new(vec![alpha]);
     denominator.add_term(-Mfp::ONE, 1);
 
     numerator.div_mod(&denominator).0
@@ -236,37 +236,13 @@ pub fn poly_gen_randomly(deg: usize) -> Poly {
 }
 
 
-pub fn lagrange_interpolate_2d(points_2d: &Vec<Point2d>) -> Poly2d {
-    let mut poly_res_y: Poly = Polynomial::new(vec![Mfp::ZERO]);
-    let mut poly_res_x: Poly = Polynomial::new(vec![Mfp::ZERO]);
-    
-    let points_x: Vec<Point> = points_2d.iter()
-        .map(|((x, _), fxy)| (*x, *fxy))
-        .collect();
-    
-    let points_y: Vec<Point> = points_2d.iter()
-        .map(|((_, y), fxy)| (*y, *fxy))
-        .collect();
-
-    let lagrange_x = lagrange_interpolate(&points_x);
-    let lagrange_y = lagrange_interpolate(&points_y);
-
-    poly_res_x += lagrange_x;
-    poly_res_y += lagrange_y;
-
-    poly_res_x.trim();
-    poly_res_y.trim();
-
-    (poly_res_y, poly_res_x)
-}
-
-pub fn get_2d_points(mat: &DMatrix<Mfp>, h: &Vec<Mfp>) ->  Vec<Point2d> {
-    let mut res = vec![];
+pub fn get_2d_points(mat: &DMatrix<Mfp>, h: &Vec<Mfp>) ->  HashMap<Point, Mfp> {
+    let mut res = HashMap::new();
     
     for i in 0..mat.nrows() {
         for j in 0..mat.ncols() {
             if mat[(i, j)] != Mfp::ZERO {
-                res.push(((h[i], h[j]), mat[(i, j)]));
+                res.insert((h[i], h[j]), mat[(i, j)]);
             }
         }
     }
