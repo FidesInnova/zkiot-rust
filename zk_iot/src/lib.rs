@@ -11,7 +11,7 @@ use utils::{Gate, GateType};
 use std::collections::{HashMap, HashSet};
 use std::ops::Neg;
 
-const P: u64 = 181;
+pub const P: u64 = 181;
 field!(Mfp, P);
 
 pub type Poly = Polynomial<Mfp>;
@@ -236,7 +236,7 @@ pub fn poly_gen_randomly(deg: usize) -> Poly {
 }
 
 
-pub fn get_2d_points(mat: &DMatrix<Mfp>, h: &Vec<Mfp>) ->  HashMap<Point, Mfp> {
+pub fn gen_2d_points(mat: &DMatrix<Mfp>, h: &Vec<Mfp>) ->  HashMap<Point, Mfp> {
     let mut res = HashMap::new();
     
     for i in 0..mat.nrows() {
