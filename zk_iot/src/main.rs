@@ -400,7 +400,6 @@ fn main() {
     let u_poly_set_h = func_u(&set_h);
 
 
-
     let mut points_val_p_a = get_matrix_point_val(&a_matrix, &set_h, &set_k, &points_row_p_a, &points_col_p_a);
     println!("{:?}", points_val_p_a);
     
@@ -506,14 +505,19 @@ fn get_matrix_point_val(mat: &DMatrix<Mfp>, set_h: &Vec<Mfp>, set_k: &Vec<Mfp>, 
     let mut res = HashMap::new();
     let mut c = 0;
     let mat_len = mat.nrows();
+    let poly_u = func_u(&set_h);
+    println!("pol: ");
+    dsp_poly!(poly_u);
+
 
     for i in 0..mat_len {
         for j in 0..mat_len {
             if mat[(i, j)] != Mfp::ZERO {
                 let val = mat[(i, j)];
-                let poly_u = func_u(&set_h);
-                let p2 =  val / ( poly_u.eval(row_k[&val]) * poly_u.eval(col_k[&val]) );
+                let k = set_k[c];
+                let p2 =  val / (poly_u.eval(row_k[&k]) * poly_u.eval(col_k[&k]));
                 res.insert(set_k[c], p2);
+
                 c += 1;
             }
         }
