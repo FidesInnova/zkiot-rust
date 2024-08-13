@@ -21,7 +21,7 @@ FidesInnova is not merely a platform; it’s a holistic ecosystem that empowers 
 ### Welcome to the zk-IoT repository! This repository contains the source code for the smart contracts that power the zk-IoT framework within the FidesInnova platform. These smart contracts are designed to facilitate secure, transparent, and efficient interactions in decentralized IoT environments.
 
 ## Overview
-In this page, we will review function-hiding functional commitment zero-knowledge proof (ZKP) scheme. This scheme is a tuple `(Setup, Commit, Eval)` that utilizes three protocols:
+In this page, we will implement function-hiding functional commitment zero-knowledge proof (ZKP) scheme. This scheme is a tuple `(Setup, Commit, Eval)` that utilizes three protocols:
 
 1. **Polynomial Commitment Scheme**
 2. **Proof of Function Relation (PFR)**
