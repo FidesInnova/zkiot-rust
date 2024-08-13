@@ -131,26 +131,43 @@ pub fn exp_mod(a: u64, b: u64) -> Mfp {
     Mfp::from(a).pow(&[b])
 }
 
-/// Constructs a polynomial of the form (x^degree - 1) / (x - alpha),
-/// where `alpha` is a value in the finite field and `degree` specifies the
-/// degree of the polynomial.
+
+/// Constructs a polynomial of the form u(x , y) = (x^degree - y^degree) / (x - y),
+/// where either `x` or `y` is provided as an option.
 ///
 /// # Parameters
-/// - `alpha`: A value in the finite field `Mfp`.
+/// - `x`: An optional value in the finite field `Mfp`. Only one of `x` or `y` should be `Some`.
+/// - `y`: An optional value in the finite field `Mfp`. Only one of `x` or `y` should be `Some`.
 /// - `degree`: The degree of the polynomial, of type `usize`.
 ///
 /// # Returns
 /// Returns the result of the polynomial division as a `Poly` object.
 ///
-/// # Description
-/// This function creates a polynomial with the numerator as x^degree - 1
-/// and the denominator as x - alpha. It then performs polynomial division
-/// to return the resulting polynomial.
-pub fn func_r(alpha: Mfp, degree: usize) -> Poly {
-    let mut numerator = Polynomial::new(vec![exp_mod(to_bint!(alpha), degree as u64)]);
-    numerator.add_term(-Mfp::ONE, degree);
-    let mut denominator = Polynomial::new(vec![alpha]);
-    denominator.add_term(-Mfp::ONE, 1);
+/// # Panics
+/// The function panics if both `x` and `y` are either `None` or `Some`. 
+/// This ensures that exactly one of the parameters is provided.
+pub fn func_u(x: Option<Mfp>, y: Option<Mfp>, degree: usize) -> Poly {
+    if x.is_none() && y.is_none() || x.is_some() && y.is_some() {
+        panic!("somtiong wrinsdg");
+    }
+
+    let mut numerator = Polynomial::new(vec![]);
+    let mut denominator = Polynomial::new(vec![]);
+
+    if let Some(x) = x {
+        numerator.add_term(exp_mod(to_bint!(x), degree as u64), 0);
+        numerator.add_term(-Mfp::ONE, degree);
+
+        denominator.add_term(x, 0);
+        denominator.add_term(-Mfp::ONE, 1);
+    } 
+    if let Some(y) = y {
+        numerator.add_term(-exp_mod(to_bint!(y), degree as u64), 0);
+        numerator.add_term(Mfp::ONE, degree);
+
+        denominator.add_term(-y, 0);
+        denominator.add_term(Mfp::ONE, 1);
+    }
     numerator.div_mod(&denominator).0
 }
 

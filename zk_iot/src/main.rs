@@ -301,17 +301,17 @@ fn main() -> Result<()> {
 
     // h_zero
     let vh_div = vanishing_poly(&set_h);
-    let poly_hz = (&poly_za * &poly_zb - &poly_zc).div_mod(&vh_div);
+    let poly_h_0 = (&poly_za * &poly_zb - &poly_zc).div_mod(&vh_div);
     
     println!("h0(x):");
-    dsp_poly!(poly_hz.0);
+    dsp_poly!(poly_h_0.0);
 
     // Generate a random polynomial (currently hardcoded for demonstration)
     let poly_sx = [5, 0, 101, 17, 0, 1, 20, 0, 0, 3, 115];
     let poly_sx = poly_sx.iter().map(|v| Mfp::from(*v)).collect::<Vec<Mfp>>();
     let poly_sx = Polynomial::from(poly_sx);
 
-    // Compute signature by evaluating the polynomial at points in set_h
+    // Compute sigma by evaluating the polynomial at points in set_h
     let sig_1 = set_h.iter().fold(Mfp::ZERO, |acc, &v| acc + poly_sx.eval(v));
     println!("sig:\t{}", sig_1);
 
@@ -333,9 +333,11 @@ fn main() -> Result<()> {
                         Polynomial::new(vec![eta_c]) * &poly_zc;
 
     // Compute polynomial for r(α,x) ∑ ηM(z^M(x))
-    let poly_r = func_r(alpha, set_h.len());
-    // println!("r:");
-    // dsp_poly!(poly_r);
+
+
+    let poly_r = func_u(Some(alpha), None, set_h.len());
+    println!("r:");
+    dsp_poly!(poly_r);
 
     println!("r(α,x) ∑( η_M z^_M(x) ):");
     dsp_poly!((&poly_r * &sigma_eta_z_x));
@@ -378,19 +380,10 @@ fn main() -> Result<()> {
     let points_val_p_a = get_matrix_point_val(&a_matrix, &set_h, &set_k, &points_row_p_a, &points_col_p_a);
     // println!("{:?}", points_val_p_a);
 
-    let mut poly_a_hat_xy = Poly::from(vec![Mfp::ZERO]);
-    // ∑ ​η_M r_M​(α,x)
-    for (k, val_k) in points_val_p_a {
-        let div1_d = exp_mod(to_bint!(k), set_h.len() as u64);
-        let div1_n = k - points_row_p_a[&k];
-        assert_ne!(div1_n, Mfp::ZERO);
-        let div1 = div1_d / div1_n;
-        let val1 = Poly::from(vec![val_k * div1]) * func_r(k, set_h.len());
-        poly_a_hat_xy += val1;
-    }
+    // A^(k,x)
+    let poly_a_hat_xy = func_m_xy(&points_val_p_a, &points_row_p_a, &points_col_p_a, &set_h, &set_k);
     println!("Poly A^(x,y):");
     dsp_poly!(poly_a_hat_xy);
-
 
 
     // // Matrix B: 
@@ -424,15 +417,11 @@ fn main() -> Result<()> {
     // // println!("{:?}", points_val_p_b);
 
     // let mut poly_b_hat_xy = Poly::from(vec![Mfp::ZERO]);
-    // // ∑ ​η_M r_M​(α,x)
-    // for (k, val_k) in points_val_p_b {
-    //     let div1_d = exp_mod(to_bint!(k), set_h.len() as u64);
-    //     let div1_n = k - points_row_p_a[&k];
-    //     assert_ne!(div1_n, Mfp::ZERO);
-    //     let div1 = div1_d / div1_n;
-    //     let val1 = Poly::from(vec![val_k * div1]) * func_r(k, set_h.len());
-    //     poly_b_hat_xy += val1;
-    // }
+    // 
+    // 
+    //
+    // // B^(k,x)
+    // let poly_b_hat_xy = func_m_xy(&points_val_p_b, &points_row_p_b, &points_col_p_b, set_h.len());
     // println!("Poly B^(x,y):");
     // dsp_poly!(poly_b_hat_xy);
 
@@ -468,40 +457,84 @@ fn main() -> Result<()> {
     let points_val_p_c = get_matrix_point_val(&c_matrix, &set_h, &set_k, &points_row_p_c, &points_col_p_c);
     // println!("{:?}", points_val_p_c);
 
-    let mut poly_c_hat_xy = Poly::from(vec![Mfp::ZERO]);
-    // ∑ ​η_M r_M​(α,x)
-    for (k, val_k) in points_val_p_c {
-        let div1_d = exp_mod(to_bint!(k), set_h.len() as u64);
-        let div1_n = k - points_row_p_a[&k];
-        assert_ne!(div1_n, Mfp::ZERO);
-        let div1 = div1_d / div1_n;
-        let val1 = Poly::from(vec![val_k * div1]) * func_r(k, set_h.len());
-        poly_c_hat_xy += val1;
-    }
+    // C^(k,x)
+    let poly_c_hat_xy = func_m_xy(&points_val_p_c, &points_row_p_c, &points_col_p_c, &set_h, &set_k);
     println!("Poly C^(x,y):");
     dsp_poly!(poly_c_hat_xy);
 
+    // ∑ ηr(α,x)​rM​(α,x): INCOMPLETE
+    let sigma_2 =   Polynomial::new(vec![eta_a]) + poly_a_hat_xy + 
+                    // Polynomial::new(vec![eta_b]) + poly_b_hat_xy +
+                    Polynomial::new(vec![eta_c]) + poly_c_hat_xy;
+    
+    // r(α,x) * ∑_m [η_M ​z^M​(x)]
+    let sigma_1 = poly_r * sigma_eta_z_x;
 
-
-
-    // ∑ ηr(α,x): INCOMPLETE
-    let sigma_eta_r = Polynomial::new(vec![eta_a])     +
-                      Polynomial::new(vec![eta_b])     + 
-                      Polynomial::new(vec![eta_c]);
+    // ∑_m [η_M r_M(α,x)] * z^(x)
+    let sigma_2 = sigma_2 * poly_z_hat_x;
 
 
     // Sum Check Protocol Formula:
-    // TOTALLY INCOMPLETE
-    let poly_scp = poly_sx // s(x) 
-                    + poly_r * sigma_eta_z_x // r(a)*sigma 
-                    - &poly_z_hat_x * sigma_eta_r; // sigma*z_hat
+    // s(x) + r(α,x) * ∑_m [η_M ​z^M​(x)] - ∑_m [η_M r_M(α,x)] * z^(x)
+    let poly_scp = poly_sx + sigma_1 - sigma_2;
     
-    // println!("scp: ");
-    // dsp_poly!(poly_scp);
 
+    println!("scp: ");
+    dsp_poly!(poly_scp);
+
+
+    let van_poly_vhx = vanishing_poly(&set_h);
+    
+    // the Prover finds polynomials
+    let poly_prover = van_poly_vhx * sig_1;
+    
+    let beta = 22;
+
+
+    // PANIC
+    // // A^(x,Beta)
+    // let poly_a_hat_xbeta = func_m_xy(&points_val_p_a, &points_col_p_a, &points_row_p_a, &set_h, &set_k);
+    // println!("Poly A^(x,Beta):");
+    // dsp_poly!(poly_a_hat_xbeta);
+
+
+    // PANIC
+    // // B^(x,Beta)
+    // let poly_a_hat_xbeta = func_m_xy(&points_val_p_b, &points_col_p_b, &points_row_p_b, &set_h, &set_k);
+    // println!("Poly A^(x,Beta):");
+    // dsp_poly!(poly_a_hat_xbeta);
+
+
+    // C^(x,Beta)
+    let poly_a_hat_xbeta = func_m_xy(&points_val_p_c, &points_col_p_c, &points_row_p_c, &set_h, &set_k);
+    println!("Poly C^(x,Beta):");
+    dsp_poly!(poly_a_hat_xbeta);
     Ok(())
 }
 
+
+
+fn func_m_xy(points_val: &HashMap<Mfp, Mfp>, points_part_1: &HashMap<Mfp, Mfp>, points_part_2: &HashMap<Mfp, Mfp>, set_h: &Vec<Mfp>, set_k: &Vec<Mfp>) -> Poly {
+    let mut poly_res = Poly::from(vec![Mfp::ZERO]);
+    let set_h_len = set_h.len();
+
+    for v in set_k {
+        let val_k = points_val.get(v);
+        if val_k.is_none() {
+            continue;
+        }
+        let val_k = val_k.unwrap();
+
+        let div1_nu = exp_mod(to_bint!(*v), set_h_len as u64);
+        let div1_de = v - &points_part_1[v];
+        assert_ne!(div1_de, Mfp::ZERO);
+        let div1 = div1_nu / div1_de;
+        let val1 = Poly::from(vec![val_k * &div1]) * func_u(None, Some(points_part_2[v]), set_h_len);
+        poly_res += val1;
+    }
+    
+    poly_res
+}
 
 fn get_matrix_point_row(mat: &DMatrix<Mfp>, set_h: &Vec<Mfp>, set_k: &Vec<Mfp>) -> HashMap<Mfp, Mfp> {
     let mut res = HashMap::new();
@@ -521,7 +554,6 @@ fn get_matrix_point_row(mat: &DMatrix<Mfp>, set_h: &Vec<Mfp>, set_k: &Vec<Mfp>) 
     for i in 0..mat_len {
         for j in 0..mat_len {
             if mat[(i, j)] != Mfp::ZERO {
-                println!("srt_h {}", set_h[t + c]);
                 res.insert(set_k[c], set_h[t + c]);
                 c += 1;
             }
@@ -570,8 +602,10 @@ fn get_matrix_point_val(mat: &DMatrix<Mfp>, set_h: &Vec<Mfp>, set_k: &Vec<Mfp>, 
     let mut res = HashMap::new();
     let mut c = 0;
     let mat_len = mat.nrows();
-    let poly_u = func_u(&set_h);
 
+    let len = set_h.len();
+    let mut poly_u = Poly::from(vec![Mfp::ZERO]);
+    poly_u.add_term(Mfp::from(len as u64), len - 1);
 
     for i in 0..mat_len {
         for j in 0..mat_len {
@@ -587,23 +621,4 @@ fn get_matrix_point_val(mat: &DMatrix<Mfp>, set_h: &Vec<Mfp>, set_k: &Vec<Mfp>, 
     }
     
     res 
-}
-
-
-
-fn poly_r(val: Mfp, set_h_len: usize) -> Poly {
-    let mut numerator = Polynomial::new(vec![-exp_mod(to_bint!(val), set_h_len as u64)]);
-    numerator.add_term(Mfp::ONE, set_h_len);
-
-    let mut denominator = Polynomial::new(vec![-val]);
-    denominator.add_term(Mfp::ONE, 1);
-
-    numerator.div_mod(&denominator).0
-}
-
-fn func_u(set: &Vec<Mfp>) -> Poly {
-    let len = set.len();
-    let mut poly = Poly::from(vec![Mfp::ZERO]);
-    poly.add_term(Mfp::from(len as u64), len - 1);
-    poly
 }
