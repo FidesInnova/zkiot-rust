@@ -147,8 +147,8 @@ pub fn exp_mod(a: u64, b: u64) -> Mfp {
 /// The function panics if both `x` and `y` are either `None` or `Some`. 
 /// This ensures that exactly one of the parameters is provided.
 pub fn func_u(x: Option<Mfp>, y: Option<Mfp>, degree: usize) -> Poly {
-    if x.is_none() && y.is_none() || x.is_some() && y.is_some() {
-        panic!("somtiong wrinsdg");
+    if x.is_none() && y.is_none() {
+        panic!("At least one of x or y must be Some.");
     }
 
     let mut numerator = Polynomial::new(vec![]);
