@@ -302,8 +302,8 @@ fn main() -> Result<()> {
     dsp_poly!(poly_wh);
 
     // h_zero
-    let vh_div = vanishing_poly(&set_h);
-    let poly_h_0 = (&poly_za * &poly_zb - &poly_zc).div_mod(&vh_div);
+    let van_poly_vhx = vanishing_poly(&set_h);
+    let poly_h_0 = (&poly_za * &poly_zb - &poly_zc).div_mod(&van_poly_vhx);
     
     println!("h0(x):");
     dsp_poly!(poly_h_0.0);
@@ -336,7 +336,6 @@ fn main() -> Result<()> {
 
     // Compute polynomial for r(α,x) ∑ ηM(z^M(x))
 
-
     let poly_r = func_u(Some(alpha), None, set_h.len());
     println!("r:");
     dsp_poly!(poly_r);
@@ -344,144 +343,144 @@ fn main() -> Result<()> {
     println!("r(α,x) ∑( η_M z^_M(x) ):");
     dsp_poly!((&poly_r * &sigma_eta_z_x));
 
+    // r(α,x) * ∑_m [η_M ​z^M​(x)]
+    let sum_1 = &poly_r * sigma_eta_z_x;
+
+
+
     // Compute polynomial for Z^(x)
     let poly_z_hat_x = poly_wh * van_poly_vh1 + poly_x_hat; 
     println!("z_hat: ");
     dsp_poly!(poly_z_hat_x);
 
-
     // Matrix A: 
     let mut points_row_p_a = get_matrix_point_row(&a_matrix, &set_h, &set_k);
-    // let points_add = vec![
-    //     (Mfp::from(48), Mfp::from(1)),
-    //     (Mfp::from(73), Mfp::from(135)),
-    //     (Mfp::from(62), Mfp::from(125)),
-    //     (Mfp::from(132), Mfp::from(59)),
-    //     (Mfp::from(65), Mfp::from(42)),
-    //     (Mfp::from(80), Mfp::from(1)),
-    // ];
-    // for (k, v) in points_add {
-    //     points_row_p_a.insert(k, v);
-    // }
+    let points_add = vec![
+        (Mfp::from(48), Mfp::from(1)),
+        (Mfp::from(73), Mfp::from(135)),
+        (Mfp::from(62), Mfp::from(125)),
+        (Mfp::from(132), Mfp::from(59)),
+        (Mfp::from(65), Mfp::from(42)),
+        (Mfp::from(80), Mfp::from(1)),
+    ];
+    for (k, v) in points_add {
+        points_row_p_a.insert(k, v);
+    }
     // println!("{:?}", points_row_p_a);
 
     let mut points_col_p_a = get_matrix_point_col(&a_matrix, &set_h, &set_k);
-    // let points_add = vec![
-    //     (Mfp::from(48), Mfp::from(42)),
-    //     (Mfp::from(73), Mfp::from(1)),
-    //     (Mfp::from(62), Mfp::from(135)),
-    //     (Mfp::from(132), Mfp::from(125)),
-    //     (Mfp::from(65), Mfp::from(59)),
-    //     (Mfp::from(80), Mfp::from(42)),
-    // ];
-    // for (k, v) in points_add {
-    //     points_col_p_a.insert(k, v);
-    // }
+    let points_add = vec![
+        (Mfp::from(48), Mfp::from(42)),
+        (Mfp::from(73), Mfp::from(1)),
+        (Mfp::from(62), Mfp::from(135)),
+        (Mfp::from(132), Mfp::from(125)),
+        (Mfp::from(65), Mfp::from(59)),
+        (Mfp::from(80), Mfp::from(42)),
+    ];
+    for (k, v) in points_add {
+        points_col_p_a.insert(k, v);
+    }
     // println!("{:?}", points_col_p_a);
 
     let points_val_p_a = get_matrix_point_val(&a_matrix, &set_h, &set_k, &points_row_p_a, &points_col_p_a);
     // println!("{:?}", points_val_p_a);
 
-    // ∑ r(alpha=10, k) * A^(k,x)
-    let r_a = sig_rkx_mkx(&set_h, alpha, &points_val_p_a, &points_row_p_a, &points_col_p_a);
-    println!("Poly ∑ r(alpha=10, k) * A^(k,x): ");
-    dsp_poly!(r_a);
-
-
     // Matrix B: 
     let mut points_row_p_b = get_matrix_point_row(&b_matrix, &set_h, &set_k);
-    // let points_add = vec![
-    //     (Mfp::from(73), Mfp::from(59)),
-    //     (Mfp::from(62), Mfp::from(1)),
-    //     (Mfp::from(132), Mfp::from(42)),
-    //     (Mfp::from(65), Mfp::from(135)),
-    //     (Mfp::from(80), Mfp::from(59)),
-    // ];
-    // for (k, v) in points_add {
-    //     points_row_p_b.insert(k, v);
-    // }
+    let points_add = vec![
+        (Mfp::from(73), Mfp::from(59)),
+        (Mfp::from(62), Mfp::from(1)),
+        (Mfp::from(132), Mfp::from(42)),
+        (Mfp::from(65), Mfp::from(135)),
+        (Mfp::from(80), Mfp::from(59)),
+    ];
+    for (k, v) in points_add {
+        points_row_p_b.insert(k, v);
+    }
     // println!("{:?}", points_row_p_b);
 
     let mut points_col_p_b = get_matrix_point_col(&b_matrix, &set_h, &set_k);
-    // let points_add = vec![
-    //     (Mfp::from(73), Mfp::from(59)),
-    //     (Mfp::from(62), Mfp::from(42)),
-    //     (Mfp::from(132), Mfp::from(125)),
-    //     (Mfp::from(65), Mfp::from(1)),
-    //     (Mfp::from(80), Mfp::from(135)),
-    // ];
-    // for (k, v) in points_add {
-    //     points_col_p_b.insert(k, v);
-    // }
+    let points_add = vec![
+        (Mfp::from(73), Mfp::from(59)),
+        (Mfp::from(62), Mfp::from(42)),
+        (Mfp::from(132), Mfp::from(125)),
+        (Mfp::from(65), Mfp::from(1)),
+        (Mfp::from(80), Mfp::from(135)),
+    ];
+    for (k, v) in points_add {
+        points_col_p_b.insert(k, v);
+    }
     // println!("{:?}", points_col_p_b);
 
     let points_val_p_b = get_matrix_point_val(&b_matrix, &set_h, &set_k, &points_row_p_b, &points_col_p_b);
     // println!("{:?}", points_val_p_a);
 
-    // ∑ r(alpha=10, k) * B^(k,x)
-    let r_b = sig_rkx_mkx(&set_h, alpha, &points_val_p_b, &points_row_p_b, &points_col_p_b);
-    println!("Poly ∑ r(alpha=10, k) * B^(k,x): ");
-    dsp_poly!(r_b);
-
-
 
     // Matrix C: 
     let mut points_row_p_c = get_matrix_point_row(&c_matrix, &set_h, &set_k);
-    // let points_add = vec![
-    //     (Mfp::from(73), Mfp::from(59)),
-    //     (Mfp::from(62), Mfp::from(125)),
-    //     (Mfp::from(132), Mfp::from(1)),
-    //     (Mfp::from(65), Mfp::from(135)),
-    //     (Mfp::from(80), Mfp::from(42)),
-    // ];
-    // for (k, v) in points_add {
-    //     points_row_p_c.insert(k, v);
-    // }
+    let points_add = vec![
+        (Mfp::from(48), Mfp::from(1)),
+        (Mfp::from(73), Mfp::from(59)),
+        (Mfp::from(62), Mfp::from(125)),
+        (Mfp::from(132), Mfp::from(1)),
+        (Mfp::from(65), Mfp::from(135)),
+        (Mfp::from(80), Mfp::from(42)),
+    ];
+    for (k, v) in points_add {
+        points_row_p_c.insert(k, v);
+    }
     // println!("{:?}", points_row_p_c);
 
     let mut points_col_p_c = get_matrix_point_col(&c_matrix, &set_h, &set_k);
-    // let points_add = vec![
-    //     (Mfp::from(73), Mfp::from(59)),
-    //     (Mfp::from(62), Mfp::from(1)),
-    //     (Mfp::from(132), Mfp::from(1)),
-    //     (Mfp::from(65), Mfp::from(42)),
-    //     (Mfp::from(80), Mfp::from(59)),
-    // ];
-    // for (k, v) in points_add {
-    //     points_col_p_c.insert(k, v);
-    // }
+    let points_add = vec![
+        (Mfp::from(48), Mfp::from(125)),
+        (Mfp::from(73), Mfp::from(59)),
+        (Mfp::from(62), Mfp::from(1)),
+        (Mfp::from(132), Mfp::from(1)),
+        (Mfp::from(65), Mfp::from(42)),
+        (Mfp::from(80), Mfp::from(59)),
+    ];
+    for (k, v) in points_add {
+        points_col_p_c.insert(k, v);
+    }
     // println!("{:?}", points_col_p_c);
 
     let points_val_p_c = get_matrix_point_val(&c_matrix, &set_h, &set_k, &points_row_p_c, &points_col_p_c);
     // println!("{:?}", points_val_p_a);
 
+
+
+    // ∑ r(alpha=10, k) * A^(k,x)
+    let r_a_kx = sigma_rkx_mkx(&set_h, alpha, &points_val_p_a, &points_row_p_a, &points_col_p_a);
+    println!("Poly ∑ r(alpha=10, k) * A^(k,x): ");
+    dsp_poly!(r_a_kx);
+
+    // ∑ r(alpha=10, k) * B^(k,x)
+    let r_b_kx = sigma_rkx_mkx(&set_h, alpha, &points_val_p_b, &points_row_p_b, &points_col_p_b);
+    println!("Poly ∑ r(alpha=10, k) * B^(k,x): ");
+    dsp_poly!(r_b_kx);
+
     // ∑ r(alpha=10, k) * C^(k,x)
-    let r_c = sig_rkx_mkx(&set_h, alpha, &points_val_p_c, &points_row_p_c, &points_col_p_c);
-    println!("Poly r_c: ");
-    dsp_poly!(r_c);
-
-
-    // r(α,x) * ∑_m [η_M ​z^M​(x)]
-    let sum_1 = poly_r * sigma_eta_z_x;
-
+    let r_c_kx = sigma_rkx_mkx(&set_h, alpha, &points_val_p_c, &points_row_p_c, &points_col_p_c);
+    println!("Poly ∑ r(alpha=10, k) * C^(k,x): ");
+    dsp_poly!(r_c_kx);
 
     // ∑_m [η_M r_M(α,x)] * z^(x)
-    let sum_2 =   Poly::new(vec![eta_a]) * &r_a + 
-                    Poly::new(vec![eta_b]) * &r_b +
-                    Poly::new(vec![eta_c]) * &r_c;
+    let sum_2 =   Poly::new(vec![eta_a]) * &r_a_kx + 
+                    Poly::new(vec![eta_b]) * &r_b_kx +
+                    Poly::new(vec![eta_c]) * &r_c_kx;
     let sum_2 = sum_2 * poly_z_hat_x;
+
 
 
     // Sum Check Protocol Formula:
     // s(x) + r(α,x) * ∑_m [η_M ​z^M​(x)] - ∑_m [η_M r_M(α,x)] * z^(x)
     let poly_scp = poly_sx + sum_1 - &sum_2;
-    
 
     println!("scp: ");
     dsp_poly!(poly_scp);
 
 
-    let van_poly_vhx = vanishing_poly(&set_h);
 
     let div_res = poly_scp.div_mod(&van_poly_vhx);
     let h_1x = div_res.0;
@@ -489,52 +488,149 @@ fn main() -> Result<()> {
     dsp_poly!(h_1x);
 
     let g_1x = div_res.1.div_mod(&Poly::new(vec![Mfp::ONE, Mfp::ZERO])).0;
-    println!("Poly g_1x: ");
+    println!("Poly g_1x: {}", sig_1/Mfp::from(set_h.len() as u64));
     dsp_poly!(g_1x);
 
     // TODO: Random F - H 
     let beta_1 = Mfp::from(22);
 
     // The Prover and the Verifier run sumcheckprotocolsumcheckprotocol for 
-    let sigma_1 =   Poly::new(vec![eta_a]) * r_a.eval(beta_1) + 
-                    Poly::new(vec![eta_b]) * r_b.eval(beta_1) +
-                    Poly::new(vec![eta_c]) * r_c.eval(beta_1);
+    // sigma 1
+    let sigma_1 =   Poly::new(vec![eta_a]) * r_a_kx.eval(beta_1) + 
+                    Poly::new(vec![eta_b]) * r_b_kx.eval(beta_1) +
+                    Poly::new(vec![eta_c]) * r_c_kx.eval(beta_1);
     let sigma_1 = sigma_1.eval(beta_1);
 
+
+    // ∑ r(alpha=10, k) * A^(x,k)
+    let r_a_xk = m_xk(&beta_1, &points_val_p_a, &points_row_p_a, &points_col_p_a, set_h.len());
+    // println!("Poly ∑ r(alpha=10, k) * A^(x,k): ");
+    // dsp_poly!(r_a_xk);
+
+    // ∑ r(alpha=10, k) * B^(x,k)
+    let r_b_xk = m_xk(&beta_1, &points_val_p_b, &points_row_p_b, &points_col_p_b, set_h.len());
+    // println!("Poly ∑ r(alpha=10, k) * B^(x,k): ");
+    // dsp_poly!(r_b_xk);
+
+    // ∑ r(alpha=10, k) * C^(x,k)
+    let r_c_xk = m_xk(&beta_1, &points_val_p_c, &points_row_p_c, &points_col_p_c, set_h.len());
+    // println!("Poly ∑ r(alpha=10, k) * C^(x,k): ");
+    // dsp_poly!(r_c_xk);
     
-    // // the Prover finds polynomials
-    // let poly_prover = van_poly_vhx * sig_1;
-    
-    // let beta = 22;
+    // r(alpha=10, x) ∑_m [​η_M ​M^(x,β1​)] 
+    // sigma_2
+    let sigma_2 =   Poly::new(vec![eta_a]) * r_a_xk + 
+                    Poly::new(vec![eta_b]) * r_b_xk +
+                    Poly::new(vec![eta_c]) * r_c_xk;
+    let sigma_2 = &poly_r * sigma_2;
+
+    println!("r(alpha=10, x) * ∑_m [η_M M^(x, β1)]: ");
+    dsp_poly!(sigma_2);
 
 
-    // PANIC
-    // // A^(x,Beta)
-    // let poly_a_hat_xbeta = func_m_xy(&points_val_p_a, &points_col_p_a, &points_row_p_a, &set_h, &set_k);
-    // println!("Poly A^(x,Beta):");
-    // dsp_poly!(poly_a_hat_xbeta);
+    let div_res = sigma_2.div_mod(&van_poly_vhx);
+    let h_2x = div_res.0;
+    println!("Poly h_2x: ");
+    dsp_poly!(h_2x);
+
+    let g_2x = div_res.1.div_mod(&Poly::new(vec![Mfp::ONE, Mfp::ZERO])).0;
+    println!("Poly g_2x: {}", sig_1/Mfp::from(set_h.len() as u64));
+    dsp_poly!(g_2x);
+
+    // TODO: Random F - H 
+    let beta_2 = Mfp::from(80);
 
 
-    // PANIC
-    // // B^(x,Beta)
-    // let poly_a_hat_xbeta = func_m_xy(&points_val_p_b, &points_col_p_b, &points_row_p_b, &set_h, &set_k);
-    // println!("Poly A^(x,Beta):");
-    // dsp_poly!(poly_a_hat_xbeta);
+    let a_row_px = sigma_yi_li(&points_row_p_a, &set_k);
+    println!("a_row_px: ");
+    dsp_poly!(a_row_px);
+
+    let a_col_px = sigma_yi_li(&points_col_p_a, &set_k);
+    println!("a_col_px: ");
+    dsp_poly!(a_col_px);
+
+    let a_val_px = sigma_yi_li(&points_val_p_a, &set_k);
+    println!("a_val_px: ");
+    dsp_poly!(a_val_px);
 
 
-    // C^(x,Beta)
-    // let poly_a_hat_xbeta = func_m_xy(&points_val_p_c, &points_col_p_c, &points_row_p_c, &set_h, &set_k);
-    // println!("Poly C^(x,Beta):");
-    // dsp_poly!(poly_a_hat_xbeta);
+
+    let b_row_px = sigma_yi_li(&points_row_p_b, &set_k);
+    println!("b_row_px: ");
+    dsp_poly!(b_row_px);
+
+    let b_col_px = sigma_yi_li(&points_col_p_b, &set_k);
+    println!("b_col_px: ");
+    dsp_poly!(b_col_px);
+
+    let b_val_px = sigma_yi_li(&points_val_p_b, &set_k);
+    println!("b_val_px: ");
+    dsp_poly!(b_val_px);
+
+    let c_row_px = sigma_yi_li(&points_row_p_c, &set_k);
+    println!("c_row_px: ");
+    dsp_poly!(c_row_px);
+
+
+    let c_col_px = sigma_yi_li(&points_col_p_c, &set_k);
+    println!("c_col_px: ");
+    dsp_poly!(c_col_px);
+
+    let c_val_px = sigma_yi_li(&points_val_p_c, &set_k);
+    println!("c_val_px: ");
+    dsp_poly!(c_val_px);
+
+    // sigma_3 
+    let mut sigma_3 = Mfp::ZERO; 
+    for k in set_k.iter() {
+        let sig_a = sigma_m(&van_poly_vhx, &eta_a, &beta_1, &beta_2, k, &a_row_px, &a_col_px, &a_val_px);
+        let sig_b = sigma_m(&van_poly_vhx, &eta_b, &beta_1, &beta_2, k, &b_row_px, &b_col_px, &b_val_px);
+        let sig_c = sigma_m(&van_poly_vhx, &eta_c, &beta_1, &beta_2, k, &c_row_px, &c_col_px, &c_val_px);
+
+        sigma_3 += sig_a + sig_b + sig_c
+    }
+    println!("sigma_3: {}", sigma_3);
+
     Ok(())
 }
 
-fn sig_rkx_mkx(set_h: &Vec<Mfp>, alpha: Mfp, points_val: &HashMap<Mfp, Mfp>, points_row: &HashMap<Mfp, Mfp>, points_col: &HashMap<Mfp, Mfp>) -> Poly {
+
+fn sigma_m(van_poly_vhx: &Poly, eta: &Mfp, beta_1: &Mfp, beta_2: &Mfp, k: &Mfp, row: &Poly, col: &Poly, val: &Poly) -> Mfp {
+    let nu = van_poly_vhx.eval(*beta_1) * van_poly_vhx.eval(*beta_2) * val.eval(*k);
+    let de = (beta_2 - &row.eval(*k)) * (beta_1 - &col.eval(*k));
+    let div = nu / de;
+    let sig = eta * &div;
+    sig
+}
+
+pub fn sigma_yi_li(points: &HashMap<Mfp, Mfp>, set_k: &Vec<Mfp>) -> Poly {
+    let set_k_len = set_k.len();
+
+    let mut points_li: Vec<Point> = vec![];
+    for k in set_k {
+        let val = points.get(k).unwrap_or(&Mfp::ZERO);
+        points_li.push((*k, *val));
+    }
+
     let mut res = Poly::from(vec![Mfp::ZERO]);
-    
+    let mut li = Poly::from(vec![]);
+
+    for i in 1..=set_k_len {
+        // Points needed for Li
+        let points_li_need = &points_li[0..i].to_vec();
+        li = lagrange_interpolate(points_li_need);
+        res += Poly::from(vec![points_li[i - 1].0]) * &li;
+    }
+
+    // res
+    li
+}
+
+pub fn sigma_rkx_mkx(set_h: &Vec<Mfp>, alpha: Mfp, points_val: &HashMap<Mfp, Mfp>, points_row: &HashMap<Mfp, Mfp>, points_col: &HashMap<Mfp, Mfp>) -> Poly {
+    let mut res = Poly::from(vec![Mfp::ZERO]);
     for h in set_h {
         let mut p_r_alphak = func_u(Some(alpha), Some(*h), set_h.len());
-        let mut p_m_kx = m_kx(*h, &points_val, &points_row, &points_col, set_h.len());
+        let mut p_m_kx = m_kx(h, &points_val, &points_row, &points_col, set_h.len());
 
         p_r_alphak.trim();
         p_m_kx.trim();
@@ -543,34 +639,18 @@ fn sig_rkx_mkx(set_h: &Vec<Mfp>, alpha: Mfp, points_val: &HashMap<Mfp, Mfp>, poi
 
         res += p_r_alphak * p_m_kx;
     }
-
     res
 } 
 
 
-fn m_kx(num: Mfp, points_val: &HashMap<Mfp, Mfp>, points_row: &HashMap<Mfp, Mfp>, points_col: &HashMap<Mfp, Mfp>, set_h_len: usize) -> Poly {
+pub fn m_kx(num: &Mfp, points_val: &HashMap<Mfp, Mfp>, points_row: &HashMap<Mfp, Mfp>, points_col: &HashMap<Mfp, Mfp>, set_h_len: usize) -> Poly {
     let mut poly_res = Poly::from(vec![Mfp::ZERO]);
     
     for (k, val) in points_val {
         let poly_val = Poly::from(vec![*val]);
         let poly_x = func_u(None, Some(points_row[k]), set_h_len);
         let poly_y = func_u(None, Some(points_col[k]), set_h_len);
-        let res_poly_x = poly_x.eval(num);
-        poly_res += poly_val * res_poly_x * poly_y;
-    }
-
-    poly_res
-}
-
-
-fn m_xk(num: Mfp, points_val: &HashMap<Mfp, Mfp>, points_row: &HashMap<Mfp, Mfp>, points_col: &HashMap<Mfp, Mfp>, set_h_len: usize) -> Poly {
-    let mut poly_res = Poly::from(vec![Mfp::ZERO]);
-    
-    for (k, val) in points_val {
-        let poly_val = Poly::from(vec![*val]);
-        let poly_x = func_u(None, Some(points_row[k]), set_h_len);
-        let poly_y = func_u(None, Some(points_col[k]), set_h_len);
-        let res_poly_x = poly_x.eval(num);
+        let res_poly_x = poly_x.eval(*num);
         poly_res += poly_val * res_poly_x * poly_y;
     }
 
@@ -579,7 +659,40 @@ fn m_xk(num: Mfp, points_val: &HashMap<Mfp, Mfp>, points_row: &HashMap<Mfp, Mfp>
 
 
 
-fn get_matrix_point_row(mat: &DMatrix<Mfp>, set_h: &Vec<Mfp>, set_k: &Vec<Mfp>) -> HashMap<Mfp, Mfp> {
+pub fn sigma_rxk_mxk(set_h: &Vec<Mfp>, alpha: Mfp, points_val: &HashMap<Mfp, Mfp>, points_row: &HashMap<Mfp, Mfp>, points_col: &HashMap<Mfp, Mfp>) -> Poly {
+    let mut res = Poly::from(vec![Mfp::ZERO]);
+    
+    for h in set_h {
+        let mut p_r_alphak = func_u(Some(alpha), Some(*h), set_h.len());
+        let mut p_m_xk = m_xk(h, &points_val, &points_row, &points_col, set_h.len());
+
+        p_r_alphak.trim();
+        p_m_xk.trim();
+
+        // dsp_poly!(p_m_kx);
+
+        res += p_r_alphak * p_m_xk;
+    }
+
+    res
+} 
+
+pub fn m_xk(num: &Mfp, points_val: &HashMap<Mfp, Mfp>, points_row: &HashMap<Mfp, Mfp>, points_col: &HashMap<Mfp, Mfp>, set_h_len: usize) -> Poly {
+    let mut poly_res = Poly::from(vec![Mfp::ZERO]);
+    
+    for (k, val) in points_val {
+        let poly_val = Poly::from(vec![*val]);
+        let poly_x = func_u(None, Some(points_row[k]), set_h_len);
+        let poly_y = func_u(None, Some(points_col[k]), set_h_len);
+        let res_poly_y = poly_y.eval(*num);
+        poly_res += poly_val * res_poly_y * poly_x;
+    }
+
+    poly_res
+}
+
+
+pub fn get_matrix_point_row(mat: &DMatrix<Mfp>, set_h: &Vec<Mfp>, set_k: &Vec<Mfp>) -> HashMap<Mfp, Mfp> {
     let mut res = HashMap::new();
     let mut c = 0;
     let mat_len = mat.nrows();
@@ -595,7 +708,7 @@ fn get_matrix_point_row(mat: &DMatrix<Mfp>, set_h: &Vec<Mfp>, set_k: &Vec<Mfp>) 
     res 
 }
 
-fn get_matrix_point_col(mat: &DMatrix<Mfp>, set_h: &Vec<Mfp>, set_k: &Vec<Mfp>) -> HashMap<Mfp, Mfp> {
+pub fn get_matrix_point_col(mat: &DMatrix<Mfp>, set_h: &Vec<Mfp>, set_k: &Vec<Mfp>) -> HashMap<Mfp, Mfp> {
     let mut res = HashMap::new();
     let mut c = 0;
     let mat_len = mat.nrows();
@@ -613,7 +726,7 @@ fn get_matrix_point_col(mat: &DMatrix<Mfp>, set_h: &Vec<Mfp>, set_k: &Vec<Mfp>) 
 }
 
 
-fn get_matrix_point_val(mat: &DMatrix<Mfp>, set_h: &Vec<Mfp>, set_k: &Vec<Mfp>, row_k: &HashMap<Mfp, Mfp>, col_k: &HashMap<Mfp, Mfp>) -> HashMap<Mfp, Mfp> {
+pub fn get_matrix_point_val(mat: &DMatrix<Mfp>, set_h: &Vec<Mfp>, set_k: &Vec<Mfp>, row_k: &HashMap<Mfp, Mfp>, col_k: &HashMap<Mfp, Mfp>) -> HashMap<Mfp, Mfp> {
     let mut res = HashMap::new();
     let mut c = 0;
     let mat_len = mat.nrows();
