@@ -588,13 +588,13 @@ fn main() -> Result<()> {
     let poly_pi_b = (Poly::from(vec![beta_2]) -  &b_row_px) * (Poly::from(vec![beta_1]) -  &b_col_px);
     let poly_pi_c = (Poly::from(vec![beta_2]) -  &c_row_px) * (Poly::from(vec![beta_1]) -  &c_col_px);
 
-    let a_sig_poly = Poly::from(vec![eta_a * van_poly_vhx.eval(beta_2) * van_poly_vhx.eval(beta_1)]) * &a_val_px;
-    let b_sig_poly = Poly::from(vec![eta_b * van_poly_vhx.eval(beta_2) * van_poly_vhx.eval(beta_1)]) * &b_val_px;
-    let c_sig_poly = Poly::from(vec![eta_c * van_poly_vhx.eval(beta_2) * van_poly_vhx.eval(beta_1)]) * &c_val_px;
+    let poly_sig_a = Poly::from(vec![eta_a * van_poly_vhx.eval(beta_2) * van_poly_vhx.eval(beta_1)]) * &a_val_px;
+    let poly_sig_b = Poly::from(vec![eta_b * van_poly_vhx.eval(beta_2) * van_poly_vhx.eval(beta_1)]) * &b_val_px;
+    let poly_sig_c = Poly::from(vec![eta_c * van_poly_vhx.eval(beta_2) * van_poly_vhx.eval(beta_1)]) * &c_val_px;
 
-    let poly_a_x = a_sig_poly * (&poly_pi_b * &poly_pi_c) + 
-                   b_sig_poly * (&poly_pi_a * &poly_pi_c) +
-                   c_sig_poly * (&poly_pi_a * &poly_pi_b);
+    let poly_a_x = poly_sig_a * (&poly_pi_b * &poly_pi_c) + 
+                   poly_sig_b * (&poly_pi_a * &poly_pi_c) +
+                   poly_sig_c * (&poly_pi_a * &poly_pi_b);
 
     println!("a(x): ");
     dsp_poly!(poly_a_x);
