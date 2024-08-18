@@ -7,7 +7,7 @@ extern crate nalgebra as na;
 use ark_ff::{Field, PrimeField};
 use na::{DMatrix, DVector};
 use rand::{thread_rng, Rng};
-use rustnomial::{Degree, FreeSizePolynomial, Polynomial, SizedPolynomial};
+use rustnomial::{Degree, Evaluable, FreeSizePolynomial, Polynomial, SizedPolynomial};
 use utils::{Gate, GateType};
 use std::collections::{HashMap, HashSet};
 use std::ops::Neg;
@@ -20,9 +20,6 @@ field!(Mfp, P);
 
 /// Type alias for a polynomial over the `Mfp` field.
 pub type Poly = Polynomial<Mfp>;
-
-/// Type alias for a tuple containing two polynomials.
-pub type Poly2d = (Poly, Poly);
 
 /// Type alias for a 2D point in the `Mfp` field.
 pub type Point = (Mfp, Mfp);
@@ -128,7 +125,7 @@ pub fn init(
 /// assert_eq!(result, Mfp::from(1024));
 /// ```
 pub fn exp_mod(a: u64, b: u64) -> Mfp {
-    Mfp::from(a).pow(&[b])
+    Mfp::from(a).pow([b])
 }
 
 
@@ -510,14 +507,324 @@ pub fn poly_gen_randomly(deg: usize) -> Poly {
 /// A `Result` indicating success or failure, with an error message if an element from `set_h` cannot be chosen.
 fn add_random_points(set: &mut Vec<(Mfp, Mfp)>, set_h: &Vec<Mfp>, set_k: &Vec<Mfp>, c: usize) -> Result<()> {
     let mut rng = thread_rng();
-    for i in c..set_k.len() {
+    for k in set_k.iter().skip(c) {
         match set_h.choose(&mut rng) {
-            Some(&h) => set.push((set_k[i], h)),
+            Some(&h) => set.push((*k, h)),
             None => return Err(anyhow!("Failed to choose a random element from set_h")),
         }
     }
     Ok(())
 }
+
+/// Computes the value at specific points of a matrix `mat` based on the sets `set_h` and `set_k`,
+/// and the mappings `row_k` and `col_k`. It evaluates a polynomial `poly_u` at these points
+/// and divides the matrix value by the product of the evaluated values.
+///
+/// # Parameters
+/// - `mat`: A reference to the matrix `mat` of type `DMatrix<Mfp>`.
+/// - `set_h`: A vector of values in the finite field `Mfp`, used as part of the polynomial evaluation.
+/// - `set_k`: A vector of values in the finite field `Mfp`, used to identify the specific point in the matrix.
+/// - `row_k`: A reference to a `HashMap` that maps values in `set_k` to the corresponding row values.
+/// - `col_k`: A reference to a `HashMap` that maps values in `set_k` to the corresponding column values.
+///
+/// # Returns
+/// Returns a `HashMap<Mfp, Mfp>` where each key is a value from `set_k` and the value is the 
+/// computed polynomial division result at that matrix point.
+///
+/// # Description
+/// The function iterates over the matrix `mat` and, for each non-zero element, computes a value
+/// based on the evaluation of the polynomial `poly_u` at the points defined by `row_k` and `col_k`.
+/// It then stores the result in the `res` map, associating it with the corresponding value from `set_k`.
+///
+/// # Panic
+/// The function will panic if an index `c` in `set_k` is out of bounds or if `set_k` does not have 
+/// a value corresponding to the index `c`. This is asserted with `assert!(set_k.get(c).is_some());`.
+pub fn get_matrix_point_val(mat: &DMatrix<Mfp>, set_h: &Vec<Mfp>, set_k: &Vec<Mfp>, row_k: &HashMap<Mfp, Mfp>, col_k: &HashMap<Mfp, Mfp>) -> HashMap<Mfp, Mfp> {
+    let mut res = HashMap::new();
+    let mut c = 0;
+    let mat_len = mat.nrows();
+
+    let len = set_h.len();
+    let mut poly_u = Poly::from(vec![Mfp::ZERO]);
+    poly_u.add_term(Mfp::from(len as u64), len - 1);
+
+    for i in 0..mat_len {
+        for j in 0..mat_len {
+            if mat[(i, j)] != Mfp::ZERO {
+                let val = mat[(i, j)];
+                assert!(set_k.get(c).is_some());
+                let k   = set_k[c];
+                let p2  =  val / (poly_u.eval(row_k[&k]) * poly_u.eval(col_k[&k]));
+                res.insert(set_k[c], p2);
+                c += 1;
+            }
+        }
+    }
+    
+    res
+}
+
+
+/// Maps non-zero elements of the matrix `mat` to the corresponding row values from `set_h`
+/// based on the index in `set_k`.
+///
+/// # Parameters
+/// - `mat`: A reference to the matrix `mat` of type `DMatrix<Mfp>`.
+/// - `set_h`: A vector of values representing the rows in the finite field `Mfp`.
+/// - `set_k`: A vector of values used to identify specific points in the matrix.
+///
+/// # Returns
+/// Returns a `HashMap<Mfp, Mfp>` where each key is a value from `set_k` and the corresponding 
+/// value is the row value from `set_h`.
+///
+/// # Description
+/// The function iterates over the matrix `mat` and, for each non-zero element, 
+/// maps the corresponding value in `set_k` to the row value in `set_h`.
+pub fn get_matrix_point_row(mat: &DMatrix<Mfp>, set_h: &Vec<Mfp>, set_k: &Vec<Mfp>) -> HashMap<Mfp, Mfp> {
+    let mut res = HashMap::new();
+    let mut c = 0;
+    let mat_len = mat.nrows();
+
+    for i in 0..mat_len {
+        for j in 0..mat_len {
+            if mat[(i, j)] != Mfp::ZERO {
+                res.insert(set_k[c], set_h[i]);
+                c += 1;
+            }
+        }
+    }
+    res 
+}
+
+
+/// Maps non-zero elements of the matrix `mat` to the corresponding column values from `set_h`
+/// based on the index in `set_k`.
+///
+/// # Parameters
+/// - `mat`: A reference to the matrix `mat` of type `DMatrix<Mfp>`.
+/// - `set_h`: A vector of values representing the columns in the finite field `Mfp`.
+/// - `set_k`: A vector of values used to identify specific points in the matrix.
+///
+/// # Returns
+/// Returns a `HashMap<Mfp, Mfp>` where each key is a value from `set_k` and the corresponding 
+/// value is the column value from `set_h`.
+///
+/// # Description
+/// The function iterates over the matrix `mat` and, for each non-zero element, 
+/// maps the corresponding value in `set_k` to the column value in `set_h`.
+pub fn get_matrix_point_col(mat: &DMatrix<Mfp>, set_h: &Vec<Mfp>, set_k: &Vec<Mfp>) -> HashMap<Mfp, Mfp> {
+    let mut res = HashMap::new();
+    let mut c = 0;
+    let mat_len = mat.nrows();
+
+    for i in 0..mat_len {
+        for j in 0..mat_len {
+            if mat[(i, j)] != Mfp::ZERO {
+                res.insert(set_k[c], set_h[j]);
+                c += 1;
+            }
+        }
+    }
+
+    res 
+}
+
+
+/// Computes a polynomial `m_xk` based on the provided `points_val`, `points_row`, and `points_col`.
+///
+/// # Parameters
+/// - `num`: A reference to an `Mfp` element, used to evaluate the resulting polynomial.
+/// - `points_val`: A `HashMap` mapping points to their corresponding `Mfp` values.
+/// - `points_row`: A `HashMap` mapping points to their corresponding row values in the matrix.
+/// - `points_col`: A `HashMap` mapping points to their corresponding column values in the matrix.
+/// - `set_h_len`: The length of the set `H`, which determines the degree of the polynomial.
+///
+/// # Returns
+/// Returns a `Poly` representing the result of summing up the products of the evaluated polynomials.
+///
+/// # Description
+/// This function iterates over each key-value pair `(k, val)` in `points_val`, and for each pair:
+/// 1. Constructs a polynomial `poly_val` from the value `val`.
+/// 2. Constructs two polynomials `poly_x` and `poly_y` using the `func_u` function, with `points_row[k]` and `points_col[k]` as inputs, respectively.
+/// 3. Evaluates `poly_y` at `num` to get `res_poly_y`, then multiplies it by `poly_val` and `poly_x`.
+/// 4. Sums up these products to obtain the final polynomial `poly_res`.
+///
+/// The function `m_kx` follows a similar process, but evaluates `poly_x` at `num` instead of `poly_y`.
+///
+/// # Notes
+/// - `m_xk`: The final polynomial depends on `poly_x` and the evaluation of `poly_y` at `num`.
+/// - `m_kx`: The final polynomial depends on `poly_y` and the evaluation of `poly_x` at `num`.
+///
+/// These two functions are used to compute different aspects of the overall polynomial interaction.
+pub fn m_xk(num: &Mfp, points_val: &HashMap<Mfp, Mfp>, points_row: &HashMap<Mfp, Mfp>, points_col: &HashMap<Mfp, Mfp>, set_h_len: usize) -> Poly {
+    let mut poly_res = Poly::from(vec![Mfp::ZERO]);
+    
+    for (k, val) in points_val {
+        let poly_val = Poly::from(vec![*val]);
+        let poly_x = func_u(None, Some(points_row[k]), set_h_len);
+        let poly_y = func_u(None, Some(points_col[k]), set_h_len);
+        let res_poly_y = poly_y.eval(*num);
+        poly_res += poly_val * res_poly_y * poly_x;
+    }
+
+    poly_res
+}
+
+/// Computes a polynomial `m_kx` based on the provided `points_val`, `points_row`, and `points_col`.
+///
+/// # Parameters
+/// - `num`: A reference to an `Mfp` element, used to evaluate the resulting polynomial.
+/// - `points_val`: A `HashMap` mapping points to their corresponding `Mfp` values.
+/// - `points_row`: A `HashMap` mapping points to their corresponding row values in the matrix.
+/// - `points_col`: A `HashMap` mapping points to their corresponding column values in the matrix.
+/// - `set_h_len`: The length of the set `H`, which determines the degree of the polynomial.
+///
+/// # Returns
+/// Returns a `Poly` representing the result of summing up the products of the evaluated polynomials.
+///
+/// # Description
+/// This function iterates over each key-value pair `(k, val)` in `points_val`, and for each pair:
+/// 1. Constructs a polynomial `poly_val` from the value `val`.
+/// 2. Constructs two polynomials `poly_y` and `poly_y` using the `func_u` function, with `points_row[k]` and `points_col[k]` as inputs, respectively.
+/// 3. Evaluates `poly_y` at `num` to get `res_poly_y`, then multiplies it by `poly_val` and `poly_y`.
+/// 4. Sums up these products to obtain the final polynomial `poly_res`.
+///
+/// The function `m_kx` follows a similar process, but evaluates `poly_y` at `num` instead of `poly_y`.
+///
+/// # Notes
+/// - `m_xk`: The final polynomial depends on `poly_y` and the evaluation of `poly_y` at `num`.
+/// - `m_kx`: The final polynomial depends on `poly_y` and the evaluation of `poly_y` at `num`.
+///
+/// These two functions are used to compute different aspects of the overall polynomial interaction.
+pub fn m_kx(num: &Mfp, points_val: &HashMap<Mfp, Mfp>, points_row: &HashMap<Mfp, Mfp>, points_col: &HashMap<Mfp, Mfp>, set_h_len: usize) -> Poly {
+    let mut poly_res = Poly::from(vec![Mfp::ZERO]);
+    
+    for (k, val) in points_val {
+        let poly_val = Poly::from(vec![*val]);
+        let poly_x = func_u(None, Some(points_row[k]), set_h_len);
+        let poly_y = func_u(None, Some(points_col[k]), set_h_len);
+        let res_poly_x = poly_x.eval(*num);
+        poly_res += poly_val * res_poly_x * poly_y;
+    }
+
+    poly_res
+}
+
+/// Computes the polynomial sum for `sigma_rkx_mkx` based on the provided set `H`, `alpha`, and points.
+///
+/// # Parameters
+/// - `set_h`: A reference to a vector of `Mfp` elements representing the set `H`.
+/// - `alpha`: An `Mfp` element used in the polynomial computation.
+/// - `points_val`: A `HashMap` mapping points to their corresponding `Mfp` values.
+/// - `points_row`: A `HashMap` mapping points to their corresponding row values in the matrix.
+/// - `points_col`: A `HashMap` mapping points to their corresponding column values in the matrix.
+///
+/// # Returns
+/// Returns a `Poly` representing the sum of the products of polynomials.
+///
+/// # Description
+/// This function iterates over each element `h` in `set_h`, and for each `h`:
+/// 1. Constructs a polynomial `p_r_alphak` using `func_u`, which depends on `alpha` and `h`.
+/// 2. Constructs a polynomial `p_m_kx` using the `m_kx` function.
+/// 3. Trims the polynomials to remove leading zeros.
+/// 4. Multiplies `p_r_alphak` and `p_m_kx` and sums the result into `res`.
+///
+/// This function is used to compute the final polynomial based on the interaction between `alpha` and `h`.
+pub fn sigma_rkx_mkx(set_h: &Vec<Mfp>, alpha: Mfp, points_val: &HashMap<Mfp, Mfp>, points_row: &HashMap<Mfp, Mfp>, points_col: &HashMap<Mfp, Mfp>) -> Poly {
+    let mut res = Poly::from(vec![Mfp::ZERO]);
+    for h in set_h {
+        let mut p_r_alphak = func_u(Some(alpha), Some(*h), set_h.len());
+        let mut p_m_kx = m_kx(h, points_val, points_row, points_col, set_h.len());
+        p_r_alphak.trim();
+        p_m_kx.trim();
+        res += p_r_alphak * p_m_kx;
+    }
+    res
+}
+
+
+
+/// Computes the polynomial sum for `sigma_rxk_mxk` based on the provided set `H`, `alpha`, and points.
+///
+/// # Parameters
+/// - `set_h`: A reference to a vector of `Mfp` elements representing the set `H`.
+/// - `alpha`: An `Mfp` element used in the polynomial computation.
+/// - `points_val`: A `HashMap` mapping points to their corresponding `Mfp` values.
+/// - `points_row`: A `HashMap` mapping points to their corresponding row values in the matrix.
+/// - `points_col`: A `HashMap` mapping points to their corresponding column values in the matrix.
+///
+/// # Returns
+/// Returns a `Poly` representing the sum of the products of polynomials.
+///
+/// # Description
+/// This function iterates over each element `h` in `set_h`, and for each `h`:
+/// 1. Constructs a polynomial `p_r_alphak` using `func_u`, which depends on `alpha` and `h`.
+/// 2. Constructs a polynomial `p_m_xk` using the `m_xk` function.
+/// 3. Trims the polynomials to remove leading zeros.
+/// 4. Multiplies `p_r_alphak` and `p_m_xk` and sums the result into `res`.
+///
+/// This function is used to compute the final polynomial based on the interaction between `alpha` and `h`.
+pub fn sigma_rxk_mxk(set_h: &Vec<Mfp>, alpha: Mfp, points_val: &HashMap<Mfp, Mfp>, points_row: &HashMap<Mfp, Mfp>, points_col: &HashMap<Mfp, Mfp>) -> Poly {
+    let mut res = Poly::from(vec![Mfp::ZERO]);
+    for h in set_h {
+        let mut p_r_alphak = func_u(Some(alpha), Some(*h), set_h.len());
+        let mut p_m_xk = m_xk(h, points_val, points_row, points_col, set_h.len());
+        p_r_alphak.trim();
+        p_m_xk.trim();
+        res += p_r_alphak * p_m_xk;
+    }
+    res
+} 
+
+/// Calculates the sigma_m value based on the provided polynomials and parameters.
+///
+/// # Parameters
+/// - `van_poly_vhx`: The Vandermonde polynomial evaluated at `v_h(x)`.
+/// - `eta`: An `Mfp` value used as a multiplier in the result.
+/// - `beta_1`: The first `Mfp` value to evaluate the Vandermonde polynomial.
+/// - `beta_2`: The second `Mfp` value to evaluate the Vandermonde polynomial.
+/// - `k`: The `Mfp` value used to evaluate the `row`, `col`, and `val` polynomials.
+/// - `row`: The row polynomial evaluated at `k`.
+/// - `col`: The column polynomial evaluated at `k`.
+/// - `val`: The value polynomial evaluated at `k`.
+///
+/// # Returns
+/// Returns an `Mfp` value calculated as `eta * (nu / de)`, where `nu` is the product
+/// of the Vandermonde polynomials evaluated at `beta_1` and `beta_2`, and `val` evaluated at `k`.
+/// `de` is the product of differences between `beta_2` and `row(k)`, and `beta_1` and `col(k)`.
+pub fn sigma_m(van_poly_vhx: &Poly, eta: &Mfp, beta_1: &Mfp, beta_2: &Mfp, k: &Mfp, row: &Poly, col: &Poly, val: &Poly) -> Mfp {
+    let nu = van_poly_vhx.eval(*beta_1) * van_poly_vhx.eval(*beta_2) * val.eval(*k);
+    let de = (beta_2 - &row.eval(*k)) * (beta_1 - &col.eval(*k));
+    let div = nu / de;
+    
+    eta * &div
+}
+
+
+/// Computes the Lagrange interpolation polynomial `L_i(y_i)` for a given set of points.
+///
+/// # Parameters
+/// - `points`: A `HashMap` mapping points to their corresponding `Mfp` values.
+/// - `set_k`: A reference to a vector of `Mfp` elements used to identify the points in the Lagrange interpolation.
+///
+/// # Returns
+/// Returns a `Poly` object representing the Lagrange interpolation polynomial
+/// based on the points in `set_k` and their corresponding values in `points`.
+///
+/// # Description
+/// This function constructs a Lagrange interpolation polynomial using the points provided
+/// in `set_k` and the corresponding values found in the `points` HashMap. If a point in `set_k`
+/// does not have a corresponding value in `points`, it defaults to `Mfp::ZERO`.
+pub fn sigma_yi_li(points: &HashMap<Mfp, Mfp>, set_k: &Vec<Mfp>) -> Poly {
+    let mut points_li: Vec<Point> = vec![];
+    for k in set_k {
+        let val = points.get(k).unwrap_or(&Mfp::ZERO);
+        points_li.push((*k, *val));
+    }
+    lagrange_interpolate(&points_li)
+}
+
+
 
 #[cfg(test)]
 mod math_test {
