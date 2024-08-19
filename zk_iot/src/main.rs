@@ -3,7 +3,7 @@ use ark_ff::Field;
 use nalgebra::{DMatrix, DVector};
 use parser::parse_from_lines;
 use rustnomial::{Evaluable, FreeSizePolynomial, Polynomial};
-use std::{collections::HashMap, path::PathBuf, u64};
+use std::{collections::HashMap, path::PathBuf, process::exit, u64};
 use zk_iot::*;
 use anyhow::Result;
 
@@ -26,7 +26,7 @@ fn main() -> Result<()> {
     let mut c_matrix = DMatrix::<Mfp>::zeros(size, size);
 
     // Initialize the polynomial z with size elements, starting with 1
-    let mut z_poly  = DVector::<Mfp>::zeros(size);
+    let mut z_poly  = DMatrix::<Mfp>::zeros(size, 1);
     z_poly[0]       = Mfp::ONE;
 
     // TODO: Update this part after the parser has been updated!
@@ -213,7 +213,7 @@ fn main() -> Result<()> {
 
 
     // Compute matrix multiplications for A, B, and C with z_poly
-    let az = &a_matrix * &z_poly;
+    let az: DMatrix<Mfp> = &a_matrix * &z_poly;
     let bz = &b_matrix * &z_poly;
     let cz = &c_matrix * &z_poly;
 
@@ -453,6 +453,7 @@ fn main() -> Result<()> {
     println!("Poly ∑ r(alpha=10, k) * A^(k,x): ");
     dsp_poly!(r_a_kx);
 
+
     // ∑ r(alpha=10, k) * B^(k,x)
     let r_b_kx = sigma_rkx_mkx(&set_h, alpha, &points_val_p_b, &points_row_p_b, &points_col_p_b);
     println!("Poly ∑ r(alpha=10, k) * B^(k,x): ");
@@ -473,7 +474,7 @@ fn main() -> Result<()> {
 
     // Sum Check Protocol Formula:
     // s(x) + r(α,x) * ∑_m [η_M ​z^M​(x)] - ∑_m [η_M r_M(α,x)] * z^(x)
-    let poly_scp = poly_sx + sum_1 - &sum_2;
+    let poly_scp = poly_sx + sum_1.clone() - &sum_2;
 
     println!("scp: ");
     dsp_poly!(poly_scp);
@@ -507,10 +508,9 @@ fn main() -> Result<()> {
     
 
     // sigma_2
-    let sigma_2 =   Poly::new(vec![eta_a]) * r_a_kx.eval(beta_1) + 
-                    Poly::new(vec![eta_b]) * r_b_kx.eval(beta_1) +
-                    Poly::new(vec![eta_c]) * r_c_kx.eval(beta_1);
-    let sigma_2 = sigma_2.eval(beta_1);
+    let sigma_2 = eta_a * r_a_kx.eval(beta_1) + 
+                    eta_b * r_b_kx.eval(beta_1) +
+                    eta_c * r_c_kx.eval(beta_1);
     println!("sigma_2: {}", sigma_2);
 
 

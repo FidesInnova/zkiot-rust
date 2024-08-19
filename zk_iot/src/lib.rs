@@ -27,14 +27,6 @@ pub type Point = (Mfp, Mfp);
 /// Type alias for a 2D point and a value in the `Mfp` field.
 pub type Point2d = (Point, Mfp);
 
-/// Type alias for a column vector matrix with `Mfp` elements.
-type ColumnVectorMatrix = nalgebra::Matrix<
-    Mfp,
-    nalgebra::Dyn,
-    nalgebra::Const<1>,
-    nalgebra::VecStorage<Mfp, nalgebra::Dyn, nalgebra::Const<1>>,
->;
-
 /// Sets the first `t` rows of the matrix `mat` to zero.
 ///
 /// # Parameters
@@ -79,7 +71,7 @@ pub fn init(
     a_mat: &mut DMatrix<Mfp>,
     b_mat: &mut DMatrix<Mfp>,
     c_mat: &mut DMatrix<Mfp>,
-    z_poly: &mut DVector<Mfp>,
+    z_poly: &mut DMatrix<Mfp>,
 ) {
     for (i, gate) in gates.iter().enumerate() {
         let index = 1 + ni + i;
@@ -368,8 +360,8 @@ pub fn get_points_set(seq: &Vec<Mfp>, n: &Vec<Mfp>) -> Vec<Point> {
 /// # Panics
 /// Panics if the number of columns in the matrix is not equal to 1. The function assumes that the matrix
 /// is a column vector with exactly one column.
-pub fn mat_to_vec(mat: &ColumnVectorMatrix,) -> Vec<Mfp> {
-    assert!(mat.ncols() < 2, "cannot convet to vec mat.ncols() < 2");
+pub fn mat_to_vec(mat: &DMatrix<Mfp>) -> Vec<Mfp> {
+    assert!(mat.ncols() == 1, "cannot convet to vec mat.ncols() == 1");
 
     let mut v: Vec<Mfp> = vec![];
 
@@ -737,7 +729,10 @@ pub fn sigma_rkx_mkx(set_h: &Vec<Mfp>, alpha: Mfp, points_val: &HashMap<Mfp, Mfp
         let mut p_m_kx = m_kx(h, points_val, points_row, points_col, set_h.len());
         p_r_alphak.trim();
         p_m_kx.trim();
-        res += p_r_alphak * p_m_kx;
+        let mul_poly = p_r_alphak * p_m_kx;
+        println!("Poly for h={h}");
+        dsp_poly!(mul_poly);
+        res += mul_poly;
     }
     res
 }
