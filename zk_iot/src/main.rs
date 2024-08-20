@@ -1,22 +1,24 @@
-// TODO: Check all random gens 
-use ark_ff::Field;
-use nalgebra::{DMatrix, DVector};
-use parser::parse_from_lines;
-use rustnomial::{Evaluable, FreeSizePolynomial, Polynomial};
-use std::{collections::HashMap, path::PathBuf, process::exit, u64};
-use zk_iot::*;
+use rustnomial::{Evaluable, Polynomial};
+use std::path::PathBuf;
+use nalgebra::DMatrix;
 use anyhow::Result;
+use ark_ff::Field;
+
+use parser::parse_from_lines;
+use zk_iot::*;
+use utils::*;
+use math::*;
 
 fn main() -> Result<()> {
     println!("Phase 1: Setup");
     // Phase 1: Setup
     // Initialize parameters
     let ng      = 3;            // Number of gates
-    let no      = 1;            // Number of outputs
+    let _no     = 1;            // Number of outputs
     let ni      = 1;            // Number of inputs (registers)
     let t       = ni + 1;       // Number of rows (|x| = t, where t = ni + 1)
     let g       = 2;            // Generator number
-    let d       = 111213119_u64; // Large constant value
+    let d       = 111213119_u64;// Large constant value
     let l: u64  = 8;            // Base exponent for sequence
 
     // Initialize matrices (A, B, C) with elements from finite field P
@@ -83,7 +85,7 @@ fn main() -> Result<()> {
     
     // Phase 2: Commit 
     println!();
-    println!("Phase 1: Commit"); 
+    println!("Phase 2: Commit"); 
     
     let n = 5; // Define the parameter for set H
     let m = 9; // Define the parameter for set K
@@ -95,56 +97,18 @@ fn main() -> Result<()> {
     let set_k = generate_set(generator_k, m); 
     
     println!("H:\t{{ {} }}\nK:\t{{ {} }}", dsp_vec!(set_h), dsp_vec!(set_k)); // Display sets H and K
-    
 
     // A matrix processing
-    // TODO: encode_mat_m(&a_matrix, &set_h, &set_k)
-    println!("A mat:");                                             
-    let points  = get_points_row(&a_matrix, &set_h, &set_k);   // Get points for rows of matrix A
-    let a_row   = lagrange_interpolate(&points);                    // Compute Lagrange interpolation for rows
-    println!("lag row:");                                           
-    dsp_poly!(a_row);                                               
-    let points  = get_points_col(&a_matrix, &set_h, &set_k);   // Get points for columns of matrix A
-    let a_col   = lagrange_interpolate(&points);                    // Compute Lagrange interpolation for columns
-    println!("lag col:");                                           
-    dsp_poly!(a_col);                                               
-    let points  = get_points_val(&a_matrix, &set_h, &set_k);   // Get points for values of matrix A
-    let a_val   = lagrange_interpolate(&points);                    // Compute Lagrange interpolation for values
-    println!("lag val:");                                           
-    dsp_poly!(a_val);                                               
-    let a_matrix_encode = vec![a_row, a_col, a_val];                // Combine row, column, and value polynomials into a vector
+    println!("A mat:");                                           
+    let a_matrix_encode = encode_matrix_m(&a_matrix, &set_h, &set_k);
     
     // B matrix processing
-    println!("B mat:");                                             
-    let points  = get_points_row(&b_matrix, &set_h, &set_k);   // Get points for rows of matrix B
-    let b_row   = lagrange_interpolate(&points);                    // Compute Lagrange interpolation for rows
-    println!("lag row:");                                           
-    dsp_poly!(b_row);                                               
-    let points  = get_points_col(&b_matrix, &set_h, &set_k);   // Get points for columns of matrix B
-    let b_col   = lagrange_interpolate(&points);                    // Compute Lagrange interpolation for columns
-    println!("lag col:");                                           
-    dsp_poly!(b_col);                                               
-    let points  = get_points_val(&b_matrix, &set_h, &set_k);   // Get points for values of matrix B
-    let b_val   = lagrange_interpolate(&points);                    // Compute Lagrange interpolation for values
-    println!("lag val:");                                           
-    dsp_poly!(b_val);                                               
-    let b_matrix_encode = vec![b_row, b_col, b_val];                // Combine row, column, and value polynomials into a vector for matrix B
+    println!("B mat:");                              
+    let b_matrix_encode = encode_matrix_m(&b_matrix, &set_h, &set_k);
 
     // C matrix processing
-    println!("C mat");                                              
-    let points  = get_points_row(&c_matrix, &set_h, &set_k);   // Get points for rows of matrix C
-    let c_row   = lagrange_interpolate(&points);                    // Compute Lagrange interpolation for rows
-    println!("lag row:");                                           
-    dsp_poly!(c_row);                                               
-    let points  = get_points_col(&c_matrix, &set_h, &set_k);   // Get points for columns of matrix C
-    let c_col   = lagrange_interpolate(&points);                    // Compute Lagrange interpolation for columns
-    println!("lag col:");                                           
-    dsp_poly!(c_col);                                               
-    let points  = get_points_val(&c_matrix, &set_h, &set_k);   // Get points for values of matrix C
-    let c_val   = lagrange_interpolate(&points);                    // Compute Lagrange interpolation for values
-    println!("lag val:");                                           
-    dsp_poly!(c_val);                                               
-    let c_matrix_encode = vec![c_row, c_col, c_val];                // Combine row, column, and value polynomials into a vector for matrix C
+    println!("C mat");                                     
+    let c_matrix_encode = encode_matrix_m(&c_matrix, &set_h, &set_k);
 
     // Combine encoded matrix polynomials
     let mut o_i = vec![];
@@ -157,59 +121,9 @@ fn main() -> Result<()> {
     let commit_res = commit(o_i, d, g);                // Generate the commitment
     println!("Commit:\t( {} )", dsp_vec!(commit_res)); // Display the commitment
 
-    // TODO: For debugging purposes.(this line will be removed)
-    assert_eq!(commit_res, vec![Mfp::from(32), Mfp::from(56), Mfp::from(2), Mfp::from(135), Mfp::from(3), Mfp::from(50), Mfp::from(32), Mfp::from(32), Mfp::from(2)]);
-
     // Phase 3: Eval
     println!();
     println!("Phase 3: Eval");
-
-    // This section is currently incomplete and will be finalized in the future.
-    /*
-    let seq_k       = generate_set_eval(generator_h, n as usize, t, set_k.len());
-    let points_h    = get_points_set(&seq_k, &set_k);
-    let lag_h       = lagrange_interpolate(&points_h);
-
-    println!("Lag h:");
-    dsp_poly!(lag_h);
-    let a = [set_h[2], Mfp::ZERO];
-    let r = set_h[1];
-    let c = [
-        (n as isize - t as isize),
-        m as isize - (n as isize - t as isize),
-    ];
-    let p = [0, 3];
-    points_h.iter().find(|v| **v == (Mfp::ONE, Mfp::ONE));
-    let res = a.iter().zip(p.iter()).all(|(a_i, p_i)| {
-        let e = exp_mod(generator_k, *p_i);
-        points_h.iter().any(|v| v.0 == e && v.1 == *a_i)
-    });
-    println!("Geo Seq Test result:\t{:?}", res);
-
-    let mut res = false;
-
-    for &k in &set_k {
-        if let Some((_, h_gamma_k)) = points_h
-            .iter()
-            .find(|v| v.0 == k * Mfp::from(generator_k))
-        {
-            if let Some((_, h_k)) = points_h.iter().find(|v| v.0 == k) {
-                if *h_gamma_k == *h_k * r {
-                    res = true;
-                    break;
-                }
-            }
-        }
-        for (p_i, c_i) in p.iter().zip(c.iter()) {
-            if k == exp_mod(generator_k, *p_i + *c_i as u64 - 1) {
-                res = true;
-                break;
-            }
-        }
-    }
-    println!("Zero Over K result:\t{:?}", res);
-    let seq_kh = [1, 56, 59, 46, 42];
-    */
 
 
     // Compute matrix multiplications for A, B, and C with z_poly
@@ -230,9 +144,10 @@ fn main() -> Result<()> {
     let mut points_zb = get_points_set(&mat_to_vec(&bz), &set_h);
     let mut points_zc = get_points_set(&mat_to_vec(&cz), &set_h);
 
-    // TODO: Define a random value b within the range F(0-181) and ensure 0 < b <= P - n
-    let b = 2;
+
     // Uncomment and adjust the line below to push random points 
+    // TODO: Define a random value b within the range F(0..P-n) and ensure 0 < b <= P - n
+    // let b = 2;
     // push_random_points(&mut points_za, b, &vec_to_hashset(&set_h));
     // push_random_points(&mut points_zb, b, &vec_to_hashset(&set_h));
     // push_random_points(&mut points_zc, b, &vec_to_hashset(&set_h));
@@ -267,12 +182,12 @@ fn main() -> Result<()> {
 
     // Interpolate polynomial for x^(h) over the subset H[>∣x∣]
     let z_vec       = &mat_to_vec(&z_poly);
-    let points      = get_points_set(&z_vec[0..t].to_vec(), set_h_1);
+    let points      = get_points_set(&z_vec[0..t], set_h_1);
     let poly_x_hat  = lagrange_interpolate(&points);
 
     // Interpolate polynomial w(h) over the subset H[<=∣x∣]
     let z_vec   = &mat_to_vec(&z_poly);
-    let points  = get_points_set(&z_vec[t..].to_vec(), set_h_2);
+    let points  = get_points_set(&z_vec[t..], set_h_2);
     let wh      = lagrange_interpolate(&points);
 
     // Compute the vanishing polynomial for the subset H[<=∣x∣]
@@ -333,7 +248,6 @@ fn main() -> Result<()> {
                         Polynomial::new(vec![eta_c]) * &poly_zc;
 
     // Compute polynomial for r(α,x) ∑ ηM(z^M(x))
-
     let poly_r = func_u(Some(alpha), None, set_h.len());
     println!("r:");
     dsp_poly!(poly_r);
@@ -343,8 +257,6 @@ fn main() -> Result<()> {
 
     // r(α,x) * ∑_m [η_M ​z^M​(x)]
     let sum_1 = &poly_r * sigma_eta_z_x;
-
-
 
     // Compute polynomial for Z^(x)
     let poly_z_hat_x = poly_wh * van_poly_vh1 + poly_x_hat; 
@@ -470,8 +382,6 @@ fn main() -> Result<()> {
                     Poly::new(vec![eta_c]) * &r_c_kx;
     let sum_2 = sum_2 * poly_z_hat_x;
 
-
-
     // Sum Check Protocol Formula:
     // s(x) + r(α,x) * ∑_m [η_M ​z^M​(x)] - ∑_m [η_M r_M(α,x)] * z^(x)
     let poly_scp = poly_sx + sum_1.clone() - &sum_2;
@@ -485,10 +395,11 @@ fn main() -> Result<()> {
     dsp_poly!(h_1x);
 
     let g_1x = div_res.1.div_mod(&Poly::new(vec![Mfp::ONE, Mfp::ZERO])).0;
-    println!("Poly g_1x: {}", sigma_1/Mfp::from(set_h.len() as u64));
+    println!("Poly g_1x:");
     dsp_poly!(g_1x);
 
     // TODO: Random F - H 
+    // let beta_1 = gen_rand_not_in_set(&vec_to_set(&set_h));
     let beta_1 = Mfp::from(22);
 
     // ∑ r(alpha=10, k) * A^(x,k)
@@ -529,10 +440,11 @@ fn main() -> Result<()> {
     dsp_poly!(h_2x);
 
     let g_2x = div_res.1.div_mod(&Poly::new(vec![Mfp::ONE, Mfp::ZERO])).0;
-    println!("Poly g_2x: {}", sigma_1/Mfp::from(set_h.len() as u64));
+    println!("Poly g_2x:");
     dsp_poly!(g_2x);
 
     // TODO: Random F - H 
+    // let beta_2 = gen_rand_not_in_set(&vec_to_hashset(&set_h));
     let beta_2 = Mfp::from(80);
 
 
@@ -569,9 +481,9 @@ fn main() -> Result<()> {
     // sigma_3 
     let mut sigma_3 = Mfp::ZERO; 
     for k in set_k.iter() {
-        let sig_a = sigma_m(&van_poly_vhx, &eta_a, &beta_1, &beta_2, k, &a_row_px, &a_col_px, &a_val_px);
-        let sig_b = sigma_m(&van_poly_vhx, &eta_b, &beta_1, &beta_2, k, &b_row_px, &b_col_px, &b_val_px);
-        let sig_c = sigma_m(&van_poly_vhx, &eta_c, &beta_1, &beta_2, k, &c_row_px, &c_col_px, &c_val_px);
+        let sig_a = sigma_m(&van_poly_vhx, &eta_a, &beta_1, &beta_2, k, &[&a_row_px, &a_col_px, &a_val_px]);
+        let sig_b = sigma_m(&van_poly_vhx, &eta_b, &beta_1, &beta_2, k, &[&b_row_px, &b_col_px, &b_val_px]);
+        let sig_c = sigma_m(&van_poly_vhx, &eta_c, &beta_1, &beta_2, k, &[&c_row_px, &c_col_px, &c_val_px]);
 
         sigma_3 += sig_a + sig_b + sig_c
     }
@@ -590,7 +502,7 @@ fn main() -> Result<()> {
                    poly_sig_b * (&poly_pi_a * &poly_pi_c) +
                    poly_sig_c * (&poly_pi_a * &poly_pi_b);
 
-    println!("a(x): ");
+    println!("a(x):");
     dsp_poly!(poly_a_x);
     
     // b(x)
@@ -603,7 +515,3 @@ fn main() -> Result<()> {
     // let g_3x = 1;
     Ok(())
 }
-
-
-
-
