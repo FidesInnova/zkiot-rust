@@ -5,6 +5,7 @@ use std::{fs::File, path::PathBuf};
 use std::io::{BufRead, BufReader};
 
 use crate::utils::{Gate, GateType};
+use crate::file::*;
 
 /// Parses a line of text into a tuple containing a specific element and a vector of elements.
 ///
@@ -88,24 +89,6 @@ pub fn parser(file_path: PathBuf) -> Result<Vec<Gate>> {
     let reader = open_file(&file_path)?;
     let gates = read_parse_lines(reader)?;
     Ok(gates)
-}
-
-
-/// Opens a file and returns a buffered reader.
-///
-/// # Parameters
-/// - `file_path`: A reference to a `PathBuf` representing the path to the file.
-///
-/// # Returns
-/// - `Ok(BufReader<File>)`: A buffered reader for the opened file.
-/// - `Err(anyhow::Error)`: An error if there is an issue opening the file.
-///
-/// # Description
-/// The `open_file` function attempts to open the file at the specified path and returns
-/// a `BufReader` to allow for efficient reading of the file's contents.
-fn open_file(file_path: &PathBuf) -> Result<BufReader<File>> {
-    let file = File::open(file_path)?;
-    Ok(BufReader::new(file))
 }
 
 /// Parses gates from a file containing line numbers and a corresponding opcodes file.

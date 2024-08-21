@@ -162,7 +162,7 @@ pub fn generate_set(ms_gen: u64, len: u64) -> Vec<Mfp> {
 /// degree and generator. If the result of the commitment is `Mfp::ONE`, it defaults to
 /// the generator value `g`.
 /// 
-pub fn commit(o: Vec<Poly>, d: u64, g: u64) -> Vec<Mfp> {
+pub fn commit(o: &Vec<Poly>, d: u64, g: u64) -> Vec<Mfp> {
     let mut res = vec![];
 
     for poly in o {

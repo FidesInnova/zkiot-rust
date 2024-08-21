@@ -8,8 +8,11 @@ use parser::parse_from_lines;
 use zk_iot::*;
 use utils::*;
 use math::*;
+use file::*;
 
 fn main() -> Result<()> {
+    // clear json file
+    clean_file()?;
     println!("Phase 1: Setup");
     // Phase 1: Setup
     // Initialize parameters
@@ -82,7 +85,7 @@ fn main() -> Result<()> {
 
     println!(); 
     println!("Proof Path:\t( {} )", dsp_vec!(proof_path)); 
-    
+
     // Phase 2: Commit 
     println!();
     println!("Phase 2: Commit"); 
@@ -99,15 +102,15 @@ fn main() -> Result<()> {
     println!("H:\t{{ {} }}\nK:\t{{ {} }}", dsp_vec!(set_h), dsp_vec!(set_k)); // Display sets H and K
 
     // A matrix processing
-    println!("A mat:");                                           
+    // println!("A mat:");                                           
     let a_matrix_encode = encode_matrix_m(&a_matrix, &set_h, &set_k);
     
     // B matrix processing
-    println!("B mat:");                              
+    // println!("B mat:");                              
     let b_matrix_encode = encode_matrix_m(&b_matrix, &set_h, &set_k);
 
     // C matrix processing
-    println!("C mat");                                     
+    // println!("C mat");                                     
     let c_matrix_encode = encode_matrix_m(&c_matrix, &set_h, &set_k);
 
     // Combine encoded matrix polynomials
@@ -118,7 +121,7 @@ fn main() -> Result<()> {
     o_i.extend(b_matrix_encode); // Add encoded polynomials for matrix B
     o_i.extend(c_matrix_encode); // Add encoded polynomials for matrix C
 
-    let commit_res = commit(o_i, d, g);                // Generate the commitment
+    let commit_res = commit(&o_i, d, g);               // Generate the commitment
     println!("Commit:\t( {} )", dsp_vec!(commit_res)); // Display the commitment
 
     // Phase 3: Eval
@@ -359,7 +362,6 @@ fn main() -> Result<()> {
     // println!("{:?}", points_val_p_a);
 
 
-
     // ∑ r(alpha=10, k) * A^(k,x)
     let r_a_kx = sigma_rkx_mkx(&set_h, alpha, &points_val_p_a, &points_row_p_a, &points_col_p_a);
     println!("Poly ∑ r(alpha=10, k) * A^(k,x): ");
@@ -488,7 +490,7 @@ fn main() -> Result<()> {
         sigma_3 += sig_a + sig_b + sig_c
     }
     println!("sigma_3: {}", sigma_3);
-
+    
     // a(x) 
     let poly_pi_a = (Poly::from(vec![beta_2]) -  &a_row_px) * (Poly::from(vec![beta_1]) -  &a_col_px);
     let poly_pi_b = (Poly::from(vec![beta_2]) -  &b_row_px) * (Poly::from(vec![beta_1]) -  &b_col_px);
@@ -511,7 +513,10 @@ fn main() -> Result<()> {
     println!("b(x): ");
     dsp_poly!(poly_b_x);
 
-    // let h_3x = 1;
-    // let g_3x = 1;
+    store_commit_json(&[&a_row_px, &a_col_px, &a_val_px, &b_row_px, &b_col_px, &b_val_px, &c_row_px, &c_col_px, &c_val_px])?;
+    store_poly_json("ax", &poly_a_x)?;
+    store_poly_json("bx", &poly_b_x)?;
+
+
     Ok(())
 }
