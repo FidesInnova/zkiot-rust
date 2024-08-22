@@ -648,3 +648,10 @@ macro_rules! dsp_poly {
         println!("{result}\n");
     }};
 }
+
+
+pub fn sip_hash(value: &Mfp) -> Mfp {
+    let mut hasher = std::hash::DefaultHasher::new();
+    std::hash::Hash::hash(&value, &mut hasher);
+    Mfp::from(std::hash::Hasher::finish(&hasher))
+}

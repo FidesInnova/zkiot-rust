@@ -1,25 +1,27 @@
 //! Utilities for storing polynomials and sets in JSON files.
 
-use std::{fs::{self, File, OpenOptions}, io::{BufReader, Write}, path::PathBuf};
-use crate::{math::{Mfp, Poly}, to_bint};
-use rustnomial::SizedPolynomial;
+use std::{collections::HashMap, fs::{self, File, OpenOptions}, io::{BufReader, Write}, path::PathBuf};
+use crate::{dsp_vec, math::{Mfp, Poly}, to_bint};
+use ark_ff::Field;
+use rustnomial::{Degree, SizedPolynomial};
 use serde_json::{json, Value};
 use anyhow::{Result, anyhow};
 
 
 // Path to the JSON file used for storing data.
-const JSON_PATH: &str = "data.json";
+pub const JSON_COMMIT_PATH: &str = "commit.json";
+pub const JSON_PROOF_PATH: &str  = "proof.json";
 
 
-/// Creates a new, empty file at the specified JSON path.
+/// Creates a new, empty files at the specified JSON path.
 /// 
 /// # Returns
 /// Returns an `io::Result<()>` indicating the success or failure of the file creation.
-pub fn clean_file() -> Result<()> {
-    File::create(JSON_PATH)?;
+pub fn clean_files() -> Result<()> {
+    File::create(JSON_COMMIT_PATH)?;
+    File::create(JSON_PROOF_PATH)?;
     Ok(())
 }
-
 
 /// Converts a polynomial to a string representation of its terms.
 /// 
@@ -28,24 +30,17 @@ pub fn clean_file() -> Result<()> {
 ///
 /// # Returns
 /// Returns a `String` containing the terms of the polynomial, where each term is formatted as `"(coefficient, exponent)"`.
-fn write_term(poly: &Poly) -> String {
+fn write_term(poly: &Poly, max_deg: usize) -> Vec<u64> {
     let mut poly = poly.clone();
     poly.trim();
-    poly.terms_as_vec().iter().map(|v| format!("({},{})", to_bint!(v.0), v.1)).collect::<String>()
+    let poly_mapped = poly.terms_as_vec().iter().map(|v| (v.1, to_bint!(v.0))).collect::<HashMap<usize, u64>>();
+    let mut poly = vec![0; max_deg];
+    for i in 0..poly.len() {
+        poly[i] = *poly_mapped.get(&i).unwrap_or(&0);
+    }
+    // dsp_vec!(poly)
+    poly
 }
-
-
-/// Converts a set of `Mfp` elements to a string.
-/// 
-/// # Parameters
-/// - `set`: A slice of `Mfp` elements to be converted to a string.
-///
-/// # Returns
-/// Returns a `String` containing the elements of the set.
-fn write_set(set: &[Mfp]) -> String {
-    set.iter().map(|v| format!("{} ", to_bint!(*v))).collect::<String>()
-}
-
 
 /// Adds a new JSON value to an existing JSON file, merging it with any existing data.
 ///
@@ -59,70 +54,13 @@ fn write_set(set: &[Mfp]) -> String {
 /// - If the file already exists, it reads the content and merges the new value into the existing data.
 /// - If the file does not exist or is empty, it creates a new JSON object with the provided value.
 /// - The updated data is then written back to the file in a pretty-printed format.
-fn add_value_to_json_file(value: Value) -> Result<()> {
-    // Check if the file exists
-    let mut data = if fs::metadata(JSON_PATH).is_ok() {
-        let file_content = fs::read_to_string(JSON_PATH)?;
-        serde_json::from_str::<Value>(&file_content).unwrap_or(Value::Object(serde_json::Map::new()))
-    } else {
-        Value::Object(serde_json::Map::new())
-    };
-
-    // Merge the new value into the existing data
-    if let Value::Object(ref mut existing_map) = data {
-        if let Value::Object(new_map) = value {
-            for (key, val) in new_map {
-                existing_map.insert(key, val);
-            }
-        }
-    }
-
-    // Write the updated data back to the file
-    let json_string = serde_json::to_string_pretty(&data)?;
-    let mut file = OpenOptions::new().write(true).create(true).truncate(true).open(JSON_PATH)?;
+fn add_value_to_json_file(value: Value, path: &str) -> Result<()> {
+    let json_string = serde_json::to_string(&value)?;
+    let mut file = OpenOptions::new().write(true).create(true).truncate(true).open(path)?;
     file.write_all(json_string.as_bytes())?;
 
     Ok(())
 }
-
-/// Stores a polynomial in JSON format under a specified name.
-///
-/// # Parameters
-/// - `name`: A string slice representing the name under which the polynomial is stored.
-/// - `poly`: A reference to the `Poly` object to be stored.
-///
-/// # Returns
-/// Returns a `Result<()>`, indicating success or failure in storing the polynomial in the JSON file.
-pub fn store_poly_json(name: &str, poly: &Poly) -> Result<()> {
-    let poly = json!(write_term(poly));
-
-    let json_value = json!({
-        format!("{}", name): poly,
-    });
-
-    add_value_to_json_file(json_value)
-}
-
-
-
-/// Stores a set of `Mfp` values in JSON format under a specified name.
-///
-/// # Parameters
-/// - `name`: A string slice representing the name under which the set is stored.
-/// - `set`: A slice of `Mfp` values to be stored.
-///
-/// # Returns
-/// Returns a `Result<()>`, indicating success or failure in storing the set in the JSON file.
-pub fn store_set_json(name: &str, set: &[Mfp]) -> Result<()> {
-    let poly = json!(write_set(set));
-
-    let json_value = json!({
-        format!("{}", name): poly,
-    });
-
-    add_value_to_json_file(json_value)
-}
-
 
 /// Stores the commitment polynomials in JSON format.
 ///
@@ -133,23 +71,53 @@ pub fn store_set_json(name: &str, set: &[Mfp]) -> Result<()> {
 /// # Returns
 /// Returns a `Result<()>`, indicating success or failure in storing the commitment polynomials.
 /// If the slice does not contain exactly 9 polynomials, an error is returned.
-pub fn store_commit_json(polys: &[&Poly]) -> Result<()> {
-    if polys.len() != 9 {
-        return Err(anyhow!("Insufficient number of polynomials"));
-    }
-    let a_array = vec![json!(write_term(polys[0])), json!(write_term(polys[1])), json!(write_term(polys[2]))];
-    let b_array = vec![json!(write_term(polys[3])), json!(write_term(polys[4])), json!(write_term(polys[5]))];
-    let c_array = vec![json!(write_term(polys[6])), json!(write_term(polys[7])), json!(write_term(polys[8]))];
+pub fn store_commit_json(polys: &[&Poly], t: usize, n: usize) -> Result<()> {
+    let m = (((n * n) - n) / 2) + (((t * t) - t) / 2);
 
     let json_value = json!({
-        "A": a_array,
-        "B": b_array,
-        "C": c_array,
+        "n": n,
+        "t": t,
+        "p1": write_term(polys[0], m),
+        "p2": write_term(polys[1], m),
+        "p3": write_term(polys[2], m),
+        "p4": write_term(polys[0], m),
+        "p5": write_term(polys[1], m),
+        "p6": write_term(polys[2], m),
+        "p7": write_term(polys[0], m),
+        "p8": write_term(polys[1], m),
+        "p9": write_term(polys[2], m),
     });
 
-    add_value_to_json_file(json_value)
+    add_value_to_json_file(json_value, JSON_COMMIT_PATH)
 }
 
+pub fn store_proof_json(polys: &[&Poly], sigma: &[&Mfp], b: usize, set_h_len: usize, set_k_len: usize) -> Result<()> {
+    let poly_0_size = if let Degree::Num(num) = polys[0].degree() {
+        num
+    } else {
+        0
+    };
+
+    let json_value = json!({
+        "p1": to_bint!(*sigma[0]), // sigma_1
+        "p2": write_term(polys[0], poly_0_size + b - 1), // w^x 
+        "p3": write_term(polys[1], set_h_len + b - 1),  // z^a
+        "p4": write_term(polys[2], set_h_len + b - 1),  // z^b
+        "p5": write_term(polys[3], set_h_len + b - 1),  // z^b
+        "p6": write_term(polys[4], set_h_len + 2 * b - 1),  // h_0
+        "p7": write_term(polys[5], set_h_len + b - 2),  // sx
+        "p8": write_term(polys[6], set_h_len - 2),      // g_1
+        "p9": write_term(polys[7], set_h_len + b - 2),  // h_1
+        "p10": to_bint!(*sigma[1]), // sigma2
+        "p11": write_term(polys[8], set_h_len - 2),  // g_2
+        "p12": write_term(polys[9], set_h_len - 2),  // h_2
+        "p13": to_bint!(*sigma[2]) // sigma3
+        // p14 = g_3
+        // p15 = h_3
+    });
+
+    add_value_to_json_file(json_value, JSON_PROOF_PATH)
+}
 
 /// Opens a file and returns a buffered reader.
 ///

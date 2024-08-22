@@ -4,6 +4,7 @@ use anyhow::{anyhow, Context, Result};
 use std::{fs::File, path::PathBuf};
 use std::io::{BufRead, BufReader};
 
+use crate::math::Poly;
 use crate::utils::{Gate, GateType};
 use crate::file::*;
 
@@ -156,6 +157,13 @@ fn gate_type(op: &str) -> Result<GateType> {
     }
 }
 
+
+fn poly_parser(poly_str: &str) -> Poly {
+    let mut poly = Poly::new(vec![]);
+
+    
+    todo!()
+}
 
 #[cfg(test)]
 mod parser_test {

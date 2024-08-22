@@ -12,7 +12,7 @@ use file::*;
 
 fn main() -> Result<()> {
     // clear json file
-    clean_file()?;
+    clean_files()?;
     println!("Phase 1: Setup");
     // Phase 1: Setup
     // Initialize parameters
@@ -150,7 +150,7 @@ fn main() -> Result<()> {
 
     // Uncomment and adjust the line below to push random points 
     // TODO: Define a random value b within the range F(0..P-n) and ensure 0 < b <= P - n
-    // let b = 2;
+    let b = 2;
     // push_random_points(&mut points_za, b, &vec_to_hashset(&set_h));
     // push_random_points(&mut points_zb, b, &vec_to_hashset(&set_h));
     // push_random_points(&mut points_zc, b, &vec_to_hashset(&set_h));
@@ -168,15 +168,15 @@ fn main() -> Result<()> {
     points_zc.push((Mfp::from(80), Mfp::from(100)));
 
     // Interpolate polynomials for za, zb, and zc
-    let poly_za = lagrange_interpolate(&points_za);
+    let poly_z_hat_a = lagrange_interpolate(&points_za);
     println!("^za(x):");
-    dsp_poly!(poly_za);
-    let poly_zb = lagrange_interpolate(&points_zb);
+    dsp_poly!(poly_z_hat_a);
+    let poly_z_hat_b = lagrange_interpolate(&points_zb);
     println!("^zb(x):");
-    dsp_poly!(poly_zb);
-    let poly_zc = lagrange_interpolate(&points_zc);
+    dsp_poly!(poly_z_hat_b);
+    let poly_z_hat_c = lagrange_interpolate(&points_zc);
     println!("^zc(x):");
-    dsp_poly!(poly_zc);
+    dsp_poly!(poly_z_hat_c);
 
 
     // Split set_h into two subsets based on index t
@@ -211,17 +211,17 @@ fn main() -> Result<()> {
     points_w.push((Mfp::from(80), Mfp::from(180)));
 
     // Interpolate polynomial for wˉ(h) based on the points_w
-    let poly_wh = lagrange_interpolate(&points_w);
+    let poly_w_hat = lagrange_interpolate(&points_w);
 
     println!("w_hat:"); // Output the interpolated polynomial for wˉ(h)
-    dsp_poly!(poly_wh);
+    dsp_poly!(poly_w_hat);
 
     // h_zero
     let van_poly_vhx = vanishing_poly(&set_h);
-    let poly_h_0 = (&poly_za * &poly_zb - &poly_zc).div_mod(&van_poly_vhx);
+    let poly_h_0 = (&poly_z_hat_a * &poly_z_hat_b - &poly_z_hat_c).div_mod(&van_poly_vhx).0;
     
     println!("h0(x):");
-    dsp_poly!(poly_h_0.0);
+    dsp_poly!(poly_h_0);
 
     // Generate a random polynomial (currently hardcoded for demonstration)
     let poly_sx = [5, 0, 101, 17, 0, 1, 20, 0, 0, 3, 115];
@@ -239,16 +239,21 @@ fn main() -> Result<()> {
     // let eta_b = MFp::from(thread_rng().gen_range(0..P));
     // let eta_c = MFp::from(thread_rng().gen_range(0..P));
 
-    // Hardcoded values for demonstration
+    // let alpha = sip_hash(&(poly_sx.eval(Mfp::from(0)) + poly_sx.eval(Mfp::from(1)) + Mfp::from(1)));
+    // let eta_a = sip_hash(&(poly_sx.eval(Mfp::from(2)) + poly_sx.eval(Mfp::from(3)) + Mfp::from(2)));
+    // let eta_b = sip_hash(&(poly_sx.eval(Mfp::from(4)) + poly_sx.eval(Mfp::from(5)) + Mfp::from(3)));
+    // let eta_c = sip_hash(&(poly_sx.eval(Mfp::from(6)) + poly_sx.eval(Mfp::from(7)) + Mfp::from(4)));
+    
+    // Hardcoded values for test
     let alpha = Mfp::from(10);
     let eta_a = Mfp::from(2);
     let eta_b = Mfp::from(30);
     let eta_c = Mfp::from(100);
 
     // Compute polynomial for ∑ ηz(x)
-    let sigma_eta_z_x = Polynomial::new(vec![eta_a]) * &poly_za +
-                        Polynomial::new(vec![eta_b]) * &poly_zb + 
-                        Polynomial::new(vec![eta_c]) * &poly_zc;
+    let sigma_eta_z_x = Polynomial::new(vec![eta_a]) * &poly_z_hat_a +
+                        Polynomial::new(vec![eta_b]) * &poly_z_hat_b + 
+                        Polynomial::new(vec![eta_c]) * &poly_z_hat_c;
 
     // Compute polynomial for r(α,x) ∑ ηM(z^M(x))
     let poly_r = func_u(Some(alpha), None, set_h.len());
@@ -262,7 +267,7 @@ fn main() -> Result<()> {
     let sum_1 = &poly_r * sigma_eta_z_x;
 
     // Compute polynomial for Z^(x)
-    let poly_z_hat_x = poly_wh * van_poly_vh1 + poly_x_hat; 
+    let poly_z_hat_x = &poly_w_hat * &van_poly_vh1 + poly_x_hat; 
     println!("z_hat: ");
     dsp_poly!(poly_z_hat_x);
 
@@ -386,7 +391,7 @@ fn main() -> Result<()> {
 
     // Sum Check Protocol Formula:
     // s(x) + r(α,x) * ∑_m [η_M ​z^M​(x)] - ∑_m [η_M r_M(α,x)] * z^(x)
-    let poly_scp = poly_sx + sum_1.clone() - &sum_2;
+    let poly_scp = poly_sx.clone() + sum_1.clone() - &sum_2;
 
     println!("scp: ");
     dsp_poly!(poly_scp);
@@ -513,10 +518,24 @@ fn main() -> Result<()> {
     println!("b(x): ");
     dsp_poly!(poly_b_x);
 
-    store_commit_json(&[&a_row_px, &a_col_px, &a_val_px, &b_row_px, &b_col_px, &b_val_px, &c_row_px, &c_col_px, &c_val_px])?;
-    store_poly_json("ax", &poly_a_x)?;
-    store_poly_json("bx", &poly_b_x)?;
-
-
+    store_commit_json(&[&a_row_px, &a_col_px, &a_val_px, &b_row_px, &b_col_px, &b_val_px, &c_row_px, &c_col_px, &c_val_px], t, size)?;
+    store_proof_json(
+        &[
+            &poly_w_hat,
+            &poly_z_hat_a,
+            &poly_z_hat_b,
+            &poly_z_hat_c,
+            &poly_h_0,
+            &poly_sx,
+            &g_1x,
+            &h_1x,
+            &g_2x,
+            &h_2x,
+        ],
+        &[&sigma_1, &sigma_2, &sigma_3],
+        b, 
+        set_h.len(),
+        set_k.len()
+    )?;
     Ok(())
 }
