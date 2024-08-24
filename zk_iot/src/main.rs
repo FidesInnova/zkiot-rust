@@ -243,7 +243,7 @@ fn main() -> Result<()> {
     // let eta_a = sip_hash(&(poly_sx.eval(Mfp::from(2)) + poly_sx.eval(Mfp::from(3)) + Mfp::from(2)));
     // let eta_b = sip_hash(&(poly_sx.eval(Mfp::from(4)) + poly_sx.eval(Mfp::from(5)) + Mfp::from(3)));
     // let eta_c = sip_hash(&(poly_sx.eval(Mfp::from(6)) + poly_sx.eval(Mfp::from(7)) + Mfp::from(4)));
-    
+
     // Hardcoded values for test
     let alpha = Mfp::from(10);
     let eta_a = Mfp::from(2);
@@ -518,7 +518,7 @@ fn main() -> Result<()> {
     println!("b(x): ");
     dsp_poly!(poly_b_x);
 
-    store_commit_json(&[&a_row_px, &a_col_px, &a_val_px, &b_row_px, &b_col_px, &b_val_px, &c_row_px, &c_col_px, &c_val_px], t, size)?;
+    store_commit_json(&[&a_row_px, &a_col_px, &a_val_px, &b_row_px, &b_col_px, &b_val_px, &c_row_px, &c_col_px, &c_val_px], t, size, &proof_path)?;
     store_proof_json(
         &[
             &poly_w_hat,

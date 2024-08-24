@@ -1,7 +1,7 @@
 //! Utilities for storing polynomials and sets in JSON files.
 
 use std::{collections::HashMap, fs::{self, File, OpenOptions}, io::{BufReader, Write}, path::PathBuf};
-use crate::{dsp_vec, math::{Mfp, Poly}, to_bint};
+use crate::{dsp_poly, dsp_vec, math::{Mfp, Poly}, to_bint};
 use ark_ff::Field;
 use rustnomial::{Degree, SizedPolynomial};
 use serde_json::{json, Value};
@@ -35,7 +35,12 @@ fn write_term(poly: &Poly, max_deg: usize) -> Vec<u64> {
     poly.trim();
     let poly_mapped = poly.terms_as_vec().iter().map(|v| (v.1, to_bint!(v.0))).collect::<HashMap<usize, u64>>();
     let mut poly = vec![0; max_deg];
-    for i in 0..poly.len() {
+
+    // println!("poly_len: {}", poly_mapped.len());
+    // println!("max_deg: {}", max_deg);
+
+    assert!(max_deg + 1 >= poly_mapped.len());
+    for i in 0..max_deg {
         poly[i] = *poly_mapped.get(&i).unwrap_or(&0);
     }
     // dsp_vec!(poly)
@@ -62,6 +67,10 @@ fn add_value_to_json_file(value: Value, path: &str) -> Result<()> {
     Ok(())
 }
 
+fn write_set(set: &Vec<Mfp>) -> Vec<u64> {
+    set.iter().map(|v| to_bint!(*v) as u64).collect::<Vec<u64>>()
+}
+
 /// Stores the commitment polynomials in JSON format.
 ///
 /// # Parameters
@@ -71,21 +80,23 @@ fn add_value_to_json_file(value: Value, path: &str) -> Result<()> {
 /// # Returns
 /// Returns a `Result<()>`, indicating success or failure in storing the commitment polynomials.
 /// If the slice does not contain exactly 9 polynomials, an error is returned.
-pub fn store_commit_json(polys: &[&Poly], t: usize, n: usize) -> Result<()> {
+pub fn store_commit_json(polys: &[&Poly], t: usize, n: usize, pp: &Vec<Mfp>) -> Result<()> {
     let m = (((n * n) - n) / 2) + (((t * t) - t) / 2);
 
     let json_value = json!({
+        "ProofPath": write_set(pp),
+        "m": m,
         "n": n,
         "t": t,
-        "p1": write_term(polys[0], m),
-        "p2": write_term(polys[1], m),
-        "p3": write_term(polys[2], m),
-        "p4": write_term(polys[0], m),
-        "p5": write_term(polys[1], m),
-        "p6": write_term(polys[2], m),
-        "p7": write_term(polys[0], m),
-        "p8": write_term(polys[1], m),
-        "p9": write_term(polys[2], m),
+        "ComRowA": write_term(polys[0], m),
+        "ComColA": write_term(polys[1], m),
+        "ComValA": write_term(polys[2], m),
+        "ComRowB": write_term(polys[3], m),
+        "ComColB": write_term(polys[4], m),
+        "ComValB": write_term(polys[5], m),
+        "ComRowC": write_term(polys[6], m),
+        "ComColC": write_term(polys[7], m),
+        "ComValC": write_term(polys[8], m),
     });
 
     add_value_to_json_file(json_value, JSON_COMMIT_PATH)
@@ -99,21 +110,23 @@ pub fn store_proof_json(polys: &[&Poly], sigma: &[&Mfp], b: usize, set_h_len: us
     };
 
     let json_value = json!({
-        "p1": to_bint!(*sigma[0]), // sigma_1
-        "p2": write_term(polys[0], poly_0_size + b - 1), // w^x 
-        "p3": write_term(polys[1], set_h_len + b - 1),  // z^a
-        "p4": write_term(polys[2], set_h_len + b - 1),  // z^b
-        "p5": write_term(polys[3], set_h_len + b - 1),  // z^b
-        "p6": write_term(polys[4], set_h_len + 2 * b - 1),  // h_0
-        "p7": write_term(polys[5], set_h_len + b - 2),  // sx
-        "p8": write_term(polys[6], set_h_len - 2),      // g_1
-        "p9": write_term(polys[7], set_h_len + b - 2),  // h_1
-        "p10": to_bint!(*sigma[1]), // sigma2
-        "p11": write_term(polys[8], set_h_len - 2),  // g_2
-        "p12": write_term(polys[9], set_h_len - 2),  // h_2
-        "p13": to_bint!(*sigma[2]) // sigma3
+        "P1AHP": to_bint!(*sigma[0]), // sigma_1
+        "P2AHP": write_term(polys[0], poly_0_size + b - 1), // w^x 
+        "P3AHP": write_term(polys[1], set_h_len + b - 1),  // z^a
+        "P4AHP": write_term(polys[2], set_h_len + b - 1),  // z^b
+        "P5AHP": write_term(polys[3], set_h_len + b - 1),  // z^b
+        "P6AHP": write_term(polys[4], set_h_len + 2 * b - 1),  // h_0
+        "P7AHP": write_term(polys[5], set_h_len + b - 2),  // sx
+        "P8AHP": write_term(polys[6], set_h_len - 2),      // g_1
+        "P9AHP": write_term(polys[7], set_h_len + b - 2),  // h_1
+        "P10AHP": to_bint!(*sigma[1]), // sigma2
+        "P11AHP": write_term(polys[8], set_h_len - 2),  // g_2
+        "P12AHP": write_term(polys[9], set_h_len - 2),  // h_2
+        "P13AHP": to_bint!(*sigma[2]), // sigma3
         // p14 = g_3
         // p15 = h_3
+        "protocol":"fidesv1",
+        "curve": "bn128"
     });
 
     add_value_to_json_file(json_value, JSON_PROOF_PATH)
