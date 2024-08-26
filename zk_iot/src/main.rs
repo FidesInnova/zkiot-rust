@@ -8,14 +8,14 @@ use parser::parse_from_lines;
 use zk_iot::*;
 use utils::*;
 use math::*;
-use file::*;
+use json_file::*;
+
+
 
 fn main() -> Result<()> {
-    // clear json file
-    clean_files()?;
     println!("Phase 1: Setup");
     // Phase 1: Setup
-    // Initialize parameters
+    // Initialize
     let ng      = 3;            // Number of gates
     let _no     = 1;            // Number of outputs
     let ni      = 1;            // Number of inputs (registers)
@@ -26,9 +26,6 @@ fn main() -> Result<()> {
 
     // Initialize matrices (A, B, C) with elements from finite field P
     let size = ng + ni + 1;  // Size of the matrices
-    let mut a_matrix = DMatrix::<Mfp>::zeros(size, size);
-    let mut b_matrix = DMatrix::<Mfp>::zeros(size, size);
-    let mut c_matrix = DMatrix::<Mfp>::zeros(size, size);
 
     // Initialize the polynomial z with size elements, starting with 1
     let mut z_poly  = DMatrix::<Mfp>::zeros(size, 1);
@@ -46,6 +43,38 @@ fn main() -> Result<()> {
         &PathBuf::from("sample.txt")
     )?;
 
+
+    // Generate the proof path by iteratively applying exponentiation
+    let mut proof_path = vec![];
+    let mut s = Mfp::from(g);
+    let d = d % (P - 1);
+    for _ in 0..=l {
+        proof_path.push(s);
+        s = exp_mod(to_bint!(s), d);
+    }
+
+    println!(); 
+    println!("Proof Path:\t( {} )", dsp_vec!(proof_path)); 
+
+    // Phase 2: Commit 
+    println!();
+    println!("Phase 2: Commit"); 
+    // Initialize
+    let n = 5; // Define the parameter for set H
+    let m = 9; // Define the parameter for set K
+
+    let generator_h = to_bint!(exp_mod(g, (P - 1) / n)); // Compute the generator for set H
+    let generator_k = to_bint!(exp_mod(g, (P - 1) / m)); // Compute the generator for set K
+    
+    let set_h = generate_set(generator_h, n); 
+    let set_k = generate_set(generator_k, m); 
+    
+    println!("H:\t{{ {} }}\nK:\t{{ {} }}", dsp_vec!(set_h), dsp_vec!(set_k)); // Display sets H and K
+
+    let mut a_matrix = DMatrix::<Mfp>::zeros(size, size);
+    let mut b_matrix = DMatrix::<Mfp>::zeros(size, size);
+    let mut c_matrix = DMatrix::<Mfp>::zeros(size, size);
+    
     // Initialize matrices A, B, C and polynomial z with parsed gates
     init(
         gates,
@@ -74,33 +103,6 @@ fn main() -> Result<()> {
     println!("Cz:");
     dsp_mat!(cz);
 
-    // Generate the proof path by iteratively applying exponentiation
-    let mut proof_path = vec![];
-    let mut s = Mfp::from(g);
-    let d = d % (P - 1);
-    for _ in 0..=l {
-        proof_path.push(s);
-        s = exp_mod(to_bint!(s), d);
-    }
-
-    println!(); 
-    println!("Proof Path:\t( {} )", dsp_vec!(proof_path)); 
-
-    // Phase 2: Commit 
-    println!();
-    println!("Phase 2: Commit"); 
-    
-    let n = 5; // Define the parameter for set H
-    let m = 9; // Define the parameter for set K
-    
-    let generator_h = to_bint!(exp_mod(g, (P - 1) / n)); // Compute the generator for set H
-    let generator_k = to_bint!(exp_mod(g, (P - 1) / m)); // Compute the generator for set K
-    
-    let set_h = generate_set(generator_h, n); 
-    let set_k = generate_set(generator_k, m); 
-    
-    println!("H:\t{{ {} }}\nK:\t{{ {} }}", dsp_vec!(set_h), dsp_vec!(set_k)); // Display sets H and K
-
     // A matrix processing
     // println!("A mat:");                                           
     let a_matrix_encode = encode_matrix_m(&a_matrix, &set_h, &set_k);
@@ -124,10 +126,10 @@ fn main() -> Result<()> {
     let commit_res = commit(&o_i, d, g);               // Generate the commitment
     println!("Commit:\t( {} )", dsp_vec!(commit_res)); // Display the commitment
 
+
     // Phase 3: Eval
     println!();
     println!("Phase 3: Eval");
-
 
     // Compute matrix multiplications for A, B, and C with z_poly
     let az: DMatrix<Mfp> = &a_matrix * &z_poly;
@@ -218,7 +220,8 @@ fn main() -> Result<()> {
 
     // h_zero
     let van_poly_vhx = vanishing_poly(&set_h);
-    let poly_h_0 = (&poly_z_hat_a * &poly_z_hat_b - &poly_z_hat_c).div_mod(&van_poly_vhx).0;
+    let poly_ab_c = &poly_z_hat_a * &poly_z_hat_b - &poly_z_hat_c;
+    let poly_h_0 = (&poly_ab_c).div_mod(&van_poly_vhx).0;
     
     println!("h0(x):");
     dsp_poly!(poly_h_0);
@@ -387,7 +390,7 @@ fn main() -> Result<()> {
     let sum_2 =   Poly::new(vec![eta_a]) * &r_a_kx + 
                     Poly::new(vec![eta_b]) * &r_b_kx +
                     Poly::new(vec![eta_c]) * &r_c_kx;
-    let sum_2 = sum_2 * poly_z_hat_x;
+    let sum_2 = sum_2 * &poly_z_hat_x;
 
     // Sum Check Protocol Formula:
     // s(x) + r(α,x) * ∑_m [η_M ​z^M​(x)] - ∑_m [η_M r_M(α,x)] * z^(x)
@@ -485,6 +488,8 @@ fn main() -> Result<()> {
     println!("c_val_px: ");
     dsp_poly!(c_val_px);
 
+    store_commit_json(&[&a_row_px, &a_col_px, &a_val_px, &b_row_px, &b_col_px, &b_val_px, &c_row_px, &c_col_px, &c_val_px], t, size, &proof_path)?;
+
     // sigma_3 
     let mut sigma_3 = Mfp::ZERO; 
     for k in set_k.iter() {
@@ -518,7 +523,12 @@ fn main() -> Result<()> {
     println!("b(x): ");
     dsp_poly!(poly_b_x);
 
-    store_commit_json(&[&a_row_px, &a_col_px, &a_val_px, &b_row_px, &b_col_px, &b_val_px, &c_row_px, &c_col_px, &c_val_px], t, size, &proof_path)?;
+    let van_poly_vkx = vanishing_poly(&set_k);
+    let h_3x = Poly::from(vec![Mfp::ONE, Mfp::ZERO]);
+    let g_3x = Poly::from(vec![Mfp::ONE, Mfp::ZERO]);
+    
+    // Poly::from(vec![Mfp::ONE, Mfp::ZERO])
+
     store_proof_json(
         &[
             &poly_w_hat,
@@ -535,7 +545,36 @@ fn main() -> Result<()> {
         &[&sigma_1, &sigma_2, &sigma_3],
         b, 
         set_h.len(),
-        set_k.len()
     )?;
+
+    let beta_3 = Mfp::from(5);
+
+    let verify_res = verify(
+        &h_1x,
+        &g_1x,
+        &h_2x,
+        &g_2x,
+        &h_3x,
+        &g_3x,
+        &beta_1,
+        &sigma_1,
+        &beta_2,
+        &sigma_2,
+        &beta_3,
+        &sigma_3,
+        &poly_a_x,
+        &poly_b_x,
+        &poly_ab_c,
+        &poly_h_0,
+        &poly_r,
+        &poly_sx,
+        &poly_z_hat_x,
+        set_k.len(),
+        set_h.len(),
+        &sum_1,
+        &van_poly_vkx,
+        &van_poly_vhx,
+    );println!("Verify result: {}", verify_res);
+
     Ok(())
 }

@@ -6,7 +6,7 @@ use std::io::{BufRead, BufReader};
 
 use crate::math::Poly;
 use crate::utils::{Gate, GateType};
-use crate::file::*;
+use crate::json_file::*;
 
 /// Parses a line of text into a tuple containing a specific element and a vector of elements.
 ///
