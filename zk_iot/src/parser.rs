@@ -158,13 +158,6 @@ fn gate_type(op: &str) -> Result<GateType> {
 }
 
 
-fn poly_parser(poly_str: &str) -> Poly {
-    let mut poly = Poly::new(vec![]);
-
-    
-    todo!()
-}
-
 #[cfg(test)]
 mod parser_test {
     use super::*;

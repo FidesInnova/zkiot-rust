@@ -10,7 +10,13 @@ use utils::*;
 use math::*;
 use json_file::*;
 
+struct CommitmentBundle {
 
+}
+
+struct ProofBundle {
+    
+}
 
 fn main() -> Result<()> {
     println!("Phase 1: Setup");
@@ -454,8 +460,8 @@ fn main() -> Result<()> {
     dsp_poly!(g_2x);
 
     // TODO: Random F - H 
-    // let beta_2 = gen_rand_not_in_set(&vec_to_hashset(&set_h));
-    let beta_2 = Mfp::from(80);
+    let beta_2 = gen_rand_not_in_set(&vec_to_set(&set_h));
+    // let beta_2 = Mfp::from(80);
 
 
     let a_row_px = sigma_yi_li(&points_row_p_a, &set_k);
@@ -489,18 +495,37 @@ fn main() -> Result<()> {
     dsp_poly!(c_val_px);
 
     store_commit_json(&[&a_row_px, &a_col_px, &a_val_px, &b_row_px, &b_col_px, &b_val_px, &c_row_px, &c_col_px, &c_val_px], t, size, &proof_path)?;
+    
+    // let commit_vals = restore_commit_json("commit.json")?;
+    // let a_row_px = commit_vals.0[0].clone();
+    // let a_col_px = commit_vals.0[1].clone();
+    // let a_val_px = commit_vals.0[2].clone();
+    // let b_row_px = commit_vals.0[3].clone();
+    // let b_col_px = commit_vals.0[4].clone();
+    // let b_val_px = commit_vals.0[5].clone();
+    // let c_row_px = commit_vals.0[6].clone();
+    // let c_col_px = commit_vals.0[7].clone();
+    // let c_val_px = commit_vals.0[8].clone();
+    // let t = commit_vals.1;
+    // let n = commit_vals.2;
+
 
     // sigma_3 
     let mut sigma_3 = Mfp::ZERO; 
+
+    // f_3x 
+    let mut points_f_3: Vec<Point> = vec![];  
     for k in set_k.iter() {
         let sig_a = sigma_m(&van_poly_vhx, &eta_a, &beta_1, &beta_2, k, &[&a_row_px, &a_col_px, &a_val_px]);
         let sig_b = sigma_m(&van_poly_vhx, &eta_b, &beta_1, &beta_2, k, &[&b_row_px, &b_col_px, &b_val_px]);
         let sig_c = sigma_m(&van_poly_vhx, &eta_c, &beta_1, &beta_2, k, &[&c_row_px, &c_col_px, &c_val_px]);
 
-        sigma_3 += sig_a + sig_b + sig_c
+        let sum = sig_a + sig_b + sig_c;
+        sigma_3 += sum;
+        points_f_3.push((*k, sum));
     }
     println!("sigma_3: {}", sigma_3);
-    
+
     // a(x) 
     let poly_pi_a = (Poly::from(vec![beta_2]) -  &a_row_px) * (Poly::from(vec![beta_1]) -  &a_col_px);
     let poly_pi_b = (Poly::from(vec![beta_2]) -  &b_row_px) * (Poly::from(vec![beta_1]) -  &b_col_px);
@@ -524,10 +549,18 @@ fn main() -> Result<()> {
     dsp_poly!(poly_b_x);
 
     let van_poly_vkx = vanishing_poly(&set_k);
-    let h_3x = Poly::from(vec![Mfp::ONE, Mfp::ZERO]);
-    let g_3x = Poly::from(vec![Mfp::ONE, Mfp::ZERO]);
-    
-    // Poly::from(vec![Mfp::ONE, Mfp::ZERO])
+
+    let poly_f_3x = lagrange_interpolate(&points_f_3);
+    let sigma_3_set_k = Mfp::from(sigma_3 / Mfp::from(set_k.len() as u64));
+    let poly_f_3x = poly_f_3x - Poly::from(vec![sigma_3_set_k]);
+    let g_3x = poly_f_3x.div_mod(&Poly::from(vec![Mfp::ONE, Mfp::ZERO])).0;
+    let h_3x = (poly_a_x.clone() - (&poly_b_x * (poly_f_3x + Poly::from(vec![sigma_3_set_k])))).div_mod(&van_poly_vkx).0;
+
+    println!("Poly g_3x: ");
+    dsp_poly!(g_3x);
+
+    println!("Poly h_3x: ");
+    dsp_poly!(h_3x);
 
     store_proof_json(
         &[
@@ -541,13 +574,30 @@ fn main() -> Result<()> {
             &h_1x,
             &g_2x,
             &h_2x,
+            &g_3x,
+            &h_3x
         ],
         &[&sigma_1, &sigma_2, &sigma_3],
         b, 
         set_h.len(),
+        set_k.len()
     )?;
 
-    let beta_3 = Mfp::from(5);
+
+    // let proof_vals = restore_proof_json("proof.json")?;
+    // let poly_h_0 = proof_vals.0[4].clone();
+    // let poly_sx = proof_vals.0[5].clone();
+    // let g_1x = proof_vals.0[6].clone();
+    // let h_1x = proof_vals.0[7].clone();
+    // let g_2x = proof_vals.0[8].clone();
+    // let h_2x = proof_vals.0[9].clone();
+    // let g_3x = proof_vals.0[10].clone();
+    // let h_3x = proof_vals.0[11].clone();
+    
+
+
+    let beta_3 = gen_rand_not_in_set(&vec_to_set(&set_h));
+    // let beta_3 = Mfp::from(5);
 
     let verify_res = verify(
         &h_1x,
@@ -556,12 +606,14 @@ fn main() -> Result<()> {
         &g_2x,
         &h_3x,
         &g_3x,
+
         &beta_1,
         &sigma_1,
         &beta_2,
         &sigma_2,
         &beta_3,
         &sigma_3,
+
         &poly_a_x,
         &poly_b_x,
         &poly_ab_c,
@@ -569,12 +621,17 @@ fn main() -> Result<()> {
         &poly_r,
         &poly_sx,
         &poly_z_hat_x,
+
         set_k.len(),
         set_h.len(),
+        
         &sum_1,
         &van_poly_vkx,
         &van_poly_vhx,
-    );println!("Verify result: {}", verify_res);
+    );
+    
+    println!("Verify result: {}", verify_res);
+
 
     Ok(())
 }

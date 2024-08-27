@@ -590,7 +590,7 @@ pub fn verify(
     van_poly_vkx: &Poly,
     van_poly_vhx: &Poly
 ) -> bool {
-    // check_equation_1(h_3x, g_3x, van_poly_vkx, ax, bx, beta_3, sigma_3, set_k_len) && 
+    check_equation_1(h_3x, g_3x, van_poly_vkx, ax, bx, beta_3, sigma_3, set_k_len) && 
     check_equation_2(poly_r, h_2x, g_2x, van_poly_vhx, beta_2, sigma_2, sigma_3, set_h_len) && 
     check_equation_3(poly_sx, sum_1, poly_z_hat_x, h_1x, g_1x, van_poly_vhx, beta_1, sigma_1, sigma_2, set_h_len) && 
     check_equation_4(poly_ab_c, poly_h_0, van_poly_vhx, beta_1) 

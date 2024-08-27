@@ -239,7 +239,7 @@ pub fn mat_to_vec(mat: &DMatrix<Mfp>) -> Vec<Mfp> {
 /// This function iterates through the given vector and collects its elements
 /// into a `HashSet`, which removes any duplicates and allows for efficient
 /// membership checking.
-pub fn vec_to_hashset(set: &[Mfp]) -> HashSet<Mfp> {
+pub fn vec_to_set(set: &[Mfp]) -> HashSet<Mfp> {
     set.iter().copied().collect()
 }
 
