@@ -23,4 +23,4 @@ In this page, we will implement function-hiding functional commitment zero-knowl
 2. **Proof of Function Relation (PFR)**
 3. **Algebraic Holographic Proof (AHP)**
 
-For more detailed information, please visit: [Zero-Knowledge Proof (ZKP) Scheme Documentation](https://wiki.fidesinnova.io/zero-knowledge-proof-zkp-scheme)
+For more detailed information, please visit: [Zero-Knowledge Proof (ZKP) Scheme Documentation](https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme)
