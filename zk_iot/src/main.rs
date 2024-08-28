@@ -10,14 +10,6 @@ use utils::*;
 use math::*;
 use json_file::*;
 
-struct CommitmentBundle {
-
-}
-
-struct ProofBundle {
-    
-}
-
 fn main() -> Result<()> {
     println!("Phase 1: Setup");
     // Phase 1: Setup
