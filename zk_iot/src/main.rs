@@ -594,8 +594,6 @@ fn main() -> Result<()> {
     // let g_3x = proof_vals.0[10].clone();
     // let h_3x = proof_vals.0[11].clone();
     
-
-
     let beta_3 = gen_rand_not_in_set(&vec_to_set(&set_h));
     // let beta_3 = Mfp::from(5);
 
