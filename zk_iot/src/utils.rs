@@ -7,7 +7,11 @@ use anyhow::{Result, anyhow};
 use nalgebra::DMatrix;
 use rand::thread_rng;
 use ark_ff::Field;
+use sha2::Digest;
 use rand::Rng;
+
+
+
 
 
 use crate::define_get_points_fn;
@@ -654,4 +658,16 @@ pub fn sip_hash(value: &Mfp) -> Mfp {
     let mut hasher = std::hash::DefaultHasher::new();
     std::hash::Hash::hash(&value, &mut hasher);
     Mfp::from(std::hash::Hasher::finish(&hasher))
+}
+
+
+
+pub fn sha2_hash(input: &str) -> u64 {
+    let mut hasher = sha2::Sha256::new();
+    hasher.update(input);
+    let result = hasher.finalize();
+    u64::from_le_bytes([
+        result[31], result[30], result[29], result[28],
+        result[27], result[26], result[25], result[24],
+    ])
 }

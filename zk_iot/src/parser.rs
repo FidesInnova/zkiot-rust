@@ -33,10 +33,8 @@ fn parse_line(line: &str, index: usize) -> Result<(&str, Vec<&str>)> {
     }
 }
 
-pub fn parse_from_lines(line_file: &PathBuf, opcodes_file: &PathBuf) -> Result<Vec<Gate>> {
+pub fn parse_from_lines(line_file: BufReader<File>, opcodes_file: &PathBuf) -> Result<Vec<Gate>> {
     let mut gates = Vec::new();
-
-    let line_file = open_file(line_file).context("Failed to open line file")?;
 
     for (index, line) in line_file.lines().enumerate() {
         let line_num = line

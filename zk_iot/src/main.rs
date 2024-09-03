@@ -1,5 +1,6 @@
+use rand::{thread_rng, Rng};
 use rustnomial::{Evaluable, Polynomial};
-use std::path::PathBuf;
+use std::{path::PathBuf, process::exit};
 use nalgebra::DMatrix;
 use anyhow::Result;
 use ark_ff::Field;
@@ -10,8 +11,10 @@ use utils::*;
 use math::*;
 use json_file::*;
 
+
 fn main() -> Result<()> {
-    println!("Phase 1: Setup");
+    let timer = std::time::Instant::now();
+
     // Phase 1: Setup
     // Initialize
     let ng      = 3;            // Number of gates
@@ -35,9 +38,13 @@ fn main() -> Result<()> {
     let r1      = Mfp::from(4);
     z_poly[1]   = r1;
 
+
+
+    let line_file = open_file(&PathBuf::from("line_num.txt"))?;
+    
     // Parse gate definitions from file
     let gates   = parse_from_lines(
-        &PathBuf::from("line_num.txt"), 
+        line_file,
         &PathBuf::from("sample.txt")
     )?;
 
@@ -229,6 +236,9 @@ fn main() -> Result<()> {
     let poly_sx = poly_sx.iter().map(|v| Mfp::from(*v)).collect::<Vec<Mfp>>();
     let poly_sx = Polynomial::from(poly_sx);
 
+    println!("poly_sx");
+    dsp_poly!(poly_sx);
+
     // Compute sigma by evaluating the polynomial at points in set_h
     let sigma_1 = set_h.iter().fold(Mfp::ZERO, |acc, &v| acc + poly_sx.eval(v));
     println!("sigma_1 :\t{}", sigma_1);
@@ -240,16 +250,21 @@ fn main() -> Result<()> {
     // let eta_b = MFp::from(thread_rng().gen_range(0..P));
     // let eta_c = MFp::from(thread_rng().gen_range(0..P));
 
-    // let alpha = sip_hash(&(poly_sx.eval(Mfp::from(0)) + poly_sx.eval(Mfp::from(1)) + Mfp::from(1)));
-    // let eta_a = sip_hash(&(poly_sx.eval(Mfp::from(2)) + poly_sx.eval(Mfp::from(3)) + Mfp::from(2)));
-    // let eta_b = sip_hash(&(poly_sx.eval(Mfp::from(4)) + poly_sx.eval(Mfp::from(5)) + Mfp::from(3)));
-    // let eta_c = sip_hash(&(poly_sx.eval(Mfp::from(6)) + poly_sx.eval(Mfp::from(7)) + Mfp::from(4)));
+    // let alpha = Mfp::from(sha2_hash(&to_bint!(poly_sx.eval(Mfp::from(0)) + poly_sx.eval(Mfp::from(1)) + Mfp::from(1)).to_string()));
+    // let eta_a = sha2_hash(&(poly_sx.eval(Mfp::from(2)) + poly_sx.eval(Mfp::from(3)) + Mfp::from(2)));
+    // let eta_b = sha2_hash(&(poly_sx.eval(Mfp::from(4)) + poly_sx.eval(Mfp::from(5)) + Mfp::from(3)));
+    // let eta_c = sha2_hash(&(poly_sx.eval(Mfp::from(6)) + poly_sx.eval(Mfp::from(7)) + Mfp::from(4)));
 
-    // Hardcoded values for test
     let alpha = Mfp::from(10);
     let eta_a = Mfp::from(2);
     let eta_b = Mfp::from(30);
     let eta_c = Mfp::from(100);
+
+    // Hardcoded values for test
+    // let alpha = Mfp::from(54);
+    // let eta_a = Mfp::from(123);
+    // let eta_b = Mfp::from(92);
+    // let eta_c = Mfp::from(47);
 
     // Compute polynomial for ∑ ηz(x)
     let sigma_eta_z_x = Polynomial::new(vec![eta_a]) * &poly_z_hat_a +
@@ -285,7 +300,9 @@ fn main() -> Result<()> {
     for (k, v) in points_add {
         points_row_p_a.insert(k, v);
     }
-    // println!("{:?}", points_row_p_a);
+    for tt in points_row_p_a.iter() {
+        println!("{:?}", tt);
+    }
 
     let mut points_col_p_a = get_matrix_point_col(&a_matrix, &set_h, &set_k);
     let points_add = vec![
@@ -408,6 +425,7 @@ fn main() -> Result<()> {
 
     // TODO: Random F - H 
     // let beta_1 = gen_rand_not_in_set(&vec_to_set(&set_h));
+    // let beta_1 = Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(9)).to_string()));
     let beta_1 = Mfp::from(22);
 
     // ∑ r(alpha=10, k) * A^(x,k)
@@ -452,13 +470,16 @@ fn main() -> Result<()> {
     dsp_poly!(g_2x);
 
     // TODO: Random F - H 
-    let beta_2 = gen_rand_not_in_set(&vec_to_set(&set_h));
-    // let beta_2 = Mfp::from(80);
+    // let beta_2 = gen_rand_not_in_set(&vec_to_set(&set_h));
+    // let beta_2 = Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(10)).to_string()));
+    let beta_2 = Mfp::from(80);
 
-
+    println!("-------------------------------------------------");
     let a_row_px = sigma_yi_li(&points_row_p_a, &set_k);
     println!("a_row_px: ");
     dsp_poly!(a_row_px);
+    println!("-------------------------------------------------");
+
     let a_col_px = sigma_yi_li(&points_col_p_a, &set_k);
     println!("a_col_px: ");
     dsp_poly!(a_col_px);
@@ -486,7 +507,8 @@ fn main() -> Result<()> {
     println!("c_val_px: ");
     dsp_poly!(c_val_px);
 
-    store_commit_json(&[&a_row_px, &a_col_px, &a_val_px, &b_row_px, &b_col_px, &b_val_px, &c_row_px, &c_col_px, &c_val_px], t, size, &proof_path)?;
+    let concat_str = format!("{}{}{}{}{}", "zkIoT", "MultiSensor", "1.0", "1.0", "");
+    store_commit_json(&[&a_row_px, &a_col_px, &a_val_px, &b_row_px, &b_col_px, &b_val_px, &c_row_px, &c_col_px, &c_val_px], m as usize, n as usize)?;
     
     // let commit_vals = restore_commit_json("commit.json")?;
     // let a_row_px = commit_vals.0[0].clone();
@@ -498,7 +520,7 @@ fn main() -> Result<()> {
     // let c_row_px = commit_vals.0[6].clone();
     // let c_col_px = commit_vals.0[7].clone();
     // let c_val_px = commit_vals.0[8].clone();
-    // let t = commit_vals.1;
+    // let m = commit_vals.1;
     // let n = commit_vals.2;
 
 
@@ -523,9 +545,21 @@ fn main() -> Result<()> {
     let poly_pi_b = (Poly::from(vec![beta_2]) -  &b_row_px) * (Poly::from(vec![beta_1]) -  &b_col_px);
     let poly_pi_c = (Poly::from(vec![beta_2]) -  &c_row_px) * (Poly::from(vec![beta_1]) -  &c_col_px);
 
+    println!("================");
+    dsp_poly!(poly_pi_a);
+    dsp_poly!(poly_pi_b);
+    dsp_poly!(poly_pi_b);
+    println!("================");
+
     let poly_sig_a = Poly::from(vec![eta_a * van_poly_vhx.eval(beta_2) * van_poly_vhx.eval(beta_1)]) * &a_val_px;
     let poly_sig_b = Poly::from(vec![eta_b * van_poly_vhx.eval(beta_2) * van_poly_vhx.eval(beta_1)]) * &b_val_px;
     let poly_sig_c = Poly::from(vec![eta_c * van_poly_vhx.eval(beta_2) * van_poly_vhx.eval(beta_1)]) * &c_val_px;
+
+    // println!("================");
+    // dsp_poly!(poly_sig_a);
+    // dsp_poly!(poly_sig_b);
+    // dsp_poly!(poly_sig_c);
+    // println!("================");
 
     let poly_a_x = poly_sig_a * (&poly_pi_b * &poly_pi_c) + 
                    poly_sig_b * (&poly_pi_a * &poly_pi_c) +
@@ -543,16 +577,12 @@ fn main() -> Result<()> {
     let van_poly_vkx = vanishing_poly(&set_k);
 
     let poly_f_3x = lagrange_interpolate(&points_f_3);
+
     let sigma_3_set_k = Mfp::from(sigma_3 / Mfp::from(set_k.len() as u64));
     let poly_f_3x = poly_f_3x - Poly::from(vec![sigma_3_set_k]);
     let g_3x = poly_f_3x.div_mod(&Poly::from(vec![Mfp::ONE, Mfp::ZERO])).0;
-    let h_3x = (poly_a_x.clone() - (&poly_b_x * (poly_f_3x + Poly::from(vec![sigma_3_set_k])))).div_mod(&van_poly_vkx).0;
 
-    println!("Poly g_3x: ");
-    dsp_poly!(g_3x);
-
-    println!("Poly h_3x: ");
-    dsp_poly!(h_3x);
+    let h_3x = (poly_a_x.clone() - (&poly_b_x * (poly_f_3x.clone() + Poly::from(vec![sigma_3_set_k])))).div_mod(&van_poly_vkx).0;
 
     store_proof_json(
         &[
@@ -560,6 +590,7 @@ fn main() -> Result<()> {
             &poly_z_hat_a,
             &poly_z_hat_b,
             &poly_z_hat_c,
+            &poly_z_hat_x,
             &poly_h_0,
             &poly_sx,
             &g_1x,
@@ -586,8 +617,8 @@ fn main() -> Result<()> {
     // let g_3x = proof_vals.0[10].clone();
     // let h_3x = proof_vals.0[11].clone();
     
-    let beta_3 = gen_rand_not_in_set(&vec_to_set(&set_h));
-    // let beta_3 = Mfp::from(5);
+    // let beta_3 =  Mfp::from(thread_rng().gen_range(1..(P - set_h.len() as u64)));
+    let beta_3 = Mfp::from(5);  
 
     let verify_res = verify(
         &h_1x,
@@ -604,24 +635,25 @@ fn main() -> Result<()> {
         &beta_3,
         &sigma_3,
 
-        &poly_a_x,
-        &poly_b_x,
+        &poly_a_x, //
+        &poly_b_x, //
         &poly_ab_c,
         &poly_h_0,
         &poly_r,
         &poly_sx,
-        &poly_z_hat_x,
+        &poly_z_hat_x, //
 
         set_k.len(),
         set_h.len(),
         
-        &sum_1,
-        &van_poly_vkx,
-        &van_poly_vhx,
+        &sum_1, //
+        &van_poly_vkx, // 
+        &van_poly_vhx, //
     );
     
     println!("Verify result: {}", verify_res);
 
+    println!("time: {:?}", timer.elapsed());
 
     Ok(())
 }

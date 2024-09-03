@@ -6,10 +6,13 @@ use nalgebra::DMatrix;
 use rustnomial::*;
 use std::ops::Neg;
 
-use crate::{field, to_bint};
+use crate::{dsp_poly, field, to_bint};
 
 /// Define the constant modulus for field operations.
-pub const P: u64 = 181;
+
+// 2013265921
+pub const P: u64 = 2013265921;
+// pub const P: u64 = 181;
 field!(Mfp, P);
 
 /// Type alias for a polynomial over the `Mfp` field.
@@ -100,7 +103,8 @@ pub fn func_u(x: Option<Mfp>, y: Option<Mfp>, degree: usize) -> Poly {
 /// accumulates the weighted sum to form the final polynomial.
 pub fn lagrange_interpolate(points: &[Point]) -> Poly {
     let mut poly_res: Poly = Poly::new(vec![Mfp::ZERO]);
-
+    let mut counter = 0;
+    
     for (x_i, y_i) in points.iter() {
         let mut poly_nume_all: Poly = Poly::new(vec![Mfp::ONE]);
         let mut poly_deno_all = Mfp::ONE;
@@ -119,6 +123,10 @@ pub fn lagrange_interpolate(points: &[Point]) -> Poly {
         // Add the weighted basis polynomial to the result
         poly_res += Poly::new(vec![*y_i])
             * (poly_nume_all * poly_deno_all.inverse().unwrap());
+        
+        counter += 1;
+        println!("L{}", counter);
+        dsp_poly!(poly_res);
     }
 
     poly_res
@@ -532,14 +540,25 @@ pub fn sigma_yi_li(points: &HashMap<Mfp, Mfp>, set_k: &Vec<Mfp>) -> Poly {
 
 // h3​(β3​)vK​(β3​)=a(β3​)−b(β3​)(β3​g3​(β3​)+σ3/|K|​​)
 pub fn check_equation_1(h_3x: &Poly, g_3x: &Poly, van_poly_vkx: &Poly, ax: &Poly, bx: &Poly, beta_3: &Mfp, sigma_3: &Mfp, set_k_len: usize) -> bool {
+    println!("eq11: {}", h_3x.eval(*beta_3) * van_poly_vkx.eval(*beta_3));
+    println!("eq12: {}", ax.eval(*beta_3)
+    - (bx.eval(*beta_3)
+        * (*beta_3 * g_3x.eval(*beta_3) + *sigma_3 / Mfp::from(set_k_len as u64))));
+
+
     h_3x.eval(*beta_3) * van_poly_vkx.eval(*beta_3)
         == ax.eval(*beta_3)
-            - (bx.eval(*beta_3)
-                * (*beta_3 * g_3x.eval(*beta_3) + *sigma_3 / Mfp::from(set_k_len as u64)))
+            - ((bx.eval(*beta_3)
+                * (*beta_3 * g_3x.eval(*beta_3) + *sigma_3 / Mfp::from(set_k_len as u64))))
 }
 
 // r(α,β2​)σ3 ​= h2​(β2​) vH​(β2​) + β2​g2​(β2​) +  σ2​​/∣H∣
 pub fn check_equation_2(poly_r: &Poly, h_2x: &Poly, g_2x: &Poly, van_poly_vhx: &Poly, beta_2: &Mfp, sigma_2: &Mfp, sigma_3: &Mfp, set_h_len: usize) -> bool {
+    println!("eq21: {}", poly_r.eval(*beta_2) * sigma_3);
+    println!("eq22: {}", h_2x.eval(*beta_2) * van_poly_vhx.eval(*beta_2)
+    + *beta_2 * g_2x.eval(*beta_2)
+    + *sigma_2 / Mfp::from(set_h_len as u64));
+    
     poly_r.eval(*beta_2) * sigma_3
         == h_2x.eval(*beta_2) * van_poly_vhx.eval(*beta_2)
             + *beta_2 * g_2x.eval(*beta_2)
@@ -548,6 +567,11 @@ pub fn check_equation_2(poly_r: &Poly, h_2x: &Poly, g_2x: &Poly, van_poly_vhx: &
 
 // s(β1​)+r(α,β1​)(∑M∈{A,B,C}​ηM​z^M​(β1​))−σ2​z^(β1​) = h1​(β1​)vH​(β1​) + β1​g1​(β1​) + σ1​/∣H∣
 pub fn check_equation_3(poly_sx: &Poly, sum_1: &Poly, poly_z_hat_x: &Poly, h_1x: &Poly, g_1x: &Poly, van_poly_vhx: &Poly, beta_1: &Mfp, sigma_1: &Mfp, sigma_2: &Mfp, set_h_len: usize) -> bool {
+    println!("eq31: {}", poly_sx.eval(*beta_1) + sum_1.eval(*beta_1) - *sigma_2 * poly_z_hat_x.eval(*beta_1));
+    println!("eq32: {}", h_1x.eval(*beta_1) * van_poly_vhx.eval(*beta_1)
+    + *beta_1 * g_1x.eval(*beta_1)
+    + *sigma_1 / Mfp::from(set_h_len as u64));
+    
     poly_sx.eval(*beta_1) + sum_1.eval(*beta_1) - *sigma_2 * poly_z_hat_x.eval(*beta_1)
         == h_1x.eval(*beta_1) * van_poly_vhx.eval(*beta_1)
             + *beta_1 * g_1x.eval(*beta_1)
@@ -556,6 +580,9 @@ pub fn check_equation_3(poly_sx: &Poly, sum_1: &Poly, poly_z_hat_x: &Poly, h_1x:
 
 // z^A​(β1​)z^B​(β1​)−z^C​(β1​)=h0​(β1​)vH​(β1​)
 pub fn check_equation_4(poly_ab_c: &Poly, poly_h_0: &Poly, van_poly_vhx: &Poly, beta_1: &Mfp) -> bool {
+    println!("eq41: {}", poly_ab_c.eval(*beta_1));
+    println!("eq42: {}", poly_h_0.eval(*beta_1) * van_poly_vhx.eval(*beta_1));
+
     poly_ab_c.eval(*beta_1) == poly_h_0.eval(*beta_1) * van_poly_vhx.eval(*beta_1)
 }
 
@@ -590,6 +617,16 @@ pub fn verify(
     van_poly_vkx: &Poly,
     van_poly_vhx: &Poly
 ) -> bool {
+    println!("====================");
+    check_equation_1(h_3x, g_3x, van_poly_vkx, ax, bx, beta_3, sigma_3, set_k_len);
+    println!();
+    check_equation_2(poly_r, h_2x, g_2x, van_poly_vhx, beta_2, sigma_2, sigma_3, set_h_len);
+    println!();
+    check_equation_3(poly_sx, sum_1, poly_z_hat_x, h_1x, g_1x, van_poly_vhx, beta_1, sigma_1, sigma_2, set_h_len);
+    println!();
+    check_equation_4(poly_ab_c, poly_h_0, van_poly_vhx, beta_1);
+    println!("====================");
+
     check_equation_1(h_3x, g_3x, van_poly_vkx, ax, bx, beta_3, sigma_3, set_k_len) && 
     check_equation_2(poly_r, h_2x, g_2x, van_poly_vhx, beta_2, sigma_2, sigma_3, set_h_len) && 
     check_equation_3(poly_sx, sum_1, poly_z_hat_x, h_1x, g_1x, van_poly_vhx, beta_1, sigma_1, sigma_2, set_h_len) && 
