@@ -103,8 +103,9 @@ pub fn func_u(x: Option<Mfp>, y: Option<Mfp>, degree: usize) -> Poly {
 /// accumulates the weighted sum to form the final polynomial.
 pub fn lagrange_interpolate(points: &[Point]) -> Poly {
     let mut poly_res: Poly = Poly::new(vec![Mfp::ZERO]);
-    let mut counter = 0;
-    
+    // let mut counter = 0;
+    // println!("--- points: {:?}", points);
+
     for (x_i, y_i) in points.iter() {
         let mut poly_nume_all: Poly = Poly::new(vec![Mfp::ONE]);
         let mut poly_deno_all = Mfp::ONE;
@@ -124,10 +125,13 @@ pub fn lagrange_interpolate(points: &[Point]) -> Poly {
         poly_res += Poly::new(vec![*y_i])
             * (poly_nume_all * poly_deno_all.inverse().unwrap());
         
-        counter += 1;
-        println!("L{}", counter);
-        dsp_poly!(poly_res);
+        // counter += 1;
+        // println!("L{}", counter);
+        // dsp_poly!(poly_res);
     }
+
+    // print!("--- poly: ");
+    // dsp_poly!(poly_res);
 
     poly_res
 }

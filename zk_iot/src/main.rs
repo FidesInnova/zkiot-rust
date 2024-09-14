@@ -1,6 +1,6 @@
-use rand::{thread_rng, Rng};
+// use rand::{thread_rng, Rng};
 use rustnomial::{Evaluable, Polynomial};
-use std::{path::PathBuf, process::exit};
+use std::{collections::HashMap, path::PathBuf, process::exit};
 use nalgebra::DMatrix;
 use anyhow::Result;
 use ark_ff::Field;
@@ -163,16 +163,28 @@ fn main() -> Result<()> {
     // push_random_points(&mut points_zc, b, &vec_to_hashset(&set_h));
 
     // Add random interpolations for za
-    points_za.push((Mfp::from(150), Mfp::from(5)));
-    points_za.push((Mfp::from(80), Mfp::from(47)));
+    // points_za.push((Mfp::from(150), Mfp::from(5)));
+    // points_za.push((Mfp::from(80), Mfp::from(47)));
 
-    // Add random interpolations for zb
-    points_zb.push((Mfp::from(150), Mfp::from(15)));
-    points_zb.push((Mfp::from(80), Mfp::from(170)));
+    // rand Moka
+    points_za.push((Mfp::from(1343080906), Mfp::from(85440204)));
+    points_za.push((Mfp::from(1276955322), Mfp::from(1623925182)));
 
-    // Add random interpolations for zc
-    points_zc.push((Mfp::from(150), Mfp::from(1)));
-    points_zc.push((Mfp::from(80), Mfp::from(100)));
+    // // Add random interpolations for zb
+    // points_zb.push((Mfp::from(150), Mfp::from(15)));
+    // points_zb.push((Mfp::from(80), Mfp::from(170)));
+
+    // rand moka
+    points_zb.push((Mfp::from(1343080906), Mfp::from(557672531)));
+    points_zb.push((Mfp::from(1276955322), Mfp::from(879067083)));
+
+    // // Add random interpolations for zc
+    // points_zc.push((Mfp::from(150), Mfp::from(1)));
+    // points_zc.push((Mfp::from(80), Mfp::from(100)));
+
+    // rand Moka
+    points_zc.push((Mfp::from(1343080906), Mfp::from(944537116)));
+    points_zc.push((Mfp::from(1276955322), Mfp::from(281670719)));
 
     // Interpolate polynomials for za, zb, and zc
     let poly_z_hat_a = lagrange_interpolate(&points_za);
@@ -203,6 +215,9 @@ fn main() -> Result<()> {
     // Compute the vanishing polynomial for the subset H[<=∣x∣]
     let van_poly_vh1 = vanishing_poly(set_h_1);
 
+    println!("van_poly_vh1: ");
+    dsp_poly!(van_poly_vh1);
+
     let mut points_w = vec![];
     for i in set_h_2 {
         // Compute the adjusted polynomial wˉ(h) for each element in the subset
@@ -214,8 +229,13 @@ fn main() -> Result<()> {
     // push_random_points(&mut points_w, b, &vec_to_hashset(&set_h));
 
     // Insert example points into points_w for wˉ(h)
-    points_w.push((Mfp::from(150), Mfp::from(42)));
-    points_w.push((Mfp::from(80), Mfp::from(180)));
+    // points_w.push((Mfp::from(150), Mfp::from(42)));
+    // points_w.push((Mfp::from(80), Mfp::from(180)));
+
+
+    // moka
+    points_w.push((Mfp::from(1343080906), Mfp::from(944537116)));
+    points_w.push((Mfp::from(1276955322), Mfp::from(281670719)));
 
     // Interpolate polynomial for wˉ(h) based on the points_w
     let poly_w_hat = lagrange_interpolate(&points_w);
@@ -225,6 +245,9 @@ fn main() -> Result<()> {
 
     // h_zero
     let van_poly_vhx = vanishing_poly(&set_h);
+    println!("van_poly_vhx: ");
+    dsp_poly!(van_poly_vhx);
+
     let poly_ab_c = &poly_z_hat_a * &poly_z_hat_b - &poly_z_hat_c;
     let poly_h_0 = (&poly_ab_c).div_mod(&van_poly_vhx).0;
     
@@ -288,98 +311,195 @@ fn main() -> Result<()> {
     dsp_poly!(poly_z_hat_x);
 
     // Matrix A: 
-    let mut points_row_p_a = get_matrix_point_row(&a_matrix, &set_h, &set_k);
+    // let mut points_row_p_a = get_matrix_point_row(&a_matrix, &set_h, &set_k);
+    // let points_add = vec![
+    //     (Mfp::from(48), Mfp::from(1)),
+    //     (Mfp::from(73), Mfp::from(135)),
+    //     (Mfp::from(62), Mfp::from(125)),
+    //     (Mfp::from(132), Mfp::from(59)),
+    //     (Mfp::from(65), Mfp::from(42)),
+    //     (Mfp::from(80), Mfp::from(1)),
+    // ];
+
+    // Rand moka
+    let mut points_row_p_a = HashMap::new();
     let points_add = vec![
-        (Mfp::from(48), Mfp::from(1)),
-        (Mfp::from(73), Mfp::from(135)),
-        (Mfp::from(62), Mfp::from(125)),
-        (Mfp::from(132), Mfp::from(59)),
-        (Mfp::from(65), Mfp::from(42)),
-        (Mfp::from(80), Mfp::from(1)),
+        (Mfp::from(1), Mfp::from(609564788)),
+        (Mfp::from(1536266199), Mfp::from(1956349769)),
+        (Mfp::from(109072139), Mfp::from(645581151)),
+        (Mfp::from(1663994522), Mfp::from(1956349769)),
+        (Mfp::from(923639751), Mfp::from(645581151)),
+        (Mfp::from(191227677), Mfp::from(1)),
+        (Mfp::from(1684585140), Mfp::from(815036133)),
+        (Mfp::from(1670695976), Mfp::from(609564788)),
+        (Mfp::from(380434607), Mfp::from(1956349769)),
     ];
     for (k, v) in points_add {
         points_row_p_a.insert(k, v);
     }
-    for tt in points_row_p_a.iter() {
-        println!("{:?}", tt);
-    }
 
-    let mut points_col_p_a = get_matrix_point_col(&a_matrix, &set_h, &set_k);
+
+
+    // let mut points_col_p_a = get_matrix_point_col(&a_matrix, &set_h, &set_k);
+    // let points_add = vec![
+    //     (Mfp::from(48), Mfp::from(42)),
+    //     (Mfp::from(73), Mfp::from(1)),
+    //     (Mfp::from(62), Mfp::from(135)),
+    //     (Mfp::from(132), Mfp::from(125)),
+    //     (Mfp::from(65), Mfp::from(59)),
+    //     (Mfp::from(80), Mfp::from(42)),
+    // ];
+    // for (k, v) in points_add {
+    //     points_col_p_a.insert(k, v);
+    // }
+
+    // Moka
+    let mut points_col_p_a = HashMap::new();
     let points_add = vec![
-        (Mfp::from(48), Mfp::from(42)),
-        (Mfp::from(73), Mfp::from(1)),
-        (Mfp::from(62), Mfp::from(135)),
-        (Mfp::from(132), Mfp::from(125)),
-        (Mfp::from(65), Mfp::from(59)),
-        (Mfp::from(80), Mfp::from(42)),
+        (Mfp::from(1), Mfp::from(815036133)),
+        (Mfp::from(1536266199), Mfp::from(1)),
+        (Mfp::from(109072139), Mfp::from(1956349769)),
+        (Mfp::from(1663994522), Mfp::from(1956349769)),
+        (Mfp::from(923639751), Mfp::from(645581151)),
+        (Mfp::from(191227677), Mfp::from(1)),
+        (Mfp::from(1684585140), Mfp::from(815036133)),
+        (Mfp::from(1670695976), Mfp::from(609564788)),
+        (Mfp::from(380434607), Mfp::from(1956349769)),
     ];
     for (k, v) in points_add {
         points_col_p_a.insert(k, v);
     }
-    // println!("{:?}", points_col_p_a);
+
 
     let points_val_p_a = get_matrix_point_val(&a_matrix, &set_h, &set_k, &points_row_p_a, &points_col_p_a);
     // println!("{:?}", points_val_p_a);
 
     // Matrix B: 
-    let mut points_row_p_b = get_matrix_point_row(&b_matrix, &set_h, &set_k);
+    // let mut points_row_p_b = get_matrix_point_row(&b_matrix, &set_h, &set_k);
+    // let points_add = vec![
+    //     (Mfp::from(73), Mfp::from(59)),
+    //     (Mfp::from(62), Mfp::from(1)),
+    //     (Mfp::from(132), Mfp::from(42)),
+    //     (Mfp::from(65), Mfp::from(135)),
+    //     (Mfp::from(80), Mfp::from(59)),
+    // ];
+    // for (k, v) in points_add {
+    //     points_row_p_b.insert(k, v);
+    // }
+
+
+    // Moka
+    let mut points_row_p_b = HashMap::new();
     let points_add = vec![
-        (Mfp::from(73), Mfp::from(59)),
-        (Mfp::from(62), Mfp::from(1)),
-        (Mfp::from(132), Mfp::from(42)),
-        (Mfp::from(65), Mfp::from(135)),
-        (Mfp::from(80), Mfp::from(59)),
+        (Mfp::from(1), Mfp::from(609564788)),
+        (Mfp::from(1536266199), Mfp::from(1956349769)),
+        (Mfp::from(109072139), Mfp::from(1956349769)),
+        (Mfp::from(1663994522), Mfp::from(645581151)),
+        (Mfp::from(923639751), Mfp::from(645581151)),
+        (Mfp::from(191227677), Mfp::from(1)),
+        (Mfp::from(1684585140), Mfp::from(815036133)),
+        (Mfp::from(1670695976), Mfp::from(609564788)),
+        (Mfp::from(380434607), Mfp::from(1956349769)),
     ];
     for (k, v) in points_add {
         points_row_p_b.insert(k, v);
     }
-    // println!("{:?}", points_row_p_b);
 
-    let mut points_col_p_b = get_matrix_point_col(&b_matrix, &set_h, &set_k);
+    // let mut points_col_p_b = get_matrix_point_col(&b_matrix, &set_h, &set_k);
+    // let points_add = vec![
+    //     (Mfp::from(73), Mfp::from(59)),
+    //     (Mfp::from(62), Mfp::from(42)),
+    //     (Mfp::from(132), Mfp::from(125)),
+    //     (Mfp::from(65), Mfp::from(1)),
+    //     (Mfp::from(80), Mfp::from(135)),
+    // ];
+    // for (k, v) in points_add {
+    //     points_col_p_b.insert(k, v);
+    // }
+
+    // Moka
+    let mut points_col_p_b = HashMap::new();
     let points_add = vec![
-        (Mfp::from(73), Mfp::from(59)),
-        (Mfp::from(62), Mfp::from(42)),
-        (Mfp::from(132), Mfp::from(125)),
-        (Mfp::from(65), Mfp::from(1)),
-        (Mfp::from(80), Mfp::from(135)),
+        (Mfp::from(1), Mfp::from(1)),
+        (Mfp::from(1536266199), Mfp::from(1)),
+        (Mfp::from(109072139), Mfp::from(609564788)),
+        (Mfp::from(1663994522), Mfp::from(1)),
+        (Mfp::from(923639751), Mfp::from(645581151)),
+        (Mfp::from(191227677), Mfp::from(1)),
+        (Mfp::from(1684585140), Mfp::from(815036133)),
+        (Mfp::from(1670695976), Mfp::from(609564788)),
+        (Mfp::from(380434607), Mfp::from(1956349769)),
     ];
     for (k, v) in points_add {
         points_col_p_b.insert(k, v);
     }
-    // println!("{:?}", points_col_p_b);
+    
 
     let points_val_p_b = get_matrix_point_val(&b_matrix, &set_h, &set_k, &points_row_p_b, &points_col_p_b);
     // println!("{:?}", points_val_p_a);
 
 
-    // Matrix C: 
-    let mut points_row_p_c = get_matrix_point_row(&c_matrix, &set_h, &set_k);
+    // // Matrix C: 
+    // let mut points_row_p_c = get_matrix_point_row(&c_matrix, &set_h, &set_k);
+    // let points_add = vec![
+    //     (Mfp::from(48), Mfp::from(1)),
+    //     (Mfp::from(73), Mfp::from(59)),
+    //     (Mfp::from(62), Mfp::from(125)),
+    //     (Mfp::from(132), Mfp::from(1)),
+    //     (Mfp::from(65), Mfp::from(135)),
+    //     (Mfp::from(80), Mfp::from(42)),
+    // ];
+    // for (k, v) in points_add {
+    //     points_row_p_c.insert(k, v);
+    // }
+
+    // Moka
+    let mut points_row_p_c = HashMap::new();
     let points_add = vec![
-        (Mfp::from(48), Mfp::from(1)),
-        (Mfp::from(73), Mfp::from(59)),
-        (Mfp::from(62), Mfp::from(125)),
-        (Mfp::from(132), Mfp::from(1)),
-        (Mfp::from(65), Mfp::from(135)),
-        (Mfp::from(80), Mfp::from(42)),
+        (Mfp::from(1), Mfp::from(609564788)),
+        (Mfp::from(1536266199), Mfp::from(1956349769)),
+        (Mfp::from(109072139), Mfp::from(645581151)),
+        (Mfp::from(1663994522), Mfp::from(1956349769)),
+        (Mfp::from(923639751), Mfp::from(645581151)),
+        (Mfp::from(191227677), Mfp::from(1)),
+        (Mfp::from(1684585140), Mfp::from(815036133)),
+        (Mfp::from(1670695976), Mfp::from(609564788)),
+        (Mfp::from(380434607), Mfp::from(1956349769)),
     ];
     for (k, v) in points_add {
         points_row_p_c.insert(k, v);
     }
-    // println!("{:?}", points_row_p_c);
+    
 
+    // let mut points_col_p_c = get_matrix_point_col(&c_matrix, &set_h, &set_k);
+    // let points_add = vec![
+    //     (Mfp::from(48), Mfp::from(125)),
+    //     (Mfp::from(73), Mfp::from(59)),
+    //     (Mfp::from(62), Mfp::from(1)),
+    //     (Mfp::from(132), Mfp::from(1)),
+    //     (Mfp::from(65), Mfp::from(42)),
+    //     (Mfp::from(80), Mfp::from(59)),
+    // ];
+    // for (k, v) in points_add {
+    //     points_col_p_c.insert(k, v);
+    // }
+
+    // Moka
     let mut points_col_p_c = get_matrix_point_col(&c_matrix, &set_h, &set_k);
     let points_add = vec![
-        (Mfp::from(48), Mfp::from(125)),
-        (Mfp::from(73), Mfp::from(59)),
-        (Mfp::from(62), Mfp::from(1)),
-        (Mfp::from(132), Mfp::from(1)),
-        (Mfp::from(65), Mfp::from(42)),
-        (Mfp::from(80), Mfp::from(59)),
+        (Mfp::from(1), Mfp::from(609564788)),
+        (Mfp::from(1536266199), Mfp::from(1956349769)),
+        (Mfp::from(109072139), Mfp::from(645581151)),
+        (Mfp::from(1663994522), Mfp::from(1956349769)),
+        (Mfp::from(923639751), Mfp::from(645581151)),
+        (Mfp::from(191227677), Mfp::from(1)),
+        (Mfp::from(1684585140), Mfp::from(815036133)),
+        (Mfp::from(1670695976), Mfp::from(609564788)),
+        (Mfp::from(380434607), Mfp::from(1956349769)),
     ];
     for (k, v) in points_add {
         points_col_p_c.insert(k, v);
     }
-    // println!("{:?}", points_col_p_c);
 
     let points_val_p_c = get_matrix_point_val(&c_matrix, &set_h, &set_k, &points_row_p_c, &points_col_p_c);
     // println!("{:?}", points_val_p_a);
@@ -387,7 +507,7 @@ fn main() -> Result<()> {
 
     // ∑ r(alpha=10, k) * A^(k,x)
     let r_a_kx = sigma_rkx_mkx(&set_h, alpha, &points_val_p_a, &points_row_p_a, &points_col_p_a);
-    println!("Poly ∑ r(alpha=10, k) * A^(k,x): ");
+    println!("Poly ∑ r(alpha=10, k) * A^(k,x): A_h");
     dsp_poly!(r_a_kx);
 
 
@@ -430,18 +550,18 @@ fn main() -> Result<()> {
 
     // ∑ r(alpha=10, k) * A^(x,k)
     let r_a_xk = m_xk(&beta_1, &points_val_p_a, &points_row_p_a, &points_col_p_a, set_h.len());
-    // println!("Poly ∑ r(alpha=10, k) * A^(x,k): ");
-    // dsp_poly!(r_a_xk);
+    println!("Poly ∑ r(alpha=10, k) * A^(x,k): ");
+    dsp_poly!(r_a_xk);
 
     // ∑ r(alpha=10, k) * B^(x,k)
     let r_b_xk = m_xk(&beta_1, &points_val_p_b, &points_row_p_b, &points_col_p_b, set_h.len());
-    // println!("Poly ∑ r(alpha=10, k) * B^(x,k): ");
-    // dsp_poly!(r_b_xk);
+    println!("Poly ∑ r(alpha=10, k) * B^(x,k): ");
+    dsp_poly!(r_b_xk);
 
     // ∑ r(alpha=10, k) * C^(x,k)
     let r_c_xk = m_xk(&beta_1, &points_val_p_c, &points_row_p_c, &points_col_p_c, set_h.len());
-    // println!("Poly ∑ r(alpha=10, k) * C^(x,k): ");
-    // dsp_poly!(r_c_xk);
+    println!("Poly ∑ r(alpha=10, k) * C^(x,k): ");
+    dsp_poly!(r_c_xk);
     
 
     // sigma_2
@@ -555,11 +675,11 @@ fn main() -> Result<()> {
     let poly_sig_b = Poly::from(vec![eta_b * van_poly_vhx.eval(beta_2) * van_poly_vhx.eval(beta_1)]) * &b_val_px;
     let poly_sig_c = Poly::from(vec![eta_c * van_poly_vhx.eval(beta_2) * van_poly_vhx.eval(beta_1)]) * &c_val_px;
 
-    // println!("================");
-    // dsp_poly!(poly_sig_a);
-    // dsp_poly!(poly_sig_b);
-    // dsp_poly!(poly_sig_c);
-    // println!("================");
+    println!("================");
+    dsp_poly!(poly_sig_a);
+    dsp_poly!(poly_sig_b);
+    dsp_poly!(poly_sig_c);
+    println!("================");
 
     let poly_a_x = poly_sig_a * (&poly_pi_b * &poly_pi_c) + 
                    poly_sig_b * (&poly_pi_a * &poly_pi_c) +
@@ -576,13 +696,44 @@ fn main() -> Result<()> {
 
     let van_poly_vkx = vanishing_poly(&set_k);
 
+    println!("van_poly_vkx ");
+    dsp_poly!(van_poly_vkx);
+
     let poly_f_3x = lagrange_interpolate(&points_f_3);
 
     let sigma_3_set_k = Mfp::from(sigma_3 / Mfp::from(set_k.len() as u64));
+    println!("sigma_3_set_k {}", sigma_3_set_k);
+
     let poly_f_3x = poly_f_3x - Poly::from(vec![sigma_3_set_k]);
+
+    println!("poly_f_3x");
+    dsp_poly!(poly_f_3x);
+
     let g_3x = poly_f_3x.div_mod(&Poly::from(vec![Mfp::ONE, Mfp::ZERO])).0;
+    
+    println!("g_3x");
+    dsp_poly!(g_3x);
+
+    println!("1: ");
+    let a = (poly_f_3x.clone() + Poly::from(vec![sigma_3_set_k]));
+    dsp_poly!(a);
+
+    println!("2: ");
+    let a = (&poly_b_x * (poly_f_3x.clone() + Poly::from(vec![sigma_3_set_k])));
+    dsp_poly!(a);
+
+
+    println!("3: ");
+    let a = (poly_a_x.clone() - (&poly_b_x * (poly_f_3x.clone() + Poly::from(vec![sigma_3_set_k]))));
+    dsp_poly!(a);
+
 
     let h_3x = (poly_a_x.clone() - (&poly_b_x * (poly_f_3x.clone() + Poly::from(vec![sigma_3_set_k])))).div_mod(&van_poly_vkx).0;
+
+
+    println!("h_3x");
+    dsp_poly!(h_3x);
+
 
     store_proof_json(
         &[
@@ -618,7 +769,7 @@ fn main() -> Result<()> {
     // let h_3x = proof_vals.0[11].clone();
     
     // let beta_3 =  Mfp::from(thread_rng().gen_range(1..(P - set_h.len() as u64)));
-    let beta_3 = Mfp::from(5);  
+    let beta_3 = Mfp::from(5);
 
     let verify_res = verify(
         &h_1x,
