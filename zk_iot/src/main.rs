@@ -32,16 +32,8 @@ fn main() -> Result<()> {
     let mut z_poly  = DMatrix::<Mfp>::zeros(size, 1);
     z_poly[0]       = Mfp::ONE;
 
-    // TODO: Update this part after the parser has been updated!
-    // 'Load number' 
-    // Set the second element of z_poly to 4 'R1(1) = 4'
-    let r1      = Mfp::from(4);
-    z_poly[1]   = r1;
-
-
-
-    let line_file = open_file(&PathBuf::from("line_num.txt"))?;
     
+    let line_file = open_file(&PathBuf::from("line_num.txt"))?;
     // Parse gate definitions from file
     let gates   = parse_from_lines(
         line_file,
@@ -331,8 +323,8 @@ fn main() -> Result<()> {
         (Mfp::from(923639751), Mfp::from(645581151)),
         (Mfp::from(191227677), Mfp::from(1)),
         (Mfp::from(1684585140), Mfp::from(815036133)),
-        (Mfp::from(1670695976), Mfp::from(609564788)),
-        (Mfp::from(380434607), Mfp::from(1956349769)),
+        (Mfp::from(1670695976), Mfp::from(1956349769)),
+        (Mfp::from(380434607), Mfp::from(609564788)),
     ];
     for (k, v) in points_add {
         points_row_p_a.insert(k, v);
@@ -685,18 +677,18 @@ fn main() -> Result<()> {
                    poly_sig_b * (&poly_pi_a * &poly_pi_c) +
                    poly_sig_c * (&poly_pi_a * &poly_pi_b);
 
-    println!("a(x):");
+    println!("a(x): {}", poly_a_x.eval(Mfp::from(5)));
     dsp_poly!(poly_a_x);
     
     // b(x)
     let poly_b_x = &poly_pi_a * &poly_pi_b * &poly_pi_c; 
 
-    println!("b(x): ");
+    println!("b(x): {}", poly_b_x.eval(Mfp::from(5)));
     dsp_poly!(poly_b_x);
 
     let van_poly_vkx = vanishing_poly(&set_k);
 
-    println!("van_poly_vkx ");
+    println!("van_poly_vkx");
     dsp_poly!(van_poly_vkx);
 
     let poly_f_3x = lagrange_interpolate(&points_f_3);

@@ -4,7 +4,6 @@ use anyhow::{anyhow, Context, Result};
 use std::{fs::File, path::PathBuf};
 use std::io::{BufRead, BufReader};
 
-use crate::math::Poly;
 use crate::utils::{Gate, GateType};
 use crate::json_file::*;
 
@@ -37,7 +36,7 @@ pub fn parse_from_lines(line_file: BufReader<File>, opcodes_file: &PathBuf) -> R
     let mut gates = Vec::new();
 
     for (index, line) in line_file.lines().enumerate() {
-        let line_num = line
+        let mut line_num = line
             .context(format!("Error reading line {}: unable to parse line number", index + 1))?
             .trim()
             .parse::<usize>()
@@ -151,6 +150,7 @@ fn gate_type(op: &str) -> Result<GateType> {
     match op {
         "mul" => Ok(GateType::Mul),
         "addi" => Ok(GateType::Add),
+        "ld" => Ok(GateType::Ld),
         _ => Err(anyhow!("operation is not support: {}", op)),
     }
 }

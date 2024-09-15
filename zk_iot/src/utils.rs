@@ -31,6 +31,7 @@ use crate::math::P;
 pub enum GateType {
     Add,
     Mul,
+    Ld
 }
 
 /// Represents a gate with its parameters.
@@ -118,8 +119,12 @@ pub fn init(
     c_mat: &mut DMatrix<Mfp>,
     z_poly: &mut DMatrix<Mfp>,
 ) {
+    let mut index = 1 + ni;
+    let mut counter = 0;
+    let mut ld_counter = 0;
     for (i, gate) in gates.iter().enumerate() {
-        let index = 1 + ni + i;
+        index = 1 + ni + counter;
+        println!("index {index}");
         c_mat[(index, index)] = Mfp::ONE;
 
         let left_val = gate.val_left.map_or(Mfp::ONE, Mfp::from);
@@ -129,18 +134,25 @@ pub fn init(
             GateType::Add => {
                 a_mat[(index, 0)] = Mfp::ONE;
 
-                b_mat[(index, gate.inx_left)] = left_val;
+                b_mat[(index, gate.inx_left - ld_counter)] = left_val;
                 b_mat[(index, gate.inx_right)] = right_val;
 
-                z_poly[i + 2] = z_poly[i + 1] + gate.val_right.map_or(Mfp::ZERO, Mfp::from);
+                z_poly[i + 1] = z_poly[i] + gate.val_right.map_or(Mfp::ZERO, Mfp::from);
             }
             GateType::Mul => {
-                a_mat[(index, gate.inx_left)] = left_val;
+                a_mat[(index, gate.inx_left - ld_counter)] = left_val;
                 b_mat[(index, gate.inx_right)] = right_val;
 
-                z_poly[i + 2] = z_poly[i + 1] * right_val;
+                z_poly[i + 1] = z_poly[i] * right_val;
             }
+            GateType::Ld => {
+                z_poly[i + 1] = right_val;
+                ld_counter += 1;
+                continue;
+            },
         }
+        counter += 1;
+
     }
 }
 

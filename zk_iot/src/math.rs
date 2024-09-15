@@ -1,18 +1,19 @@
 //! Module for mathematical functions and utilities for finite field operations using the `Mfp` type and polynomials.
 
 use ark_ff::{Field, PrimeField};
-use std::collections::HashMap;
 use nalgebra::DMatrix;
 use rustnomial::*;
+use std::collections::HashMap;
 use std::ops::Neg;
 
-use crate::{dsp_poly, field, to_bint};
+use crate::{field, to_bint};
 
 /// Define the constant modulus for field operations.
 
 // 2013265921
 pub const P: u64 = 2013265921;
 // pub const P: u64 = 181;
+
 field!(Mfp, P);
 
 /// Type alias for a polynomial over the `Mfp` field.
@@ -37,14 +38,13 @@ pub type Point2d = (Point, Mfp);
 /// # Example
 /// ```
 /// use zk_iot::*;
-/// 
+///
 /// let result = exp_mod(2, 10);
 /// assert_eq!(result, Mfp::from(1024));
 /// ```
 pub fn exp_mod(a: u64, b: u64) -> Mfp {
     Mfp::from(a).pow([b])
 }
-
 
 /// Constructs a polynomial of the form u(x , y) = (x^degree - y^degree) / (x - y),
 /// where either `x` or `y` is provided as an option.
@@ -58,7 +58,7 @@ pub fn exp_mod(a: u64, b: u64) -> Mfp {
 /// Returns the result of the polynomial division as a `Poly` object.
 ///
 /// # Panics
-/// The function panics if both `x` and `y` are either `None` or `Some`. 
+/// The function panics if both `x` and `y` are either `None` or `Some`.
 /// This ensures that exactly one of the parameters is provided.
 pub fn func_u(x: Option<Mfp>, y: Option<Mfp>, degree: usize) -> Poly {
     if x.is_none() && y.is_none() {
@@ -74,7 +74,7 @@ pub fn func_u(x: Option<Mfp>, y: Option<Mfp>, degree: usize) -> Poly {
 
         denominator.add_term(x, 0);
         denominator.add_term(-Mfp::ONE, 1);
-    } 
+    }
     if let Some(y) = y {
         numerator.add_term(-exp_mod(to_bint!(y), degree as u64), 0);
         numerator.add_term(Mfp::ONE, degree);
@@ -84,7 +84,6 @@ pub fn func_u(x: Option<Mfp>, y: Option<Mfp>, degree: usize) -> Poly {
     }
     numerator.div_mod(&denominator).0
 }
-
 
 /// Performs Lagrange interpolation to find the polynomial that passes through
 /// a given set of points.
@@ -112,8 +111,7 @@ pub fn lagrange_interpolate(points: &[Point]) -> Poly {
         for (x_j, _) in points.iter() {
             if x_i != x_j {
                 // Construct Lagrange basis polynomial for the current point
-                let poly_nume: Poly =
-                    Poly::new(vec![Mfp::ONE, Mfp::from(*x_j).neg()]);
+                let poly_nume: Poly = Poly::new(vec![Mfp::ONE, Mfp::from(*x_j).neg()]);
                 let poly_deno = Mfp::from(*x_i) - Mfp::from(*x_j);
 
                 // Accumulate the numerator and denominator for the basis polynomial
@@ -122,9 +120,8 @@ pub fn lagrange_interpolate(points: &[Point]) -> Poly {
             }
         }
         // Add the weighted basis polynomial to the result
-        poly_res += Poly::new(vec![*y_i])
-            * (poly_nume_all * poly_deno_all.inverse().unwrap());
-        
+        poly_res += Poly::new(vec![*y_i]) * (poly_nume_all * poly_deno_all.inverse().unwrap());
+
         // counter += 1;
         // println!("L{}", counter);
         // dsp_poly!(poly_res);
@@ -135,7 +132,6 @@ pub fn lagrange_interpolate(points: &[Point]) -> Poly {
 
     poly_res
 }
-
 
 /// Generates a vector of elements in the finite field `Mfp` based on the given
 /// generator and length.
@@ -173,7 +169,7 @@ pub fn generate_set(ms_gen: u64, len: u64) -> Vec<Mfp> {
 /// by evaluating each polynomial and multiplying the results, adjusting based on the
 /// degree and generator. If the result of the commitment is `Mfp::ONE`, it defaults to
 /// the generator value `g`.
-/// 
+///
 pub fn commit(o: &Vec<Poly>, d: u64, g: u64) -> Vec<Mfp> {
     let mut res = vec![];
 
@@ -201,7 +197,6 @@ pub fn commit(o: &Vec<Poly>, d: u64, g: u64) -> Vec<Mfp> {
 
     res
 }
-
 
 /// Generates a vector of field elements based on a given generator and parameters.
 ///
@@ -242,7 +237,6 @@ pub fn generate_set_eval(ms_gen: u64, n: usize, t: usize, len: usize) -> Vec<Mfp
     set
 }
 
-
 /// Computes the vanishing polynomial for a given set of field elements.
 ///
 /// # Parameters
@@ -265,8 +259,6 @@ pub fn vanishing_poly(set: &Vec<Mfp>) -> Poly {
     vp
 }
 
-
-
 /// Computes the value at specific points of a matrix `mat` based on the sets `set_h` and `set_k`,
 /// and the mappings `row_k` and `col_k`. It evaluates a polynomial `poly_u` at these points
 /// and divides the matrix value by the product of the evaluated values.
@@ -279,7 +271,7 @@ pub fn vanishing_poly(set: &Vec<Mfp>) -> Poly {
 /// - `col_k`: A reference to a `HashMap` that maps values in `set_k` to the corresponding column values.
 ///
 /// # Returns
-/// Returns a `HashMap<Mfp, Mfp>` where each key is a value from `set_k` and the value is the 
+/// Returns a `HashMap<Mfp, Mfp>` where each key is a value from `set_k` and the value is the
 /// computed polynomial division result at that matrix point.
 ///
 /// # Description
@@ -288,9 +280,15 @@ pub fn vanishing_poly(set: &Vec<Mfp>) -> Poly {
 /// It then stores the result in the `res` map, associating it with the corresponding value from `set_k`.
 ///
 /// # Panic
-/// The function will panic if an index `c` in `set_k` is out of bounds or if `set_k` does not have 
+/// The function will panic if an index `c` in `set_k` is out of bounds or if `set_k` does not have
 /// a value corresponding to the index `c`. This is asserted with `assert!(set_k.get(c).is_some());`.
-pub fn get_matrix_point_val(mat: &DMatrix<Mfp>, set_h: &[Mfp], set_k: &[Mfp], row_k: &HashMap<Mfp, Mfp>, col_k: &HashMap<Mfp, Mfp>) -> HashMap<Mfp, Mfp> {
+pub fn get_matrix_point_val(
+    mat: &DMatrix<Mfp>,
+    set_h: &[Mfp],
+    set_k: &[Mfp],
+    row_k: &HashMap<Mfp, Mfp>,
+    col_k: &HashMap<Mfp, Mfp>,
+) -> HashMap<Mfp, Mfp> {
     let mut res = HashMap::new();
     let mut c = 0;
     let mat_len = mat.nrows();
@@ -304,17 +302,16 @@ pub fn get_matrix_point_val(mat: &DMatrix<Mfp>, set_h: &[Mfp], set_k: &[Mfp], ro
             if mat[(i, j)] != Mfp::ZERO {
                 let val = mat[(i, j)];
                 assert!(set_k.get(c).is_some());
-                let k   = set_k[c];
-                let p2  =  val / (poly_u.eval(row_k[&k]) * poly_u.eval(col_k[&k]));
+                let k = set_k[c];
+                let p2 = val / (poly_u.eval(row_k[&k]) * poly_u.eval(col_k[&k]));
                 res.insert(set_k[c], p2);
                 c += 1;
             }
         }
     }
-    
+
     res
 }
-
 
 /// Maps non-zero elements of the matrix `mat` to the corresponding row values from `set_h`
 /// based on the index in `set_k`.
@@ -325,11 +322,11 @@ pub fn get_matrix_point_val(mat: &DMatrix<Mfp>, set_h: &[Mfp], set_k: &[Mfp], ro
 /// - `set_k`: A vector of values used to identify specific points in the matrix.
 ///
 /// # Returns
-/// Returns a `HashMap<Mfp, Mfp>` where each key is a value from `set_k` and the corresponding 
+/// Returns a `HashMap<Mfp, Mfp>` where each key is a value from `set_k` and the corresponding
 /// value is the row value from `set_h`.
 ///
 /// # Description
-/// The function iterates over the matrix `mat` and, for each non-zero element, 
+/// The function iterates over the matrix `mat` and, for each non-zero element,
 /// maps the corresponding value in `set_k` to the row value in `set_h`.
 pub fn get_matrix_point_row(mat: &DMatrix<Mfp>, set_h: &[Mfp], set_k: &[Mfp]) -> HashMap<Mfp, Mfp> {
     let mut res = HashMap::new();
@@ -344,9 +341,8 @@ pub fn get_matrix_point_row(mat: &DMatrix<Mfp>, set_h: &[Mfp], set_k: &[Mfp]) ->
             }
         }
     }
-    res 
+    res
 }
-
 
 /// Computes a polynomial `m_xk` based on the provided `points_val`, `points_row`, and `points_col`.
 ///
@@ -374,9 +370,15 @@ pub fn get_matrix_point_row(mat: &DMatrix<Mfp>, set_h: &[Mfp], set_k: &[Mfp]) ->
 /// - `m_kx`: The final polynomial depends on `poly_y` and the evaluation of `poly_x` at `num`.
 ///
 /// These two functions are used to compute different aspects of the overall polynomial interaction.
-pub fn m_xk(num: &Mfp, points_val: &HashMap<Mfp, Mfp>, points_row: &HashMap<Mfp, Mfp>, points_col: &HashMap<Mfp, Mfp>, set_h_len: usize) -> Poly {
+pub fn m_xk(
+    num: &Mfp,
+    points_val: &HashMap<Mfp, Mfp>,
+    points_row: &HashMap<Mfp, Mfp>,
+    points_col: &HashMap<Mfp, Mfp>,
+    set_h_len: usize,
+) -> Poly {
     let mut poly_res = Poly::from(vec![Mfp::ZERO]);
-    
+
     for (k, val) in points_val {
         let poly_val = Poly::from(vec![*val]);
         let poly_x = func_u(None, Some(points_row[k]), set_h_len);
@@ -414,9 +416,15 @@ pub fn m_xk(num: &Mfp, points_val: &HashMap<Mfp, Mfp>, points_row: &HashMap<Mfp,
 /// - `m_kx`: The final polynomial depends on `poly_y` and the evaluation of `poly_y` at `num`.
 ///
 /// These two functions are used to compute different aspects of the overall polynomial interaction.
-pub fn m_kx(num: &Mfp, points_val: &HashMap<Mfp, Mfp>, points_row: &HashMap<Mfp, Mfp>, points_col: &HashMap<Mfp, Mfp>, set_h_len: usize) -> Poly {
+pub fn m_kx(
+    num: &Mfp,
+    points_val: &HashMap<Mfp, Mfp>,
+    points_row: &HashMap<Mfp, Mfp>,
+    points_col: &HashMap<Mfp, Mfp>,
+    set_h_len: usize,
+) -> Poly {
     let mut poly_res = Poly::from(vec![Mfp::ZERO]);
-    
+
     for (k, val) in points_val {
         let poly_val = Poly::from(vec![*val]);
         let poly_x = func_u(None, Some(points_row[k]), set_h_len);
@@ -448,7 +456,13 @@ pub fn m_kx(num: &Mfp, points_val: &HashMap<Mfp, Mfp>, points_row: &HashMap<Mfp,
 /// 4. Multiplies `p_r_alphak` and `p_m_kx` and sums the result into `res`.
 ///
 /// This function is used to compute the final polynomial based on the interaction between `alpha` and `h`.
-pub fn sigma_rkx_mkx(set_h: &Vec<Mfp>, alpha: Mfp, points_val: &HashMap<Mfp, Mfp>, points_row: &HashMap<Mfp, Mfp>, points_col: &HashMap<Mfp, Mfp>) -> Poly {
+pub fn sigma_rkx_mkx(
+    set_h: &Vec<Mfp>,
+    alpha: Mfp,
+    points_val: &HashMap<Mfp, Mfp>,
+    points_row: &HashMap<Mfp, Mfp>,
+    points_col: &HashMap<Mfp, Mfp>,
+) -> Poly {
     let mut res = Poly::from(vec![Mfp::ZERO]);
     for h in set_h {
         let mut p_r_alphak = func_u(Some(alpha), Some(*h), set_h.len());
@@ -460,8 +474,6 @@ pub fn sigma_rkx_mkx(set_h: &Vec<Mfp>, alpha: Mfp, points_val: &HashMap<Mfp, Mfp
     }
     res
 }
-
-
 
 /// Computes the polynomial sum for `sigma_rxk_mxk` based on the provided set `H`, `alpha`, and points.
 ///
@@ -483,7 +495,13 @@ pub fn sigma_rkx_mkx(set_h: &Vec<Mfp>, alpha: Mfp, points_val: &HashMap<Mfp, Mfp
 /// 4. Multiplies `p_r_alphak` and `p_m_xk` and sums the result into `res`.
 ///
 /// This function is used to compute the final polynomial based on the interaction between `alpha` and `h`.
-pub fn sigma_rxk_mxk(set_h: &Vec<Mfp>, alpha: Mfp, points_val: &HashMap<Mfp, Mfp>, points_row: &HashMap<Mfp, Mfp>, points_col: &HashMap<Mfp, Mfp>) -> Poly {
+pub fn sigma_rxk_mxk(
+    set_h: &Vec<Mfp>,
+    alpha: Mfp,
+    points_val: &HashMap<Mfp, Mfp>,
+    points_row: &HashMap<Mfp, Mfp>,
+    points_col: &HashMap<Mfp, Mfp>,
+) -> Poly {
     let mut res = Poly::from(vec![Mfp::ZERO]);
     for h in set_h {
         let mut p_r_alphak = func_u(Some(alpha), Some(*h), set_h.len());
@@ -493,7 +511,7 @@ pub fn sigma_rxk_mxk(set_h: &Vec<Mfp>, alpha: Mfp, points_val: &HashMap<Mfp, Mfp
         res += p_r_alphak * p_m_xk;
     }
     res
-} 
+}
 
 /// Calculates the sigma_m value based on the provided polynomials and parameters.
 ///
@@ -503,15 +521,22 @@ pub fn sigma_rxk_mxk(set_h: &Vec<Mfp>, alpha: Mfp, points_val: &HashMap<Mfp, Mfp
 /// - `beta_1`: The first `Mfp` value to evaluate the Vandermonde polynomial.
 /// - `beta_2`: The second `Mfp` value to evaluate the Vandermonde polynomial.
 /// - `k`: The `Mfp` value used to evaluate the polynomials in the `polys` array.
-/// - `polys`: A slice containing references to the row, column, and value polynomials 
+/// - `polys`: A slice containing references to the row, column, and value polynomials
 ///   (in that order).
 ///
 /// # Returns
 /// Returns an `Mfp` value calculated as `eta * (nu / de)`, where `nu` is the product
 /// of the Vandermonde polynomials evaluated at `beta_1` and `beta_2`, and `polys[2]` evaluated at `k`.
-/// `de` is the product of differences between `beta_2` and `polys[0]` evaluated at `k`, 
+/// `de` is the product of differences between `beta_2` and `polys[0]` evaluated at `k`,
 /// and `beta_1` and `polys[1]` evaluated at `k`.
-pub fn sigma_m(van_poly_vhx: &Poly, eta: &Mfp, beta_1: &Mfp, beta_2: &Mfp, k: &Mfp, polys: &[&Poly]) -> Mfp {
+pub fn sigma_m(
+    van_poly_vhx: &Poly,
+    eta: &Mfp,
+    beta_1: &Mfp,
+    beta_2: &Mfp,
+    k: &Mfp,
+    polys: &[&Poly],
+) -> Mfp {
     let nu = van_poly_vhx.eval(*beta_1) * van_poly_vhx.eval(*beta_2) * polys[2].eval(*k);
     let de = (beta_2 - &polys[0].eval(*k)) * (beta_1 - &polys[1].eval(*k));
     let div = nu / de;
@@ -541,28 +566,50 @@ pub fn sigma_yi_li(points: &HashMap<Mfp, Mfp>, set_k: &Vec<Mfp>) -> Poly {
     lagrange_interpolate(&points_li)
 }
 
-
 // h3​(β3​)vK​(β3​)=a(β3​)−b(β3​)(β3​g3​(β3​)+σ3/|K|​​)
-pub fn check_equation_1(h_3x: &Poly, g_3x: &Poly, van_poly_vkx: &Poly, ax: &Poly, bx: &Poly, beta_3: &Mfp, sigma_3: &Mfp, set_k_len: usize) -> bool {
+pub fn check_equation_1(
+    h_3x: &Poly,
+    g_3x: &Poly,
+    van_poly_vkx: &Poly,
+    ax: &Poly,
+    bx: &Poly,
+    beta_3: &Mfp,
+    sigma_3: &Mfp,
+    set_k_len: usize,
+) -> bool {
     println!("eq11: {}", h_3x.eval(*beta_3) * van_poly_vkx.eval(*beta_3));
-    println!("eq12: {}", ax.eval(*beta_3)
-    - (bx.eval(*beta_3)
-        * (*beta_3 * g_3x.eval(*beta_3) + *sigma_3 / Mfp::from(set_k_len as u64))));
-
+    println!(
+        "eq12: {}",
+        ax.eval(*beta_3)
+            - (bx.eval(*beta_3)
+                * (*beta_3 * g_3x.eval(*beta_3) + *sigma_3 / Mfp::from(set_k_len as u64)))
+    );
 
     h_3x.eval(*beta_3) * van_poly_vkx.eval(*beta_3)
         == ax.eval(*beta_3)
-            - ((bx.eval(*beta_3)
-                * (*beta_3 * g_3x.eval(*beta_3) + *sigma_3 / Mfp::from(set_k_len as u64))))
+            - (bx.eval(*beta_3)
+                * (*beta_3 * g_3x.eval(*beta_3) + *sigma_3 / Mfp::from(set_k_len as u64)))
 }
 
 // r(α,β2​)σ3 ​= h2​(β2​) vH​(β2​) + β2​g2​(β2​) +  σ2​​/∣H∣
-pub fn check_equation_2(poly_r: &Poly, h_2x: &Poly, g_2x: &Poly, van_poly_vhx: &Poly, beta_2: &Mfp, sigma_2: &Mfp, sigma_3: &Mfp, set_h_len: usize) -> bool {
+pub fn check_equation_2(
+    poly_r: &Poly,
+    h_2x: &Poly,
+    g_2x: &Poly,
+    van_poly_vhx: &Poly,
+    beta_2: &Mfp,
+    sigma_2: &Mfp,
+    sigma_3: &Mfp,
+    set_h_len: usize,
+) -> bool {
     println!("eq21: {}", poly_r.eval(*beta_2) * sigma_3);
-    println!("eq22: {}", h_2x.eval(*beta_2) * van_poly_vhx.eval(*beta_2)
-    + *beta_2 * g_2x.eval(*beta_2)
-    + *sigma_2 / Mfp::from(set_h_len as u64));
-    
+    println!(
+        "eq22: {}",
+        h_2x.eval(*beta_2) * van_poly_vhx.eval(*beta_2)
+            + *beta_2 * g_2x.eval(*beta_2)
+            + *sigma_2 / Mfp::from(set_h_len as u64)
+    );
+
     poly_r.eval(*beta_2) * sigma_3
         == h_2x.eval(*beta_2) * van_poly_vhx.eval(*beta_2)
             + *beta_2 * g_2x.eval(*beta_2)
@@ -570,12 +617,29 @@ pub fn check_equation_2(poly_r: &Poly, h_2x: &Poly, g_2x: &Poly, van_poly_vhx: &
 }
 
 // s(β1​)+r(α,β1​)(∑M∈{A,B,C}​ηM​z^M​(β1​))−σ2​z^(β1​) = h1​(β1​)vH​(β1​) + β1​g1​(β1​) + σ1​/∣H∣
-pub fn check_equation_3(poly_sx: &Poly, sum_1: &Poly, poly_z_hat_x: &Poly, h_1x: &Poly, g_1x: &Poly, van_poly_vhx: &Poly, beta_1: &Mfp, sigma_1: &Mfp, sigma_2: &Mfp, set_h_len: usize) -> bool {
-    println!("eq31: {}", poly_sx.eval(*beta_1) + sum_1.eval(*beta_1) - *sigma_2 * poly_z_hat_x.eval(*beta_1));
-    println!("eq32: {}", h_1x.eval(*beta_1) * van_poly_vhx.eval(*beta_1)
-    + *beta_1 * g_1x.eval(*beta_1)
-    + *sigma_1 / Mfp::from(set_h_len as u64));
-    
+pub fn check_equation_3(
+    poly_sx: &Poly,
+    sum_1: &Poly,
+    poly_z_hat_x: &Poly,
+    h_1x: &Poly,
+    g_1x: &Poly,
+    van_poly_vhx: &Poly,
+    beta_1: &Mfp,
+    sigma_1: &Mfp,
+    sigma_2: &Mfp,
+    set_h_len: usize,
+) -> bool {
+    println!(
+        "eq31: {}",
+        poly_sx.eval(*beta_1) + sum_1.eval(*beta_1) - *sigma_2 * poly_z_hat_x.eval(*beta_1)
+    );
+    println!(
+        "eq32: {}",
+        h_1x.eval(*beta_1) * van_poly_vhx.eval(*beta_1)
+            + *beta_1 * g_1x.eval(*beta_1)
+            + *sigma_1 / Mfp::from(set_h_len as u64)
+    );
+
     poly_sx.eval(*beta_1) + sum_1.eval(*beta_1) - *sigma_2 * poly_z_hat_x.eval(*beta_1)
         == h_1x.eval(*beta_1) * van_poly_vhx.eval(*beta_1)
             + *beta_1 * g_1x.eval(*beta_1)
@@ -583,65 +647,136 @@ pub fn check_equation_3(poly_sx: &Poly, sum_1: &Poly, poly_z_hat_x: &Poly, h_1x:
 }
 
 // z^A​(β1​)z^B​(β1​)−z^C​(β1​)=h0​(β1​)vH​(β1​)
-pub fn check_equation_4(poly_ab_c: &Poly, poly_h_0: &Poly, van_poly_vhx: &Poly, beta_1: &Mfp) -> bool {
+pub fn check_equation_4(
+    poly_ab_c: &Poly,
+    poly_h_0: &Poly,
+    van_poly_vhx: &Poly,
+    beta_1: &Mfp,
+) -> bool {
     println!("eq41: {}", poly_ab_c.eval(*beta_1));
-    println!("eq42: {}", poly_h_0.eval(*beta_1) * van_poly_vhx.eval(*beta_1));
+    println!(
+        "eq42: {}",
+        poly_h_0.eval(*beta_1) * van_poly_vhx.eval(*beta_1)
+    );
 
     poly_ab_c.eval(*beta_1) == poly_h_0.eval(*beta_1) * van_poly_vhx.eval(*beta_1)
 }
 
 pub fn verify(
-    h_1x: &Poly, 
-    g_1x: &Poly, 
-    h_2x: &Poly, 
-    g_2x: &Poly, 
-    h_3x: &Poly, 
-    g_3x: &Poly, 
+    h_1x: &Poly,
+    g_1x: &Poly,
+    h_2x: &Poly,
+    g_2x: &Poly,
+    h_3x: &Poly,
+    g_3x: &Poly,
 
-    beta_1: &Mfp, 
-    sigma_1: &Mfp, 
-    beta_2: &Mfp, 
-    sigma_2: &Mfp, 
-    beta_3: &Mfp, 
-    sigma_3: &Mfp, 
+    beta_1: &Mfp,
+    sigma_1: &Mfp,
+    beta_2: &Mfp,
+    sigma_2: &Mfp,
+    beta_3: &Mfp,
+    sigma_3: &Mfp,
 
-    ax: &Poly, 
-    bx: &Poly, 
-    poly_ab_c: &Poly, 
-    poly_h_0: &Poly, 
-    poly_r: &Poly, 
-    poly_sx: &Poly, 
-    poly_z_hat_x: &Poly, 
+    ax: &Poly,
+    bx: &Poly,
+    poly_ab_c: &Poly,
+    poly_h_0: &Poly,
+    poly_r: &Poly,
+    poly_sx: &Poly,
+    poly_z_hat_x: &Poly,
 
-    set_k_len: usize, 
-    set_h_len: usize, 
+    set_k_len: usize,
+    set_h_len: usize,
 
-    sum_1: &Poly, 
+    sum_1: &Poly,
 
     van_poly_vkx: &Poly,
-    van_poly_vhx: &Poly
+    van_poly_vhx: &Poly,
 ) -> bool {
     println!("====================");
     check_equation_1(h_3x, g_3x, van_poly_vkx, ax, bx, beta_3, sigma_3, set_k_len);
     println!();
-    check_equation_2(poly_r, h_2x, g_2x, van_poly_vhx, beta_2, sigma_2, sigma_3, set_h_len);
+    check_equation_2(
+        poly_r,
+        h_2x,
+        g_2x,
+        van_poly_vhx,
+        beta_2,
+        sigma_2,
+        sigma_3,
+        set_h_len,
+    );
     println!();
-    check_equation_3(poly_sx, sum_1, poly_z_hat_x, h_1x, g_1x, van_poly_vhx, beta_1, sigma_1, sigma_2, set_h_len);
+    check_equation_3(
+        poly_sx,
+        sum_1,
+        poly_z_hat_x,
+        h_1x,
+        g_1x,
+        van_poly_vhx,
+        beta_1,
+        sigma_1,
+        sigma_2,
+        set_h_len,
+    );
     println!();
     check_equation_4(poly_ab_c, poly_h_0, van_poly_vhx, beta_1);
     println!("====================");
 
-    check_equation_1(h_3x, g_3x, van_poly_vkx, ax, bx, beta_3, sigma_3, set_k_len) && 
-    check_equation_2(poly_r, h_2x, g_2x, van_poly_vhx, beta_2, sigma_2, sigma_3, set_h_len) && 
-    check_equation_3(poly_sx, sum_1, poly_z_hat_x, h_1x, g_1x, van_poly_vhx, beta_1, sigma_1, sigma_2, set_h_len) && 
-    check_equation_4(poly_ab_c, poly_h_0, van_poly_vhx, beta_1) 
+    check_equation_1(h_3x, g_3x, van_poly_vkx, ax, bx, beta_3, sigma_3, set_k_len)
+        && check_equation_2(
+            poly_r,
+            h_2x,
+            g_2x,
+            van_poly_vhx,
+            beta_2,
+            sigma_2,
+            sigma_3,
+            set_h_len,
+        )
+        && check_equation_3(
+            poly_sx,
+            sum_1,
+            poly_z_hat_x,
+            h_1x,
+            g_1x,
+            van_poly_vhx,
+            beta_1,
+            sigma_1,
+            sigma_2,
+            set_h_len,
+        )
+        && check_equation_4(poly_ab_c, poly_h_0, van_poly_vhx, beta_1)
+}
+
+
+fn kzg(poly_in: &Poly, d: u64, g: u64) -> Mfp {
+    let mut res_poly = Mfp::ONE;
+
+    if let Degree::Num(deg) = poly_in.degree() {
+        let mut s = Mfp::from(g);
+        let d = d % (P - 1);
+
+        for i in 0..=deg {
+            let coef = poly_in.terms[deg - i].into_bigint().0[0];
+            let value = exp_mod(s.into_bigint().0[0], coef);
+            res_poly *= value;
+            s = exp_mod(s.into_bigint().0[0], d);
+        }
+    }
+
+    if res_poly == Mfp::ONE {
+        Mfp::from(g)
+    } else {
+        res_poly
+    }
 }
 
 #[cfg(test)]
 mod math_test {
-    use super::*; 
+    use super::*;
 
-    #[test] 
+    #[test]
     fn test_exp_mod() {
         assert_eq!(exp_mod(2, 0), Mfp::ONE);
         assert_eq!(exp_mod(10, 0), Mfp::ONE);
@@ -649,45 +784,102 @@ mod math_test {
         assert_eq!(exp_mod(2, 1), Mfp::from(2));
         assert_eq!(exp_mod(10, 1), Mfp::from(10));
 
-        assert_eq!(exp_mod(2, 3), Mfp::from(8));  
-        assert_eq!(exp_mod(3, 2), Mfp::from(9));  
+        assert_eq!(exp_mod(2, 3), Mfp::from(8));
+        assert_eq!(exp_mod(3, 2), Mfp::from(9));
         assert_eq!(exp_mod(5, 3), Mfp::from(125));
 
-        assert_eq!(exp_mod(2, 10), Mfp::from(1024)); 
-        assert_eq!(exp_mod(3, 5), Mfp::from(243));   
+        assert_eq!(exp_mod(2, 10), Mfp::from(1024));
+        assert_eq!(exp_mod(3, 5), Mfp::from(243));
 
-        assert_eq!(exp_mod(987654321987654321, 1234567890123456789), Mfp::from(42));
-        assert_eq!(exp_mod(887654448019654120, 1139562969472691009), Mfp::from(55));
+        assert_eq!(
+            exp_mod(987654321987654321, 1234567890123456789),
+            Mfp::from(42)
+        );
+        assert_eq!(
+            exp_mod(887654448019654120, 1139562969472691009),
+            Mfp::from(55)
+        );
         assert_eq!(exp_mod(u64::MAX, 9223372036854775807), Mfp::from(65));
     }
 
     #[test]
     fn test_func_u() {
-        assert_eq!(Poly::new(vec![Mfp::from(1)]), func_u(Some(Mfp::from(1)), Some(Mfp::from(0)), 100));
-        assert_eq!(Poly::new(vec![Mfp::from(1)]), func_u(Some(Mfp::from(0)), Some(Mfp::from(1)), 100));
-        assert_eq!(Poly::new(vec![Mfp::from(70)]), func_u(Some(Mfp::from(10)), Some(Mfp::from(1)), 5));
-        assert_eq!(Poly::new(vec![Mfp::from(53)]), func_u(Some(Mfp::from(123)), Some(Mfp::from(321)), 10));
-        assert_eq!(Poly::new(vec![Mfp::from(99)]), func_u(Some(Mfp::from(2838193)), Some(Mfp::from(9728224)), 50));
-        assert_eq!(Poly::new(vec![Mfp::from(63)]), func_u(Some(Mfp::from(!1)), Some(Mfp::from(!0)), 10));
+        assert_eq!(
+            Poly::new(vec![Mfp::from(1)]),
+            func_u(Some(Mfp::from(1)), Some(Mfp::from(0)), 100)
+        );
+        assert_eq!(
+            Poly::new(vec![Mfp::from(1)]),
+            func_u(Some(Mfp::from(0)), Some(Mfp::from(1)), 100)
+        );
+        assert_eq!(
+            Poly::new(vec![Mfp::from(70)]),
+            func_u(Some(Mfp::from(10)), Some(Mfp::from(1)), 5)
+        );
+        assert_eq!(
+            Poly::new(vec![Mfp::from(53)]),
+            func_u(Some(Mfp::from(123)), Some(Mfp::from(321)), 10)
+        );
+        assert_eq!(
+            Poly::new(vec![Mfp::from(99)]),
+            func_u(Some(Mfp::from(2838193)), Some(Mfp::from(9728224)), 50)
+        );
+        assert_eq!(
+            Poly::new(vec![Mfp::from(63)]),
+            func_u(Some(Mfp::from(!1)), Some(Mfp::from(!0)), 10)
+        );
     }
 
     #[test]
     fn test_interpolate() {
-        let points1 = [(1, 3), (4, 5), (10, 22), (111, 222), (0, 0), (0, 0), (1234, 4567), (122222, 1344556)];
-        let points2 = [(39942, 123244), (41221133, 53534213), (12121210, 2424222), (1242411, 242422), (0, 0)];
+        let points1 = [
+            (1, 3),
+            (4, 5),
+            (10, 22),
+            (111, 222),
+            (0, 0),
+            (0, 0),
+            (1234, 4567),
+            (122222, 1344556),
+        ];
+        let points2 = [
+            (39942, 123244),
+            (41221133, 53534213),
+            (12121210, 2424222),
+            (1242411, 242422),
+            (0, 0),
+        ];
 
-        let points1: Vec<Point> = points1.iter().map(|v| (Mfp::from(v.0), Mfp::from(v.1))).collect();
+        let points1: Vec<Point> = points1
+            .iter()
+            .map(|v| (Mfp::from(v.0), Mfp::from(v.1)))
+            .collect();
         // 86x^7 + 178x^6 + 141x^5 + 52x^4 + 42x^3 + 47x^2
-        let polynomial_points1 = Poly::new(vec![Mfp::from(86), Mfp::from(178), Mfp::from(141), 
-                            Mfp::from(52), Mfp::from(42), Mfp::from(47), Mfp::from(0), Mfp::from(0)]);
+        let polynomial_points1 = Poly::new(vec![
+            Mfp::from(86),
+            Mfp::from(178),
+            Mfp::from(141),
+            Mfp::from(52),
+            Mfp::from(42),
+            Mfp::from(47),
+            Mfp::from(0),
+            Mfp::from(0),
+        ]);
 
-        let points2: Vec<Point> = points2.iter().map(|v| (Mfp::from(v.0), Mfp::from(v.1))).collect();
+        let points2: Vec<Point> = points2
+            .iter()
+            .map(|v| (Mfp::from(v.0), Mfp::from(v.1)))
+            .collect();
         // 68x^4 + 70x^3 + 35x^2 + 146x
-        let polynomial_points2 = Poly::new(vec![Mfp::from(68), Mfp::from(70), Mfp::from(35), 
-                            Mfp::from(146), Mfp::from(0)]);
-        
+        let polynomial_points2 = Poly::new(vec![
+            Mfp::from(68),
+            Mfp::from(70),
+            Mfp::from(35),
+            Mfp::from(146),
+            Mfp::from(0),
+        ]);
+
         assert_eq!(polynomial_points1, lagrange_interpolate(&points1));
         assert_eq!(polynomial_points2, lagrange_interpolate(&points2));
     }
-
 }
