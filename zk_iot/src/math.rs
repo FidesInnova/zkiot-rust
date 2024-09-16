@@ -13,6 +13,7 @@ use crate::{field, to_bint};
 // 2013265921
 pub const P: u64 = 2013265921;
 // pub const P: u64 = 181;
+// pub const P: u64 = 7;
 
 field!(Mfp, P);
 

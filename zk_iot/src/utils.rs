@@ -124,7 +124,6 @@ pub fn init(
     let mut ld_counter = 0;
     for (i, gate) in gates.iter().enumerate() {
         index = 1 + ni + counter;
-        println!("index {index}");
         c_mat[(index, index)] = Mfp::ONE;
 
         let left_val = gate.val_left.map_or(Mfp::ONE, Mfp::from);

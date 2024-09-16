@@ -1,5 +1,7 @@
+use commitment::Commitment;
 // use rand::{thread_rng, Rng};
 use rustnomial::{Evaluable, Polynomial};
+use setup::Setup;
 use std::{collections::HashMap, path::PathBuf, process::exit};
 use nalgebra::DMatrix;
 use anyhow::Result;
@@ -15,40 +17,8 @@ use json_file::*;
 fn main() -> Result<()> {
     let timer = std::time::Instant::now();
 
-    // Phase 1: Setup
-    // Initialize
-    let ng      = 3;            // Number of gates
-    let _no     = 1;            // Number of outputs
-    let ni      = 1;            // Number of inputs (registers)
-    let t       = ni + 1;       // Number of rows (|x| = t, where t = ni + 1)
-    let g       = 2;            // Generator number
-    let d       = 111213119_u64;// Large constant value
-    let l: u64  = 8;            // Base exponent for sequence
-
-    // Initialize matrices (A, B, C) with elements from finite field P
-    let size = ng + ni + 1;  // Size of the matrices
-
-    // Initialize the polynomial z with size elements, starting with 1
-    let mut z_poly  = DMatrix::<Mfp>::zeros(size, 1);
-    z_poly[0]       = Mfp::ONE;
-
-    
-    let line_file = open_file(&PathBuf::from("line_num.txt"))?;
-    // Parse gate definitions from file
-    let gates   = parse_from_lines(
-        line_file,
-        &PathBuf::from("sample.txt")
-    )?;
-
-
-    // Generate the proof path by iteratively applying exponentiation
-    let mut proof_path = vec![];
-    let mut s = Mfp::from(g);
-    let d = d % (P - 1);
-    for _ in 0..=l {
-        proof_path.push(s);
-        s = exp_mod(to_bint!(s), d);
-    }
+    let setup = Setup::new();
+    let proof_path = setup.proof_path();
 
     println!(); 
     println!("Proof Path:\t( {} )", dsp_vec!(proof_path)); 
@@ -56,71 +26,33 @@ fn main() -> Result<()> {
     // Phase 2: Commit 
     println!();
     println!("Phase 2: Commit"); 
-    // Initialize
-    let n = 5; // Define the parameter for set H
-    let m = 9; // Define the parameter for set K
+    let mut commitment = Commitment::new(&setup)?;
+    println!("H:\t{{ {} }}\nK:\t{{ {} }}", dsp_vec!(commitment.set_h), dsp_vec!(commitment.set_k)); // Display sets H and K
 
-    let generator_h = to_bint!(exp_mod(g, (P - 1) / n)); // Compute the generator for set H
-    let generator_k = to_bint!(exp_mod(g, (P - 1) / m)); // Compute the generator for set K
     
-    let set_h = generate_set(generator_h, n); 
-    let set_k = generate_set(generator_k, m); 
-    
-    println!("H:\t{{ {} }}\nK:\t{{ {} }}", dsp_vec!(set_h), dsp_vec!(set_k)); // Display sets H and K
+    let line_file = open_file(&PathBuf::from("line_num.txt"))?;
+    // Parse gate definitions from file
+    let gates = parse_from_lines(
+        line_file,
+        &PathBuf::from("sample.txt")
+    )?;
 
-    let mut a_matrix = DMatrix::<Mfp>::zeros(size, size);
-    let mut b_matrix = DMatrix::<Mfp>::zeros(size, size);
-    let mut c_matrix = DMatrix::<Mfp>::zeros(size, size);
-    
-    // Initialize matrices A, B, C and polynomial z with parsed gates
-    init(
-        gates,
-        ni,
-        &mut a_matrix,
-        &mut b_matrix,
-        &mut c_matrix,
-        &mut z_poly,
-    );
-
-    // Set specific rows in matrices A, B, C to zero
-    rows_to_zero(&mut a_matrix, t);
-    rows_to_zero(&mut b_matrix, t);
-    rows_to_zero(&mut c_matrix, t);
+    commitment.build_matrices(gates, setup.number_input);    
 
     // Calculate Cz = (A * z) . (B * z)
-    let cz = (&a_matrix * &z_poly).component_mul(&(&b_matrix * &z_poly));
+    let cz_matrix = (&commitment.matrices.a * &commitment.matrices.z).component_mul(&(&commitment.matrices.b * &commitment.matrices.z));
 
     // Display matrices A, B, C, and Cz for verification
     println!("A:");
-    dsp_mat!(&a_matrix);
+    dsp_mat!(&commitment.matrices.a);
     println!("B:");
-    dsp_mat!(&b_matrix);
+    dsp_mat!(&commitment.matrices.b);
     println!("C:");
-    dsp_mat!(&c_matrix);
+    dsp_mat!(&commitment.matrices.c);
     println!("Cz:");
-    dsp_mat!(cz);
+    dsp_mat!(cz_matrix);
 
-    // A matrix processing
-    // println!("A mat:");                                           
-    let a_matrix_encode = encode_matrix_m(&a_matrix, &set_h, &set_k);
-    
-    // B matrix processing
-    // println!("B mat:");                              
-    let b_matrix_encode = encode_matrix_m(&b_matrix, &set_h, &set_k);
-
-    // C matrix processing
-    // println!("C mat");                                     
-    let c_matrix_encode = encode_matrix_m(&c_matrix, &set_h, &set_k);
-
-    // Combine encoded matrix polynomials
-    let mut o_i = vec![];
-
-    // Append encoded matrices
-    o_i.extend(a_matrix_encode); // Add encoded polynomials for matrix A
-    o_i.extend(b_matrix_encode); // Add encoded polynomials for matrix B
-    o_i.extend(c_matrix_encode); // Add encoded polynomials for matrix C
-
-    let commit_res = commit(&o_i, d, g);               // Generate the commitment
+    let commit_res = commitment.commit(setup.long_const_val, setup.generator); // Generate the commitment
     println!("Commit:\t( {} )", dsp_vec!(commit_res)); // Display the commitment
 
 
