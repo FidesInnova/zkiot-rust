@@ -32,11 +32,20 @@ fn parse_line(line: &str, index: usize) -> Result<(&str, Vec<&str>)> {
     }
 }
 
+/// Parses lines from a given file and constructs a vector of `Gate` objects based on the parsed data.
+///
+/// # Parameters
+/// - `line_file`: A `BufReader<File>` representing the input file containing line numbers to be processed.
+/// - `opcodes_file`: A `PathBuf` pointing to the file containing opcode definitions corresponding to the line numbers.
+///
+/// # Returns
+/// - `Ok`: Returns a vector of `Gate` objects constructed from the parsed lines and their corresponding operands.
+/// - `Err`: Returns an error if any issues occur during reading lines, parsing line numbers, or constructing `Gate` objects, with detailed error messages indicating the source of the problem.
 pub fn parse_from_lines(line_file: BufReader<File>, opcodes_file: &PathBuf) -> Result<Vec<Gate>> {
     let mut gates = Vec::new();
 
     for (index, line) in line_file.lines().enumerate() {
-        let mut line_num = line
+        let line_num = line
             .context(format!("Error reading line {}: unable to parse line number", index + 1))?
             .trim()
             .parse::<usize>()
