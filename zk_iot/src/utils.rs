@@ -1,6 +1,8 @@
 //! Utility functions and structures for gate definitions, matrix operations, and polynomial encoding.
 
 use rand::prelude::SliceRandom;
+use rustnomial::Degree;
+use rustnomial::SizedPolynomial;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use anyhow::{Result, anyhow};
@@ -662,6 +664,32 @@ macro_rules! dsp_poly {
         
         println!("{result}\n");
     }};
+}
+
+
+pub fn dsp_poly(poly: &Poly) -> String {
+    let mut result = String::new();
+    let mut poly = poly.clone();
+    poly.trim();
+    if let Degree::Num(deg) = poly.degree() {
+        for (i, term) in poly.terms.iter().enumerate() {
+            if *term != Mfp::ZERO && i < deg + 1 {
+                if i != 0 {
+                    result.push_str(" + ");
+                }
+                if *term == Mfp::ONE && deg > i {
+                    result.push_str(&format!("x^{}", deg - i));
+                } else if deg == i {
+                    result.push_str(&format!("{}", term));
+                } else if deg == i + 1 {
+                    result.push_str(&format!("{}x", term));
+                } else if deg > i {
+                    result.push_str(&format!("{}x^{}", term, deg - i));
+                }
+            }
+        } 
+    }
+    result
 }
 
 

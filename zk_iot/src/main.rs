@@ -122,9 +122,9 @@ fn main() -> Result<()> {
     let poly_pi_c = (Poly::from(vec![beta_2]) -  &c_row_px) * (Poly::from(vec![beta_1]) -  &c_col_px);
 
     println!("================");
-    dsp_poly!(poly_pi_a);
-    dsp_poly!(poly_pi_b);
-    dsp_poly!(poly_pi_b);
+    dsp_poly(&poly_pi_a);
+    dsp_poly(&poly_pi_b);
+    dsp_poly(&poly_pi_b);
     println!("================");
 
     let poly_sig_a = Poly::from(vec![eta_a * van_poly_vhx.eval(beta_2) * van_poly_vhx.eval(beta_1)]) * &a_val_px;
@@ -132,9 +132,9 @@ fn main() -> Result<()> {
     let poly_sig_c = Poly::from(vec![eta_c * van_poly_vhx.eval(beta_2) * van_poly_vhx.eval(beta_1)]) * &c_val_px;
 
     println!("================");
-    dsp_poly!(poly_sig_a);
-    dsp_poly!(poly_sig_b);
-    dsp_poly!(poly_sig_c);
+    dsp_poly(&poly_sig_a);
+    dsp_poly(&poly_sig_b);
+    dsp_poly(&poly_sig_c);
     println!("================");
 
     let poly_a_x = poly_sig_a * (&poly_pi_b * &poly_pi_c) + 
@@ -142,16 +142,16 @@ fn main() -> Result<()> {
                    poly_sig_c * (&poly_pi_a * &poly_pi_b);
 
     println!("a(x): {}", poly_a_x.eval(Mfp::from(5)));
-    dsp_poly!(poly_a_x);
+    dsp_poly(&poly_a_x);
     
     // b(x)
     let poly_b_x = &poly_pi_a * &poly_pi_b * &poly_pi_c; 
 
     println!("b(x): {}", poly_b_x.eval(Mfp::from(5)));
-    dsp_poly!(poly_b_x);
+    dsp_poly(&poly_b_x);
 
     println!("van_poly_vkx");
-    dsp_poly!(van_poly_vkx);
+    dsp_poly(&van_poly_vkx);
 
     let poly_f_3x = lagrange_interpolate(&points_f_3);
 
@@ -161,32 +161,32 @@ fn main() -> Result<()> {
     let poly_f_3x = poly_f_3x - Poly::from(vec![sigma_3_set_k]);
 
     println!("poly_f_3x");
-    dsp_poly!(poly_f_3x);
+    dsp_poly(&poly_f_3x);
 
     let g_3x = poly_f_3x.div_mod(&Poly::from(vec![Mfp::ONE, Mfp::ZERO])).0;
     
     println!("g_3x");
-    dsp_poly!(g_3x);
+    dsp_poly(&g_3x);
 
     println!("1: ");
     let a = (poly_f_3x.clone() + Poly::from(vec![sigma_3_set_k]));
-    dsp_poly!(a);
+    dsp_poly(&a);
 
     println!("2: ");
     let a = (&poly_b_x * (poly_f_3x.clone() + Poly::from(vec![sigma_3_set_k])));
-    dsp_poly!(a);
+    dsp_poly(&a);
 
 
     println!("3: ");
     let a = (poly_a_x.clone() - (&poly_b_x * (poly_f_3x.clone() + Poly::from(vec![sigma_3_set_k]))));
-    dsp_poly!(a);
+    dsp_poly(&a);
 
 
     let h_3x = (poly_a_x.clone() - (&poly_b_x * (poly_f_3x.clone() + Poly::from(vec![sigma_3_set_k])))).div_mod(&van_poly_vkx).0;
 
 
     println!("h_3x");
-    dsp_poly!(h_3x);
+    dsp_poly(&h_3x);
 
 
     store_proof_json(
