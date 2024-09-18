@@ -628,46 +628,12 @@ macro_rules! dsp_vec {
 /// Displays a polynomial in human-readable format.
 ///
 /// # Parameters
-/// - `$poly`: A reference to the polynomial to be displayed. The polynomial should implement the
-///   `Clone`, `Degree`, and `SizedPolynomial` traits, and its terms should implement `Display`.
+/// - `poly`: A reference to the polynomial to be displayed. The polynomial should implement the
 ///
 /// # Description
-/// This macro formats the given polynomial as a string, showing each term in the format `ax^b`
+/// This function formats the given polynomial as a string, showing each term in the format `ax^b`
 /// where `a` is the coefficient and `b` is the exponent.
-#[macro_export]
-macro_rules! dsp_poly {
-    ($poly:expr) => {{
-        use std::io::Write;
-        use rustnomial::{SizedPolynomial, Degree};
-
-        let mut result = String::new();
-        let mut poly = $poly.clone();
-        poly.trim();
-        if let Degree::Num(deg) = poly.degree() {
-            for (i, term) in poly.terms.iter().enumerate() {
-                if *term != Mfp::ZERO && i < deg + 1 {
-                    if i != 0 {
-                        result.push_str(" + ");
-                    }
-                    if *term == Mfp::ONE && deg > i {
-                        result.push_str(&format!("x^{}", deg - i));
-                    } else if deg == i {
-                        result.push_str(&format!("{}", term));
-                    } else if deg == i + 1 {
-                        result.push_str(&format!("{}x", term));
-                    } else if deg > i {
-                        result.push_str(&format!("{}x^{}", term, deg - i));
-                    }
-                }
-            } 
-        }
-        
-        println!("{result}\n");
-    }};
-}
-
-
-pub fn dsp_poly(poly: &Poly) -> String {
+pub fn dsp_poly(poly: &Poly) {
     let mut result = String::new();
     let mut poly = poly.clone();
     poly.trim();
@@ -689,18 +655,26 @@ pub fn dsp_poly(poly: &Poly) -> String {
             }
         } 
     }
-    result
+    println!("{}", result);
 }
 
 
-pub fn sip_hash(value: &Mfp) -> Mfp {
-    let mut hasher = std::hash::DefaultHasher::new();
-    std::hash::Hash::hash(&value, &mut hasher);
-    Mfp::from(std::hash::Hasher::finish(&hasher))
-}
-
-
-
+/// Computes a SHA-256 hash of the given input string and returns the 
+/// least significant 64 bits of the hash as a `u64`.
+///
+/// # Parameters
+/// - `input`: A string slice that holds the input data to be hashed.
+///
+/// # Returns
+/// A `u64` value representing the least significant 64 bits of the 
+/// SHA-256 hash of the input string.
+///
+/// # Example
+/// ```
+/// use zk_iot::utils::sha2_hash;
+/// let hash = sha2_hash("example input");
+/// assert_eq!(5991431867939582869, hash);
+/// ```
 pub fn sha2_hash(input: &str) -> u64 {
     let mut hasher = sha2::Sha256::new();
     hasher.update(input);

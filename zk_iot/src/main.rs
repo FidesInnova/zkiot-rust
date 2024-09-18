@@ -1,9 +1,9 @@
+use std::path::PathBuf;
+
 use commitmnet::ahp;
 // use rand::{thread_rng, Rng};
 use rustnomial::{Evaluable, FreeSizePolynomial, Polynomial};
 use setup::Setup;
-use std::{collections::HashMap, path::PathBuf, process::exit};
-use nalgebra::DMatrix;
 use anyhow::Result;
 use ark_ff::Field;
 

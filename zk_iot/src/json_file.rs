@@ -1,7 +1,7 @@
 //! Utilities for storing polynomials and sets in JSON files.
 
 use std::{collections::HashMap, fs::{self, File, OpenOptions}, io::{BufReader, Write}, path::PathBuf};
-use crate::{dsp_poly, dsp_vec, math::{Mfp, Poly}, to_bint};
+use crate::{dsp_vec, math::{Mfp, Poly}, to_bint};
 use ark_ff::Field;
 use rustnomial::{Degree, SizedPolynomial};
 use serde_json::{json, Value};
