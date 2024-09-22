@@ -88,10 +88,12 @@ fn write_set(set: &Vec<Mfp>) -> Vec<u64> {
 /// # Returns
 /// Returns a `Result<()>`, indicating success or failure in storing the commitment polynomials.
 /// If the slice does not contain exactly 9 polynomials, an error is returned.
-pub fn store_commit_json(polys: &[&Poly], m: usize, n: usize) -> Result<()> {
+pub fn store_commit_json(polys: &[&Poly], m: usize, n: usize, sets: [Vec<Mfp>; 2]) -> Result<()> {
     let json_value = json!({
         "m": m,
         "n": n,
+        "set_h": write_set(&sets[0]),
+        "set_k": write_set(&sets[1]),
         "ComRowA": write_term(polys[0]),
         "ComColA": write_term(polys[1]),
         "ComValA": write_term(polys[2]),
@@ -115,7 +117,7 @@ fn read_term(poly: &[Value]) -> Poly {
     poly
 }
 
-pub fn restore_commit_json(json_path: &str) -> Result<(Vec<Poly>, usize, usize, Vec<Mfp>)> {
+pub fn restore_commit_json(json_path: &str) -> Result<(Vec<Poly>, usize, usize, Vec<Mfp>, [Vec<Mfp>; 2])> {
     let file_content = fs::read_to_string(json_path)?;
     let json_value: Value = serde_json::from_str(&file_content)?;
 
@@ -123,6 +125,10 @@ pub fn restore_commit_json(json_path: &str) -> Result<(Vec<Poly>, usize, usize, 
                 .iter().map(|v| Mfp::from(v.as_u64().unwrap())).collect::<Vec<Mfp>>();
     let n = json_value["n"].as_u64().unwrap() as usize;
     let t = json_value["t"].as_u64().unwrap() as usize;
+    let set_h = json_value["set_h"].as_array().unwrap().to_vec()
+    .iter().map(|v| Mfp::from(v.as_u64().unwrap())).collect::<Vec<Mfp>>();
+    let set_k = json_value["set_k"].as_array().unwrap().to_vec()
+    .iter().map(|v| Mfp::from(v.as_u64().unwrap())).collect::<Vec<Mfp>>();
 
     let polys = vec![
         read_term(json_value["ComRowA"].as_array().unwrap()),
@@ -136,7 +142,7 @@ pub fn restore_commit_json(json_path: &str) -> Result<(Vec<Poly>, usize, usize, 
         read_term(json_value["ComValC"].as_array().unwrap()),
     ];
 
-    Ok((polys, t, n, proof_path))
+    Ok((polys, t, n, proof_path, [set_h, set_k]))
 }
 
 

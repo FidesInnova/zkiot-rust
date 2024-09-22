@@ -410,7 +410,7 @@ pub mod ahp {
             dsp_poly(&c_val_px);
 
             let concat_str = format!("{}{}{}{}{}", "zkIoT", "MultiSensor", "1.0", "1.0", "");
-            let _ = store_commit_json(&[&a_row_px, &a_col_px, &a_val_px, &b_row_px, &b_col_px, &b_val_px, &c_row_px, &c_col_px, &c_val_px, &poly_sx], self.set_k_len as usize, self.set_h_len as usize);
+            let _ = store_commit_json(&[&a_row_px, &a_col_px, &a_val_px, &b_row_px, &b_col_px, &b_val_px, &c_row_px, &c_col_px, &c_val_px, &poly_sx], self.set_k_len as usize, self.set_h_len as usize, [self.set_h.clone(), self.set_k.clone()]);
         }
     }
 

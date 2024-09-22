@@ -72,6 +72,8 @@ fn main() -> Result<()> {
     let poly_sx = commit_vals.0[9].clone();
     let set_h_len = commit_vals.1;
     let set_k_len = commit_vals.2;
+    let set_h = commit_vals.4[0];
+    let set_k = commit_vals.4[1];
 
     let alpha = Mfp::from(sha2_hash(
         &to_bint!(poly_sx.eval(Mfp::from(0)) + poly_sx.eval(Mfp::from(1)) + Mfp::from(1))
