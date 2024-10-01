@@ -18,12 +18,7 @@ fn main() -> Result<()> {
     let timer = std::time::Instant::now();
 
     let setup = Setup::new();
-    let proof_path = setup.proof_path();
 
-    println!(); 
-    println!("Proof Path:\t( {} )", dsp_vec!(proof_path)); 
-
-    // Phase 2: Commit 
     println!();
     println!("Phase 2: Commit"); 
     let mut commitment = ahp::Commitment::new(&setup)?;
