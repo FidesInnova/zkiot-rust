@@ -32,15 +32,6 @@ fn parse_line(line: &str, index: usize) -> Result<(&str, Vec<&str>)> {
     }
 }
 
-/// Parses lines from a given file and constructs a vector of `Gate` objects based on the parsed data.
-///
-/// # Parameters
-/// - `line_file`: A `BufReader<File>` representing the input file containing line numbers to be processed.
-/// - `opcodes_file`: A `PathBuf` pointing to the file containing opcode definitions corresponding to the line numbers.
-///
-/// # Returns
-/// - `Ok`: Returns a vector of `Gate` objects constructed from the parsed lines and their corresponding operands.
-/// - `Err`: Returns an error if any issues occur during reading lines, parsing line numbers, or constructing `Gate` objects, with detailed error messages indicating the source of the problem.
 pub fn parse_from_lines(line_file: BufReader<File>, opcodes_file: &PathBuf) -> Result<Vec<Gate>> {
     let mut gates = Vec::new();
 
@@ -172,15 +163,18 @@ mod parser_test {
     #[test]
     fn parse_line_func() {
         let line1 = "40380552:       02f407b3                mul     a1,s0,5";
-        let line2 = "40380552:       02f407b3                mul     a1, s0, 5";
+        let line2 = "40380552:       02f407b3                add     a1, s0, 5";
         let line3 = "40380552:       02f407b3                mul     a1  ,  s0  ,  5  ";
+        let line4 = "40380552:       02f407b3                ld      a1  ,  a1  ,  4  ";
 
         let parse1 = parse_line(line1, 1).unwrap();
         let parse2 = parse_line(line2, 2).unwrap();
         let parse3 = parse_line(line3, 3).unwrap();
+        let parse4 = parse_line(line4, 4).unwrap();
 
         assert_eq!(parse1, ("mul", ["a1", "s0", "5"].to_vec()));
-        assert_eq!(parse2, ("mul", ["a1", "s0", "5"].to_vec()));
+        assert_eq!(parse2, ("add", ["a1", "s0", "5"].to_vec()));
         assert_eq!(parse3, ("mul", ["a1", "s0", "5"].to_vec()));
+        assert_eq!(parse4, ("ld",  ["a1", "a1", "4"].to_vec()));
     }
 }

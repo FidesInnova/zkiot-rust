@@ -1,7 +1,6 @@
 //! Utility functions and structures for gate definitions, matrix operations, and polynomial encoding.
 
 use rand::prelude::SliceRandom;
-use rustnomial::Degree;
 use rustnomial::SizedPolynomial;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -337,65 +336,49 @@ pub fn poly_gen_randomly(deg: usize) -> Poly {
 
 
 
-/// Adds random points to the given set by pairing each element in `set_k` (starting from index `c`)
-/// with a randomly chosen element from `set_h`. Returns an error if a random element cannot be chosen.
+
+/// Adds random points to the given `points` HashMap by pairing each element in `set_k` 
+/// (starting from index `c`) with a randomly chosen element from `set_h`. 
+/// Returns an error if a random element cannot be chosen from `set_h`.
 ///
 /// # Arguments
 ///
-/// * `set` - A mutable vector to which the new points will be added.
-/// * `set_h` - A vector of values used to pair with elements from `set_k`.
-/// * `set_k` - A vector of values used to generate the new points.
+/// * `points` - A mutable HashMap where new points will be added, with keys from `set_k` 
+///   and values chosen randomly from `set_h`.
 /// * `c` - The starting index in `set_k` from which to begin adding points.
+/// * `set_h` - A slice of values used to pair with elements from `set_k`.
+/// * `set_k` - A slice of values used to generate the new points.
 ///
 /// # Returns
 ///
-/// A `Result` indicating success or failure, with an error message if an element from `set_h` cannot be chosen.
-fn _add_random_points(set: &mut Vec<(Mfp, Mfp)>, set_h: &[Mfp], set_k: &[Mfp], c: usize) -> Result<()> {
-    let mut rng = thread_rng();
-    for k in set_k.iter().skip(c) {
-        match set_h.choose(&mut rng) {
-            Some(&h) => set.push((*k, h)),
-            None => return Err(anyhow!("Failed to choose a random element from set_h")),
-        }
+/// A `Result<()>` indicating success or failure. If successful, it returns `Ok(())`. 
+/// If an error occurs while choosing a random element from `set_h`, it returns an error.
+pub fn add_random_points(
+    points: &mut HashMap<Mfp, Mfp>, 
+    c: usize, 
+    set_h: &[Mfp], 
+    set_k: &[Mfp]
+) -> Result<()> {
+    let mut rng = rand::thread_rng();
+
+    for i in c..set_k.len() {
+        let rand_h = set_h.choose(&mut rng).ok_or(anyhow!("Failed to choose a random element from set_h"))?;
+        // points.insert(set_k[i], *rand_h);
     }
+
+
     Ok(())
 }
 
-
-
-/// Maps non-zero elements of the matrix `mat` to the corresponding column values from `set_h`
-/// based on the index in `set_k`.
-///
-/// # Parameters
-/// - `mat`: A reference to the matrix `mat` of type `DMatrix<Mfp>`.
-/// - `set_h`: A vector of values representing the columns in the finite field `Mfp`.
-/// - `set_k`: A vector of values used to identify specific points in the matrix.
-///
-/// # Returns
-/// Returns a `HashMap<Mfp, Mfp>` where each key is a value from `set_k` and the corresponding 
-/// value is the column value from `set_h`.
-///
-/// # Description
-/// The function iterates over the matrix `mat` and, for each non-zero element, 
-/// maps the corresponding value in `set_k` to the column value in `set_h`.
-pub fn get_matrix_point_col(mat: &DMatrix<Mfp>, set_h: &[Mfp], set_k: &[Mfp]) -> HashMap<Mfp, Mfp> {
-    let mut res = HashMap::new();
-    let mut c = 0;
-    let mat_len = mat.nrows();
-
-    for i in 0..mat_len {
-        for j in 0..mat_len {
-            if mat[(i, j)] != Mfp::ZERO {
-                res.insert(set_k[c], set_h[j]);
-                c += 1;
-            }
+pub fn print_hashmap(points: &HashMap<Mfp, Mfp>, set_k: &[Mfp]) {
+    for k in set_k.iter() {
+        if let Some(val) = points.get(k) {
+            println!("{} = {}", k, val);
+        } else {
+            println!("{} = None", k);
         }
     }
-
-    res 
 }
-
-
 
 /// Encodes a matrix into three polynomials: row, column, and value polynomials.
 ///
@@ -606,7 +589,7 @@ macro_rules! dsp_mat {
 ///
 /// # Description
 /// This macro iterates over the elements of the provided vector, concatenating them into a
-/// comma-separated string. The resulting string is useful for displaying or logging the contents
+/// comma-separated string. The resulting string is useful for displaying
 /// of the vector.
 #[macro_export]
 macro_rules! dsp_vec {
@@ -628,53 +611,44 @@ macro_rules! dsp_vec {
 /// Displays a polynomial in human-readable format.
 ///
 /// # Parameters
-/// - `poly`: A reference to the polynomial to be displayed. The polynomial should implement the
+/// - `$poly`: A reference to the polynomial to be displayed. The polynomial should implement the
+///   `Clone`, `Degree`, and `SizedPolynomial` traits, and its terms should implement `Display`.
 ///
 /// # Description
-/// This function formats the given polynomial as a string, showing each term in the format `ax^b`
+/// This macro formats the given polynomial as a string, showing each term in the format `ax^b`
 /// where `a` is the coefficient and `b` is the exponent.
-pub fn dsp_poly(poly: &Poly) {
-    let mut result = String::new();
-    let mut poly = poly.clone();
-    poly.trim();
-    if let Degree::Num(deg) = poly.degree() {
-        for (i, term) in poly.terms.iter().enumerate() {
-            if *term != Mfp::ZERO && i < deg + 1 {
-                if i != 0 {
-                    result.push_str(" + ");
+#[macro_export]
+macro_rules! dsp_poly {
+    ($poly:expr) => {{
+        use std::io::Write;
+        use rustnomial::{SizedPolynomial, Degree};
+
+        let mut result = String::new();
+        let mut poly = $poly.clone();
+        poly.trim();
+        if let Degree::Num(deg) = poly.degree() {
+            for (i, term) in poly.terms.iter().enumerate() {
+                if *term != Mfp::ZERO && i < deg + 1 {
+                    if i != 0 {
+                        result.push_str(" + ");
+                    }
+                    if *term == Mfp::ONE && deg > i {
+                        result.push_str(&format!("x^{}", deg - i));
+                    } else if deg == i {
+                        result.push_str(&format!("{}", term));
+                    } else if deg == i + 1 {
+                        result.push_str(&format!("{}x", term));
+                    } else if deg > i {
+                        result.push_str(&format!("{}x^{}", term, deg - i));
+                    }
                 }
-                if *term == Mfp::ONE && deg > i {
-                    result.push_str(&format!("x^{}", deg - i));
-                } else if deg == i {
-                    result.push_str(&format!("{}", term));
-                } else if deg == i + 1 {
-                    result.push_str(&format!("{}x", term));
-                } else if deg > i {
-                    result.push_str(&format!("{}x^{}", term, deg - i));
-                }
-            }
-        } 
-    }
-    println!("{}", result);
+            } 
+        }
+        
+        println!("{result}\n");
+    }};
 }
 
-
-/// Computes a SHA-256 hash of the given input string and returns the 
-/// least significant 64 bits of the hash as a `u64`.
-///
-/// # Parameters
-/// - `input`: A string slice that holds the input data to be hashed.
-///
-/// # Returns
-/// A `u64` value representing the least significant 64 bits of the 
-/// SHA-256 hash of the input string.
-///
-/// # Example
-/// ```
-/// use zk_iot::utils::sha2_hash;
-/// let hash = sha2_hash("example input");
-/// assert_eq!(5991431867939582869, hash);
-/// ```
 pub fn sha2_hash(input: &str) -> u64 {
     let mut hasher = sha2::Sha256::new();
     hasher.update(input);
@@ -683,4 +657,15 @@ pub fn sha2_hash(input: &str) -> u64 {
         result[31], result[30], result[29], result[28],
         result[27], result[26], result[25], result[24],
     ])
+}
+
+
+pub fn concat_polys(polys: &[&Poly]) -> Vec<Mfp> {
+    let mut result = vec![];
+
+    for poly in polys {
+        result.extend(poly.terms_as_vec().iter().map(|v| v.0)); 
+    }
+
+    result
 }

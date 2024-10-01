@@ -31,16 +31,16 @@ impl Setup {
         }
     }
 
-    pub fn proof_path(&self) -> Vec<Mfp> {
-        // Generate the proof path by iteratively applying exponentiation
-        let mut proof_path = vec![];
-        let mut s = Mfp::from(self.generator);
-        let d = Mfp::from(self.long_const_val);
-        for _ in 0..=self.base_exp_l {
-            proof_path.push(s);
-            s = exp_mod(to_bint!(s), to_bint!(d));
-        }
-
-        proof_path
+    pub fn key_generate(&self) -> (Vec<Mfp>, Mfp) {
+        
+        
+        // Calculate each expression
+        let expr_vec: Vec<u64> = vec![
+            m, ng as u64 - ni as u64 + b, n + b, n + 2 * b - 1, 2 * n + b - 1, n + b - 1, n - 1, m - 1, 6 * m - 6
+        ];
+        let max_expr = *expr_vec.iter().max().unwrap();
+        let ck = kzg::setup(max_expr, tau, g);
+        println!("ck: {}", dsp_vec!(ck));
+        let vk = exp_mod(g, tau);
     }
 }
