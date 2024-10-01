@@ -34,7 +34,7 @@ fn main() -> Result<()> {
     
     let proof_generation = ahp::proof_generation::ProofGeneration::new()
                                 .get_proof(commitmnet, &commitment_key, setup.generator);
-
+                            
     
     // ProofGeneration
     // Verification
