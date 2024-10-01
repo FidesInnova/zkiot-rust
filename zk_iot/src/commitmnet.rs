@@ -40,7 +40,7 @@ pub mod ahp {
             let set_k = generate_set(generator_k, set_k_len);
 
             let matrix_size = setup.number_gate + setup.number_input + 1;
-            let matrices = Matrices::new(matrix_size);
+            let matrices = Matrices::new(matrix_size.try_into().unwrap());
 
             Ok(Self {
                 set_h_len,

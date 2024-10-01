@@ -16,6 +16,9 @@ use json_file::*;
 
 fn main() -> Result<()> {
     // Setup
+    let setup = Setup::new();
+    let (ck, vk) = setup.key_generate();
+
     // Commitment
     // ProofGeneration
     // Verification
