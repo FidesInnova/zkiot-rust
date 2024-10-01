@@ -112,7 +112,7 @@ impl Gate {
 /// 
 /// # Future Enhancements
 /// Additional gate types and operations will be supported in future updates.
-pub fn init(
+pub fn build_matrices(
     gates: Vec<Gate>,
     ni: usize,
     a_mat: &mut DMatrix<Mfp>,
@@ -120,28 +120,28 @@ pub fn init(
     c_mat: &mut DMatrix<Mfp>,
     z_poly: &mut DMatrix<Mfp>,
 ) {
-    let mut index = 1 + ni;
+    let mut _index = 1 + ni;
     let mut counter = 0;
     let mut ld_counter = 0;
     for (i, gate) in gates.iter().enumerate() {
-        index = 1 + ni + counter;
-        c_mat[(index, index)] = Mfp::ONE;
+        _index = 1 + ni + counter;
+        c_mat[(_index, _index)] = Mfp::ONE;
 
         let left_val = gate.val_left.map_or(Mfp::ONE, Mfp::from);
         let right_val = gate.val_right.map_or(Mfp::ONE, Mfp::from);
 
         match gate.gate_type {
             GateType::Add => {
-                a_mat[(index, 0)] = Mfp::ONE;
+                a_mat[(_index, 0)] = Mfp::ONE;
 
-                b_mat[(index, gate.inx_left - ld_counter)] = left_val;
-                b_mat[(index, gate.inx_right)] = right_val;
+                b_mat[(_index, gate.inx_left - ld_counter)] = left_val;
+                b_mat[(_index, gate.inx_right)] = right_val;
 
                 z_poly[i + 1] = z_poly[i] + gate.val_right.map_or(Mfp::ZERO, Mfp::from);
             }
             GateType::Mul => {
-                a_mat[(index, gate.inx_left - ld_counter)] = left_val;
-                b_mat[(index, gate.inx_right)] = right_val;
+                a_mat[(_index, gate.inx_left - ld_counter)] = left_val;
+                b_mat[(_index, gate.inx_right)] = right_val;
 
                 z_poly[i + 1] = z_poly[i] * right_val;
             }

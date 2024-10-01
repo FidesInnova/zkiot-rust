@@ -705,7 +705,7 @@ pub fn div_mod_val(a: Mfp, b: Mfp) -> Mfp {
     numerator * denominator
 }
 
-pub fn compute_all_commitment(polys: &[&Poly], ck: &Vec<Mfp>, g: u64) -> Vec<Mfp> {
+pub fn compute_all_commitment(polys: &[Poly], ck: &Vec<Mfp>, g: u64) -> Vec<Mfp> {
     let mut res = vec![];
 
     for poly in polys.iter() {
