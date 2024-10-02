@@ -34,11 +34,13 @@ fn main() -> Result<()> {
 
     // .: Proof Generation :.
     let proof_generation = ahp::proof_generation::ProofGeneration::new()
-                                .get_proof(commitmnet, &commitment_key, setup.generator);
+                                .get_proof(&commitmnet, &commitment_key, setup.generator);
+
 
     // .: Verification :.
-    let verification = Verification::new();
-    // let verification_result = verification.verify();
+    let verification = Verification::new(proof_generation);
+    let verification_result = verification.verify(commitmnet.set_h.len(), commitmnet.set_k.len(), verifying_key);
 
+    println!("Verification result {verification_result}");
     Ok(())
 }

@@ -9,6 +9,33 @@ use ark_ff::{Field, PrimeField};
 use nalgebra::DMatrix;
 use rustnomial::Evaluable;
 
+
+#[derive(Debug)]
+pub enum Component {
+    Row,
+    Col,
+    Val,
+}
+
+#[derive(Debug)]
+pub enum EntityType {
+    Polynomial(Component ,Lable),
+    Points(Component ,Lable),
+}
+
+#[derive(Debug)]
+pub enum Lable {
+    A,
+    B,
+    C,
+}
+
+#[derive(Debug)]
+pub enum DataType {
+    Polynomial(Poly),
+    Points(HashMap<Mfp, Mfp>)
+}
+
 #[derive(Debug, Clone)]
 pub struct Commitment {
     pub set_h: Vec<Mfp>,

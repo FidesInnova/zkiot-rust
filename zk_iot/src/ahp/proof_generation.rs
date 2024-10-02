@@ -15,6 +15,7 @@ use rustnomial::SizedPolynomial;
 
 #[derive(Debug)]
 pub enum AHPData {
+    Commit(u64),
     Value(u64),
     Polynomial(Vec<u64>),
 }
@@ -27,10 +28,10 @@ impl ProofGeneration {
 
     pub fn get_proof(
         &self,
-        commitmnet: Commitment,
+        commitmnet: &Commitment,
         commitment_key: &Vec<Mfp>,
         generator: u64,
-    ) -> Vec<AHPData> {
+    ) -> Box<[AHPData]> {
         // Convert matrices to vectors and retrieve corresponding points
         let mut points_za =
             get_points_set(&mat_to_vec(&commitmnet.get_matrix_az()), &commitmnet.set_h);
@@ -38,6 +39,7 @@ impl ProofGeneration {
             get_points_set(&mat_to_vec(&commitmnet.get_matrix_bz()), &commitmnet.set_h);
         let mut points_zc =
             get_points_set(&mat_to_vec(&commitmnet.get_matrix_cz()), &commitmnet.set_h);
+            
         // From wiki: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
         // Random inertation for za:
         points_za.push((Mfp::from(150), Mfp::from(5)));
@@ -333,43 +335,28 @@ impl ProofGeneration {
         }
         println!("sigma_3: {}", sigma_3);
 
-        // a(x)
+        
         let poly_pi_a = (Poly::from(vec![beta_2]) - &commitmnet.polys_px[0])
             * (Poly::from(vec![beta_1]) - &commitmnet.polys_px[1]);
         let poly_pi_b = (Poly::from(vec![beta_2]) - &commitmnet.polys_px[3])
             * (Poly::from(vec![beta_1]) - &commitmnet.polys_px[4]);
         let poly_pi_c = (Poly::from(vec![beta_2]) - &commitmnet.polys_px[6])
             * (Poly::from(vec![beta_1]) - &commitmnet.polys_px[7]);
-
+        let polys_pi = vec![&poly_pi_a, &poly_pi_b, &poly_pi_c]; 
         dsp_poly!(poly_pi_a);
         dsp_poly!(poly_pi_b);
         dsp_poly!(poly_pi_b);
 
-        let poly_sig_a = Poly::from(vec![
-            eta_a * van_poly_vhx.eval(beta_2) * van_poly_vhx.eval(beta_1),
-        ]) * &commitmnet.polys_px[2];
-        let poly_sig_b = Poly::from(vec![
-            eta_b * van_poly_vhx.eval(beta_2) * van_poly_vhx.eval(beta_1),
-        ]) * &commitmnet.polys_px[5];
-        let poly_sig_c = Poly::from(vec![
-            eta_c * van_poly_vhx.eval(beta_2) * van_poly_vhx.eval(beta_1),
-        ]) * &commitmnet.polys_px[8];
 
-        dsp_poly!(poly_sig_a);
-        dsp_poly!(poly_sig_b);
-        dsp_poly!(poly_sig_c);
+        let poly_a_x = Self::gen_poly_ax(commitmnet, vec![beta_1, beta_2], &van_poly_vhx, vec![eta_a, eta_b, eta_c], &polys_pi);
 
-        let poly_a_x = poly_sig_a * (&poly_pi_b * &poly_pi_c)
-            + poly_sig_b * (&poly_pi_a * &poly_pi_c)
-            + poly_sig_c * (&poly_pi_a * &poly_pi_b);
-
-        println!("a(x): {}", poly_a_x.eval(Mfp::from(5)));
+        println!("poly_a_x: {}", poly_a_x.eval(Mfp::from(5)));
         dsp_poly!(poly_a_x);
 
         // b(x)
-        let poly_b_x = &poly_pi_a * &poly_pi_b * &poly_pi_c;
+        let poly_b_x = polys_pi[0] * polys_pi[1] * polys_pi[2];
 
-        println!("b(x): {}", poly_b_x.eval(Mfp::from(5)));
+        println!("poly_b_x: {}", poly_b_x.eval(Mfp::from(5)));
         dsp_poly!(poly_b_x);
 
         let van_poly_vkx = vanishing_poly(&commitmnet.set_k);
@@ -394,27 +381,28 @@ impl ProofGeneration {
 
         let h_3x = (poly_a_x.clone()
             - (&poly_b_x * (poly_f_3x.clone() + Poly::from(vec![sigma_3_set_k]))))
-        .div_mod(&van_poly_vkx)
-        .0;
+            .div_mod(&van_poly_vkx)
+            .0;
 
         println!("h_3x");
         dsp_poly!(h_3x);
 
         let polys_proof = [
-            &poly_w_hat,
-            &poly_z_hat_a,
-            &poly_z_hat_b,
-            &poly_z_hat_c,
-            &poly_h_0,
-            &poly_sx,
-            &g_1x,
-            &h_1x,
-            &g_2x,
-            &h_2x,
-            &g_3x,
-            &h_3x,
+            poly_w_hat,
+            poly_z_hat_a,
+            poly_z_hat_b,
+            poly_z_hat_c,
+            poly_h_0,
+            poly_sx,
+            g_1x,
+            h_1x,
+            g_2x,
+            h_2x,
+            g_3x,
+            h_3x,
         ];
 
+        // TODO: All random (1..P)
         let eta_values = vec![
             Mfp::from(1),  // eta_w
             Mfp::from(4),  // eta_z_a
@@ -433,7 +421,7 @@ impl ProofGeneration {
         let poly_px = eta_values
             .iter()
             .enumerate()
-            .map(|(i, &eta)| Poly::from(vec![eta]) * polys_proof[i])
+            .map(|(i, &eta)| Poly::from(vec![eta]) * polys_proof[i].clone())
             .fold(Poly::zero(), |acc, poly| acc + poly);
 
         println!("poly_px: ");
@@ -455,47 +443,74 @@ impl ProofGeneration {
         dsp_poly!(poly_qx);
 
         let val_commit_poly_qx = kzg::commit(&poly_qx, commitment_key, generator);
-
-        let polys_proof = [
-            poly_w_hat,
-            poly_z_hat_a,
-            poly_z_hat_b,
-            poly_z_hat_c,
-            poly_h_0,
-            poly_sx,
-            g_1x,
-            h_1x, //7
-            g_2x,
-            h_2x,
-            g_3x,
-            h_3x,
-        ];
-
         println!("val_commit_qx: {}", val_commit_poly_qx);
-        let com_ahp_x = compute_all_commitment(&polys_proof, commitment_key, generator);
-        println!("com_ahp_x: {}", dsp_vec!(com_ahp_x));
 
-        let pi_ahp: Vec<AHPData> = vec![
-            AHPData::Value(to_bint!(sigma_1)),                 // P1AHP: sigma_1
-            AHPData::Polynomial(write_term(&polys_proof[0])),  // P2AHP: w^x
-            AHPData::Polynomial(write_term(&polys_proof[1])),  // P3AHP: z^a
-            AHPData::Polynomial(write_term(&polys_proof[2])),  // P4AHP: z^b
-            AHPData::Polynomial(write_term(&polys_proof[3])),  // P5AHP: z^c
-            AHPData::Polynomial(write_term(&polys_proof[4])),  // P6AHP: h_0
-            AHPData::Polynomial(write_term(&polys_proof[5])),  // P7AHP: sx
-            AHPData::Polynomial(write_term(&polys_proof[6])),  // P8AHP: g_1
-            AHPData::Polynomial(write_term(&polys_proof[7])),  // P9AHP: h_1
-            AHPData::Value(to_bint!(sigma_2)),                 // P10AHP: sigma_2
-            AHPData::Polynomial(write_term(&polys_proof[8])),  // P11AHP: g_2
-            AHPData::Polynomial(write_term(&polys_proof[9])),  // P12AHP: h_2
-            AHPData::Value(to_bint!(sigma_3)),                 // P13AHP: sigma_3
-            AHPData::Polynomial(write_term(&polys_proof[10])), // P14AHP: g_3
-            AHPData::Polynomial(write_term(&polys_proof[11])), // P15AHP: h_3
-            AHPData::Value(to_bint!(val_y_p)),                 // P16AHP: y'
-            AHPData::Value(to_bint!(val_commit_poly_qx)),      // P17AHP: val_commit_poly_qx
+        let sigma = [
+            sigma_1,
+            sigma_2,
+            sigma_3,
         ];
 
-        pi_ahp
+        let commit_x = compute_all_commitment(&polys_proof, commitment_key, generator);
+        println!("commit_x: {}", dsp_vec!(commit_x));
+
+        Self::create_proof(&polys_proof, &sigma, &commit_x, val_y_p, val_commit_poly_qx)
+    }
+
+    fn create_proof(polys_proof: &[Poly], sigma: &[Mfp], commit_x: &[Mfp], val_y_p: Mfp, val_commit_poly_qx: Mfp) -> Box<[AHPData]> {
+        let pi_ahp = [
+            AHPData::Commit(to_bint!(commit_x[0])),             // [0]: COM1AHP
+            AHPData::Commit(to_bint!(commit_x[1])),             // [1]: COM2AHP
+            AHPData::Commit(to_bint!(commit_x[2])),             // [2]: COM3AHP
+            AHPData::Commit(to_bint!(commit_x[3])),             // [3]: COM4AHP
+            AHPData::Commit(to_bint!(commit_x[4])),             // [4]: COM5AHP
+            AHPData::Commit(to_bint!(commit_x[5])),             // [5]: COM6AHP
+            AHPData::Commit(to_bint!(commit_x[6])),             // [6]: COM7AHP
+            AHPData::Commit(to_bint!(commit_x[7])),             // [7]: COM8AHP
+            AHPData::Commit(to_bint!(commit_x[8])),             // [8]: COM9AHP
+            AHPData::Commit(to_bint!(commit_x[9])),             // [9]: COM10AHP
+            AHPData::Commit(to_bint!(commit_x[10])),            // [10]: COM11AHP
+            AHPData::Commit(to_bint!(commit_x[11])),            // [11]: COM12AHP
+            AHPData::Value(to_bint!(sigma[0])),                 // [12]: P1AHP: sigma_1
+            AHPData::Polynomial(write_term(&polys_proof[0])),   // [13]: P2AHP: w^x
+            AHPData::Polynomial(write_term(&polys_proof[1])),   // [14]: P3AHP: z^a
+            AHPData::Polynomial(write_term(&polys_proof[2])),   // [15]: P4AHP: z^b
+            AHPData::Polynomial(write_term(&polys_proof[3])),   // [16]: P5AHP: z^c
+            AHPData::Polynomial(write_term(&polys_proof[4])),   // [17]: P6AHP: h_0
+            AHPData::Polynomial(write_term(&polys_proof[5])),   // [18]: P7AHP: sx
+            AHPData::Polynomial(write_term(&polys_proof[6])),   // [19]: P8AHP: g_1
+            AHPData::Polynomial(write_term(&polys_proof[7])),   // [20]: P9AHP: h_1
+            AHPData::Value(to_bint!(sigma[1])),                 // [21]: P10AHP: sigma_2
+            AHPData::Polynomial(write_term(&polys_proof[8])),   // [22]: P11AHP: g_2
+            AHPData::Polynomial(write_term(&polys_proof[9])),   // [23]: P12AHP: h_2
+            AHPData::Value(to_bint!(sigma[2])),                 // [24]: P13AHP: sigma_3
+            AHPData::Polynomial(write_term(&polys_proof[10])),  // [25]: P14AHP: g_3
+            AHPData::Polynomial(write_term(&polys_proof[11])),  // [26]: P15AHP: h_3
+            AHPData::Value(to_bint!(val_y_p)),                  // [27]: P16AHP: y'
+            AHPData::Value(to_bint!(val_commit_poly_qx)),       // [28]: P17AHP: val_commit_poly_qx
+        ];
+
+        Box::new(pi_ahp)
+    }
+
+    fn gen_poly_ax(commitmnet: &Commitment, beta: Vec<Mfp>, van_poly_vhx: &Poly, eta: Vec<Mfp>, poly_pi: &Vec<&Poly>) -> Poly {
+        let poly_sig_a = Poly::from(vec![
+            eta[0] * van_poly_vhx.eval(beta[1]) * van_poly_vhx.eval(beta[0]),
+        ]) * &commitmnet.polys_px[2];
+        let poly_sig_b = Poly::from(vec![
+            eta[1] * van_poly_vhx.eval(beta[1]) * van_poly_vhx.eval(beta[0]),
+        ]) * &commitmnet.polys_px[5];
+        let poly_sig_c = Poly::from(vec![
+            eta[2] * van_poly_vhx.eval(beta[1]) * van_poly_vhx.eval(beta[0]),
+        ]) * &commitmnet.polys_px[8];
+
+        dsp_poly!(poly_sig_a);
+        dsp_poly!(poly_sig_b);
+        dsp_poly!(poly_sig_c);
+
+        poly_sig_a * (poly_pi[1] * poly_pi[2])
+        + poly_sig_b * (poly_pi[0] * poly_pi[2])
+        + poly_sig_c * (poly_pi[0] * poly_pi[1])
     }
 
     pub fn store(&self, path: &str) -> Result<()> {
