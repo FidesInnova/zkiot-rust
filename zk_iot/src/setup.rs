@@ -2,6 +2,8 @@ use crate::{
     dsp_vec, math::*, to_bint
 };
 
+use anyhow::Result;
+
 pub struct Setup {
     pub number_gate: u64,
     pub number_output: u64,
@@ -60,5 +62,14 @@ impl Setup {
         let vk = exp_mod(self.generator, self.random_tau);
 
         (ck, vk)
+    }
+
+    pub fn store(path: &str) -> Result<()> {
+        todo!()
+    }
+
+
+    pub fn restore(path: &str) -> Result<()> {
+        todo!()
     }
 }

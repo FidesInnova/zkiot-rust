@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use ahp::verification::Verification;
 // use rand::{thread_rng, Rng};
 use rustnomial::{Evaluable, FreeSizePolynomial, Polynomial};
 use setup::Setup;
@@ -31,12 +32,13 @@ fn main() -> Result<()> {
 
     let commitmnet_polys_ = commitmnet.get_polynomials_commitment(setup.generator, &commitment_key);
 
-    
+    // .: Proof Generation :.
     let proof_generation = ahp::proof_generation::ProofGeneration::new()
                                 .get_proof(commitmnet, &commitment_key, setup.generator);
-                            
-    
-    // ProofGeneration
-    // Verification
+
+    // .: Verification :.
+    let verification = Verification::new();
+    // let verification_result = verification.verify();
+
     Ok(())
 }
