@@ -112,7 +112,7 @@ impl Verification {
             &Self::get_value(&self.data[24]),
             set_h_len,
         )
-        // verify_res &= Self::check_equation_3(
+        // &&  Self::check_equation_3(
         //     &poly_sx,
         //     &sum_1,
         //     &poly_z_hat_x,
@@ -123,7 +123,7 @@ impl Verification {
         //     &Self::get_value(&self.data[12]),
         //     &Self::get_value(&self.data[21]),
         //     set_h_len,
-        // );
+        // )
         && Self::check_equation_4(&poly_ab_c, &&Self::get_poly(&self.data[17]), &van_poly_vhx, &beta_1)
         // && Self::check_equation_5(val_com_p, Mfp::from(g), val_y_p, val_commit_poly_qx, vk, z)
     }
