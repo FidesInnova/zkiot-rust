@@ -91,71 +91,6 @@ impl Gate {
 
 
 
-/// Initializes matrices A, B, C and vector z_poly based on gate definitions.
-///
-/// # Parameters
-/// - `gates`: A vector of `Gate` structs containing gate definitions.
-/// - `ni`: Number of inputs (registers).
-/// - `a_mat`: Mutable reference to matrix A to be updated.
-/// - `b_mat`: Mutable reference to matrix B to be updated.
-/// - `c_mat`: Mutable reference to matrix C to be updated.
-/// - `z_poly`: Mutable reference to vector z_poly to be updated.
-///
-/// # Description
-/// This function iterates through the provided `gates` vector and updates the matrices
-/// A, B, and C as well as the polynomial vector `z_poly` based on the type of each gate:
-/// - **Add** gates: Updates matrices and modifies `z_poly` with addition.
-/// - **Mul** gates: Updates matrices and modifies `z_poly` with multiplication.
-/// 
-/// The matrices are populated with values according to the gate definitions, and the
-/// `z_poly` vector is updated with the results of operations specified by the gates.
-/// 
-/// # Future Enhancements
-/// Additional gate types and operations will be supported in future updates.
-pub fn build_matrices(
-    gates: Vec<Gate>,
-    ni: usize,
-    a_mat: &mut DMatrix<Mfp>,
-    b_mat: &mut DMatrix<Mfp>,
-    c_mat: &mut DMatrix<Mfp>,
-    z_poly: &mut DMatrix<Mfp>,
-) {
-    let mut _index = 1 + ni;
-    let mut counter = 0;
-    let mut ld_counter = 0;
-    for (i, gate) in gates.iter().enumerate() {
-        _index = 1 + ni + counter;
-        c_mat[(_index, _index)] = Mfp::ONE;
-
-        let left_val = gate.val_left.map_or(Mfp::ONE, Mfp::from);
-        let right_val = gate.val_right.map_or(Mfp::ONE, Mfp::from);
-
-        match gate.gate_type {
-            GateType::Add => {
-                a_mat[(_index, 0)] = Mfp::ONE;
-
-                b_mat[(_index, gate.inx_left - ld_counter)] = left_val;
-                b_mat[(_index, gate.inx_right)] = right_val;
-
-                z_poly[i + 1] = z_poly[i] + gate.val_right.map_or(Mfp::ZERO, Mfp::from);
-            }
-            GateType::Mul => {
-                a_mat[(_index, gate.inx_left - ld_counter)] = left_val;
-                b_mat[(_index, gate.inx_right)] = right_val;
-
-                z_poly[i + 1] = z_poly[i] * right_val;
-            }
-            GateType::Ld => {
-                z_poly[i + 1] = right_val;
-                ld_counter += 1;
-                continue;
-            },
-        }
-        counter += 1;
-
-    }
-}
-
 
 /// Sets the first `t` rows of the matrix `mat` to zero.
 ///
@@ -210,6 +145,7 @@ pub fn get_points_set(seq: &[Mfp], n: &[Mfp]) -> Vec<Point> {
     for point in n.iter().zip(seq.iter()) {
         points.push((*point.0, *point.1));
     }
+    
     points
 }
 

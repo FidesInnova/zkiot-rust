@@ -41,6 +41,8 @@ impl Verification {
     pub fn verify(&self, set_h_len: usize, set_k_len: usize, vk: Mfp) -> bool {
         let poly_sx = Self::get_poly(&self.data[18]);
         // TODO:
+        // From wiki: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
+        //             Step 6
         // let alpha = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(0))).to_string()));
         // let beta_1 = poly_sx.eval(Mfp::from(1));
         // let beta_2 = poly_sx.eval(Mfp::from(2));
@@ -50,46 +52,20 @@ impl Verification {
         // let eta_b = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(2))).to_string()));
         // let eta_c = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(3))).to_string()));
 
-        // From wiki: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
-        //             Step 6
+        // Randoms:
         let alpha = Mfp::from(10);
-        let eta_a = Mfp::from(2);
-        let eta_b = Mfp::from(30);
-        let eta_c = Mfp::from(100);
-
-        let beta_1 = Mfp::from(22);
-        let beta_2 = Mfp::from(80);
-        let beta_3 = Mfp::from(5);
-
-        let mut van_poly_vkx = Poly::new(vec![-Mfp::ONE]);
-        van_poly_vkx.add_term(Mfp::ONE, set_k_len);
-
-        let mut van_poly_vhx = Poly::new(vec![-Mfp::ONE]);
-        van_poly_vhx.add_term(Mfp::ONE, set_h_len);
-
+        let eta = vec![Mfp::from(2), Mfp::from(30), Mfp::from(100)];
+        let beta = vec![Mfp::from(22), Mfp::from(80), Mfp::from(5)];
+        // Polynomials
+        let van_poly_vkx = Self::vanishing_poly(set_k_len);
+        let van_poly_vhx = Self::vanishing_poly(set_h_len);
         let poly_r = func_u(Some(alpha), None, set_h_len);
+        // let poly_a_x = &Self::get_poly(&self.data[26]) * &van_poly_vkx + Self::get_poly(&self.data[25]);
+        // let poly_b_x = &Self::get_poly(&self.data[26]) * &van_poly_vkx + Self::get_poly(&self.data[21]);
+        let sum_1 = Self::gen_poly_sigma(&eta, &self.data, &poly_r);
+        let poly_ab_c = &Self::get_poly(&self.data[14]) * &Self::get_poly(&self.data[15]) - &Self::get_poly(&self.data[16]);
+        let poly_h_0 = div_mod(&poly_ab_c, &van_poly_vhx).0;
 
-        let poly_a_x =
-            &Self::get_poly(&self.data[26]) * &van_poly_vkx + Self::get_poly(&self.data[25]);
-        let poly_b_x = div_mod(
-            &Self::get_poly(&self.data[25]),
-            &(Poly::from(vec![Mfp::ONE, Mfp::ZERO]) * Self::get_poly(&self.data[25])
-                + Poly::from(vec![div_mod_val(
-                    Mfp::from(set_k_len as u64),
-                    Self::get_value(&self.data[24]),
-                )])),
-        )
-        .0;
-
-        let sigma_eta_z_x = Poly::new(vec![eta_a]) * &Self::get_poly(&self.data[14])
-            + Poly::new(vec![eta_b]) * &Self::get_poly(&self.data[15])
-            + Poly::new(vec![eta_c]) * &Self::get_poly(&self.data[16]);
-        let sum_1 = &poly_r * sigma_eta_z_x;
-
-        let poly_ab_c = &Self::get_poly(&self.data[14]) * &Self::get_poly(&self.data[15])
-            - &Self::get_poly(&self.data[16]);
-
-        // Compute polynomial for Z^(x)
         // let poly_z_hat_x = &Self::get_poly(self.data[13]) * &van_poly_vh1 + poly_x_hat;
 
         // Self::check_equation_1(
@@ -107,7 +83,7 @@ impl Verification {
             &Self::get_poly(&self.data[23]),
             &Self::get_poly(&self.data[22]),
             &van_poly_vhx,
-            &beta_2,
+            &beta[1],
             &Self::get_value(&self.data[21]),
             &Self::get_value(&self.data[24]),
             set_h_len,
@@ -124,8 +100,23 @@ impl Verification {
         //     &Self::get_value(&self.data[21]),
         //     set_h_len,
         // )
-        && Self::check_equation_4(&poly_ab_c, &&Self::get_poly(&self.data[17]), &van_poly_vhx, &beta_1)
+        && Self::check_equation_4(&poly_ab_c, &poly_h_0, &van_poly_vhx, &beta[0])
         // && Self::check_equation_5(val_com_p, Mfp::from(g), val_y_p, val_commit_poly_qx, vk, z)
+    }
+
+    #[inline]
+    fn gen_poly_sigma(eta: &Vec<Mfp>, data: &[AHPData], poly_r: &Poly) -> Poly {
+        let sigma_eta_z_x = Poly::new(vec![eta[0]]) * &Self::get_poly(&data[14])
+            + Poly::new(vec![eta[1]]) * &Self::get_poly(&data[15])
+            + Poly::new(vec![eta[2]]) * &Self::get_poly(&data[16]);
+        poly_r * sigma_eta_z_x
+    }
+
+    #[inline]
+    fn vanishing_poly(len: usize) -> Poly {
+        let mut van = Poly::new(vec![-Mfp::ONE]);
+        van.add_term(Mfp::ONE, len);
+        van
     }
 
     // h3​(β3​)vK​(β3​)=a(β3​)−b(β3​)(β3​g3​(β3​)+σ3/|K|​​)

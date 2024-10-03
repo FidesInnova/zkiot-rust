@@ -41,6 +41,8 @@ pub type Point2d = (Point, Mfp);
 ///
 /// # Example
 /// ```
+/// use zk_iot::math::Mfp;
+/// use zk_iot::math::exp_mod;
 /// use zk_iot::*;
 ///
 /// let result = exp_mod(2, 10);
@@ -172,6 +174,7 @@ pub(crate) fn first_term(poly_vec: &[Mfp]) -> Term<Mfp> {
     Term::ZeroTerm
 }
 
+use rayon::prelude::*; // For parallel iteration
 /// Performs Lagrange interpolation to find the polynomial that passes through
 /// a given set of points.
 ///
@@ -188,29 +191,41 @@ pub(crate) fn first_term(poly_vec: &[Mfp]) -> Term<Mfp> {
 /// For each point `(x_i, y_i)`, it constructs the Lagrange basis polynomial and
 /// accumulates the weighted sum to form the final polynomial.
 pub fn lagrange_interpolate(points: &[Point]) -> Poly {
-    let mut poly_res: Poly = Poly::new(vec![Mfp::ZERO]);
-    for (x_i, y_i) in points.iter() {
+    // Collect results from parallel execution
+    let partial_results: Vec<Poly> = points.par_iter().map(|(x_i, y_i)| {
         let mut poly_nume_all: Poly = Poly::new(vec![Mfp::ONE]);
         let mut poly_deno_all = Mfp::ONE;
+
+        let x_i_mfp = Mfp::from(*x_i); // Precompute x_i once
+
         for (x_j, _) in points.iter() {
             if x_i != x_j {
+                let x_j_mfp = Mfp::from(*x_j); // Precompute x_j once
+
                 // Construct Lagrange basis polynomial for the current point
-                let poly_nume: Poly = Poly::new(vec![Mfp::ONE, Mfp::from(*x_j).neg()]);
-                let poly_deno = Mfp::from(*x_i) - Mfp::from(*x_j);
+                let poly_nume: Poly = Poly::new(vec![Mfp::ONE, x_j_mfp.neg()]);
+                let poly_deno = x_i_mfp - x_j_mfp;
+
                 // Accumulate the numerator and denominator for the basis polynomial
                 poly_nume_all *= poly_nume;
                 poly_deno_all *= poly_deno;
             }
         }
-        // Add the weighted basis polynomial to the result
-
         let inv_deno = exp_mod(to_bint!(poly_deno_all), P - 2);
+        // Return the weighted basis polynomial for this point
+        Poly::new(vec![*y_i]) * (poly_nume_all * inv_deno)
+    }).collect();
 
-        poly_res += Poly::new(vec![*y_i]) * (poly_nume_all * inv_deno);
+    // Combine all partial results into the final result (done sequentially)
+    let mut poly_res: Poly = Poly::new(vec![Mfp::ZERO]);
+    for poly in partial_results {
+        poly_res += poly;
     }
 
     poly_res
 }
+
+
 
 /// Generates a vector of elements in the finite field `Mfp` based on the given
 /// generator and length.
@@ -716,135 +731,16 @@ pub fn compute_all_commitment(polys: &[Poly], ck: &Vec<Mfp>, g: u64) -> Vec<Mfp>
     res
 }
 
-
-// h3​(β3​)vK​(β3​)=a(β3​)−b(β3​)(β3​g3​(β3​)+σ3/|K|​​)
-pub fn check_equation_1(
-    h_3x: &Poly,
-    g_3x: &Poly,
-    van_poly_vkx: &Poly,
-    ax: &Poly,
-    bx: &Poly,
-    beta_3: &Mfp,
-    sigma_3: &Mfp,
-    set_k_len: usize,
-) -> bool {
-    h_3x.eval(*beta_3) * van_poly_vkx.eval(*beta_3)
-        == ax.eval(*beta_3) - (bx.eval(*beta_3) * (*beta_3 * g_3x.eval(*beta_3) + div_mod_val(*sigma_3, Mfp::from(set_k_len as u64))))
-}
-
-// r(α,β2​)σ3 ​= h2​(β2​) vH​(β2​) + β2​g2​(β2​) +  σ2​​/∣H∣
-pub fn check_equation_2(
-    poly_r: &Poly,
-    h_2x: &Poly,
-    g_2x: &Poly,
-    van_poly_vhx: &Poly,
-    beta_2: &Mfp,
-    sigma_2: &Mfp,
-    sigma_3: &Mfp,
-    set_h_len: usize,
-) -> bool {
-    poly_r.eval(*beta_2) * sigma_3
-        == h_2x.eval(*beta_2) * van_poly_vhx.eval(*beta_2)
-            + *beta_2 * g_2x.eval(*beta_2)
-            + div_mod_val(*sigma_2, Mfp::from(set_h_len as u64))
-}
-
-// s(β1​)+r(α,β1​)(∑M∈{A,B,C}​ηM​z^M​(β1​))−σ2​z^(β1​) = h1​(β1​)vH​(β1​) + β1​g1​(β1​) + σ1​/∣H∣
-pub fn check_equation_3(
-    poly_sx: &Poly,
-    sum_1: &Poly,
-    poly_z_hat_x: &Poly,
-    h_1x: &Poly,
-    g_1x: &Poly,
-    van_poly_vhx: &Poly,
-    beta_1: &Mfp,
-    sigma_1: &Mfp,
-    sigma_2: &Mfp,
-    set_h_len: usize,
-) -> bool {
-    poly_sx.eval(*beta_1) + sum_1.eval(*beta_1) - *sigma_2 * poly_z_hat_x.eval(*beta_1)
-        == h_1x.eval(*beta_1) * van_poly_vhx.eval(*beta_1)
-            + *beta_1 * g_1x.eval(*beta_1)
-            + div_mod_val(*sigma_1, Mfp::from(set_h_len as u64))
-}
-
-// z^A​(β1​)z^B​(β1​)−z^C​(β1​)=h0​(β1​)vH​(β1​)
-pub fn check_equation_4(
-    poly_ab_c: &Poly,
-    poly_h_0: &Poly,
-    van_poly_vhx: &Poly,
-    beta_1: &Mfp,
-) -> bool {
-    poly_ab_c.eval(*beta_1) == poly_h_0.eval(*beta_1) * van_poly_vhx.eval(*beta_1)
-}
-
-pub fn check_equation_5(val_com_p: Mfp, g: Mfp, val_y_p: Mfp, val_commit_poly_qx: Mfp, vk: Mfp, z: Mfp) -> bool {
-    e_func(
-        div_mod_val(val_com_p, exp_mod(to_bint!(g), to_bint!(val_y_p))),
-        g,
-        g,
-    ) == e_func(
-        val_commit_poly_qx,
-        div_mod_val(vk, exp_mod(to_bint!(g), to_bint!(z))),
-        Mfp::from(g),
-    )
-}
-
-pub fn verify(
-    h_1x: &Poly,
-    g_1x: &Poly,
-    h_2x: &Poly,
-    g_2x: &Poly,
-    h_3x: &Poly,
-    g_3x: &Poly,
-
-    beta_1: &Mfp,
-    sigma_1: &Mfp,
-    beta_2: &Mfp,
-    sigma_2: &Mfp,
-    beta_3: &Mfp,
-    sigma_3: &Mfp,
-
-    ax: &Poly,
-    bx: &Poly,
-    poly_ab_c: &Poly,
-    poly_h_0: &Poly,
-    poly_r: &Poly,
-    poly_sx: &Poly,
-    poly_z_hat_x: &Poly,
-
-    set_k_len: usize,
-    set_h_len: usize,
-
-    sum_1: &Poly,
-
-    van_poly_vkx: &Poly,
-    van_poly_vhx: &Poly,
-
-    val_com_p: Mfp, 
-    g: Mfp, 
-    val_y_p: Mfp, 
-    val_commit_poly_qx: Mfp, 
-    vk: Mfp, 
-    z: Mfp
-) -> bool {
-    check_equation_1(h_3x, g_3x, van_poly_vkx, ax, bx, beta_3, sigma_3, set_k_len) &&
-    check_equation_2(poly_r, h_2x, g_2x, van_poly_vhx, beta_2, sigma_2, sigma_3, set_h_len) &&
-    check_equation_3(poly_sx, sum_1, poly_z_hat_x, h_1x, g_1x, van_poly_vhx, beta_1, sigma_1, sigma_2, set_h_len) &&
-    check_equation_4(poly_ab_c, poly_h_0, van_poly_vhx, beta_1)
-    // check_equation_5(val_com_p, g, val_y_p, val_commit_poly_qx, vk, z)
-}
-
 pub mod kzg {
     use super::*;
     pub fn setup(max: u64, tau: u64, g: u64) -> Vec<Mfp> {
         let mut res = vec![];
         let mut s = Mfp::from(g);
-        let d = tau % (P - 1);
+        let tau = tau % (P - 1);
 
         for _ in 0..max {
             res.push(s);
-            s = exp_mod(to_bint!(s), d);
+            s = exp_mod(to_bint!(s), tau);
         }
 
         res
@@ -853,10 +749,6 @@ pub mod kzg {
     pub fn commit(poly_in: &Poly, ck: &Vec<Mfp>, g: u64) -> Mfp {
         let mut res_poly = Mfp::ONE;
 
-        // println!("polpol:");
-        // dsp_poly!(poly_in);
-
-        // let mut counter = 0;
         if let Degree::Num(deg) = poly_in.degree() {
             for i in 0..=deg {
                 match poly_in.term_with_degree(i) {
@@ -865,14 +757,12 @@ pub mod kzg {
                     }
                     Term::Term(t, _) => {
                         let exp = exp_mod(to_bint!(ck[i]), to_bint!(t));
-                        // print!("{}^{} * ", to_bint!(ck[i]), to_bint!(t));
                         res_poly *= exp;
                     }
                 }
             }
         }
 
-        // println!();
         if res_poly == Mfp::ONE {
             Mfp::from(g)
         } else {
@@ -1056,5 +946,16 @@ mod math_test {
 
         assert_eq!(polynomial_points1, lagrange_interpolate(&points1));
         assert_eq!(polynomial_points2, lagrange_interpolate(&points2));
+    }
+
+    #[test]
+    fn test_interpolate_huge() {
+        let mut rng = thread_rng();
+        let points: Vec<Point> = (0..700)
+            .into_iter()
+            .map(|_| (Mfp::from(rng.gen_range(1..P)), Mfp::from(rng.gen_range(1..P))))
+            .collect();
+        
+        let inter_poly = lagrange_interpolate(&points); 
     }
 }

@@ -25,17 +25,16 @@ fn main() -> Result<()> {
     // Reading the opcodes whose line numbers are specified in line_file
     let gates = parse_from_lines(line_file, &PathBuf::from("sample.txt"))?;
 
-    let commitmnet = ahp::commitmnet::Commitment::new(&setup)
-                        .build_matrices(gates, setup.number_input.try_into()?)
-                        .build_polynomials()
+    let commitmnet = ahp::commitment::Commitment::new(&setup)
+                        .gen_matrices(gates, setup.number_input.try_into()?)
+                        .gen_polynomials()
                         .build();
 
     let commitmnet_polys_ = commitmnet.get_polynomials_commitment(setup.generator, &commitment_key);
 
     // .: Proof Generation :.
     let proof_generation = ahp::proof_generation::ProofGeneration::new()
-                                .get_proof(&commitmnet, &commitment_key, setup.generator);
-
+                        .get_proof(&commitmnet, &commitment_key, setup.generator);
 
     // .: Verification :.
     let verification = Verification::new(proof_generation);

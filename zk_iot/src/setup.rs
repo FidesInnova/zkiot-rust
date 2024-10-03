@@ -54,22 +54,12 @@ impl Setup {
 
         // Calculate each expression
         let expr_vec: Vec<u64> = vec![
-            m, self.number_gate - self.number_input + b, n + b, n + 2 * b - 1, 2 * n + b - 1, n + b - 1, n - 1, m - 1, 6 * m - 6
+            m, self.number_gate - self.number_input + b, n + b, n + 2 * b - 1, 2 * n + b - 1, n + b - 1, n - 1, m - 1, 6 * m - 6, 10_000
         ];
         let max_expr = *expr_vec.iter().max().unwrap();
         let ck = kzg::setup(max_expr, self.random_tau, self.generator);
-        println!("ck: {}", dsp_vec!(ck));
         let vk = exp_mod(self.generator, self.random_tau);
 
         (ck, vk)
-    }
-
-    pub fn store(path: &str) -> Result<()> {
-        todo!()
-    }
-
-
-    pub fn restore(path: &str) -> Result<()> {
-        todo!()
     }
 }
