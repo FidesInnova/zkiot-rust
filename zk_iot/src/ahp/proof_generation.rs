@@ -364,7 +364,7 @@ impl ProofGeneration {
 
         println!("h_3x");
         dsp_poly!(h_3x);
-
+        // let poly_z_hat_x = &poly_w_hat * &van_poly_vh1 + poly_x_hat;
         let polys_proof = [
             poly_w_hat,
             poly_z_hat_a,
