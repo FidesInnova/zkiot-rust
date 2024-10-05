@@ -2,7 +2,6 @@ use crate::{
     dsp_vec, math::*, to_bint
 };
 
-use anyhow::Result;
 
 pub struct Setup {
     pub number_gate: u64,

@@ -5,7 +5,6 @@ use crate::dsp_poly;
 use crate::dsp_vec;
 use crate::json_file::write_term;
 use crate::math::*;
-use crate::setup::Setup;
 use crate::to_bint;
 use crate::utils::*;
 use anyhow::Result;
