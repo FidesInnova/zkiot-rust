@@ -7,7 +7,7 @@ use crate::{
     to_bint,
 };
 
-use super::proof_generation::AHPData;
+use super::{commitment::Commitment, proof_generation::AHPData};
 
 pub struct Verification {
     pub data: Box<[AHPData]>,
@@ -38,7 +38,7 @@ impl Verification {
         }
     }
 
-    pub fn verify(&self, set_h_len: usize, set_k_len: usize, vk: Mfp) -> bool {
+    pub fn verify(&self, commitment: &Commitment, vk: Mfp) -> bool {
         let poly_sx = Self::get_poly(&self.data[18]);
         // TODO:
         // From wiki: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
@@ -52,10 +52,13 @@ impl Verification {
         // let eta_b = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(2))).to_string()));
         // let eta_c = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(3))).to_string()));
 
+        let set_h_len = commitment.set_h.len();
+        let set_k_len = commitment.set_k.len();
         // Randoms:
         let alpha = Mfp::from(10);
-        let eta = vec![Mfp::from(2), Mfp::from(30), Mfp::from(100)];
         let beta = vec![Mfp::from(22), Mfp::from(80), Mfp::from(5)];
+        let eta = vec![Mfp::from(2), Mfp::from(30), Mfp::from(100)];
+
         // Polynomials
         let van_poly_vkx = Self::vanishing_poly(set_k_len);
         let van_poly_vhx = Self::vanishing_poly(set_h_len);
@@ -63,21 +66,31 @@ impl Verification {
         // let poly_a_x = &Self::get_poly(&self.data[26]) * &van_poly_vkx + Self::get_poly(&self.data[25]);
         // let poly_b_x = &Self::get_poly(&self.data[26]) * &van_poly_vkx + Self::get_poly(&self.data[21]);
         let sum_1 = Self::gen_poly_sigma(&eta, &self.data, &poly_r);
-        let poly_ab_c = &Self::get_poly(&self.data[14]) * &Self::get_poly(&self.data[15]) - &Self::get_poly(&self.data[16]);
+        let poly_ab_c = &Self::get_poly(&self.data[14]) * &Self::get_poly(&self.data[15])
+            - &Self::get_poly(&self.data[16]);
         let poly_h_0 = div_mod(&poly_ab_c, &van_poly_vhx).0;
 
-        // let poly_z_hat_x = &Self::get_poly(self.data[13]) * &van_poly_vh1 + poly_x_hat;
+        let poly_pi_a = (Poly::from(vec![beta[1]]) - &commitment.polys_px[0])
+            * (Poly::from(vec![beta[0]]) - &commitment.polys_px[1]);
+        let poly_pi_b = (Poly::from(vec![beta[1]]) - &commitment.polys_px[3])
+            * (Poly::from(vec![beta[0]]) - &commitment.polys_px[4]);
+        let poly_pi_c = (Poly::from(vec![beta[1]]) - &commitment.polys_px[6])
+            * (Poly::from(vec![beta[0]]) - &commitment.polys_px[7]);
+        let polys_pi = vec![&poly_pi_a, &poly_pi_b, &poly_pi_c];
 
-        // Self::check_equation_1(
-        //     &Self::get_poly(&self.data[26]),
-        //     &Self::get_poly(&self.data[25]),
-        //     &van_poly_vkx,
-        //     &poly_a_x,
-        //     &poly_b_x,
-        //     &beta_3,
-        //     &Self::get_value(&self.data[24]),
-        //     set_k_len,
-        // ) &&
+        let poly_a_x = Self::gen_poly_ax(&commitment, &beta, &van_poly_vhx, &eta, &polys_pi);
+        let poly_b_x = polys_pi[0] * polys_pi[1] * polys_pi[2];
+
+        Self::check_equation_1(
+            &Self::get_poly(&self.data[26]),
+            &Self::get_poly(&self.data[25]),
+            &van_poly_vkx,
+            &poly_a_x,
+            &poly_b_x,
+            &beta[2],
+            &Self::get_value(&self.data[24]),
+            set_k_len,
+        ) &&
         Self::check_equation_2(
             &poly_r,
             &Self::get_poly(&self.data[23]),
@@ -95,7 +108,7 @@ impl Verification {
         //     &Self::get_poly(&self.data[20]),
         //     &Self::get_poly(&self.data[19]),
         //     &van_poly_vhx,
-        //     &beta_1,
+        //     &beta[0],
         //     &Self::get_value(&self.data[12]),
         //     &Self::get_value(&self.data[21]),
         //     set_h_len,
@@ -253,5 +266,31 @@ impl Verification {
             div_mod_val(vk, exp_mod(to_bint!(g), to_bint!(z))),
             Mfp::from(g),
         )
+    }
+
+    fn gen_poly_ax(
+        commitment: &Commitment,
+        beta: &Vec<Mfp>,
+        van_poly_vhx: &Poly,
+        eta: &Vec<Mfp>,
+        poly_pi: &Vec<&Poly>,
+    ) -> Poly {
+        let poly_sig_a = Poly::from(vec![
+            eta[0] * van_poly_vhx.eval(beta[1]) * van_poly_vhx.eval(beta[0]),
+        ]) * &commitment.polys_px[2];
+        let poly_sig_b = Poly::from(vec![
+            eta[1] * van_poly_vhx.eval(beta[1]) * van_poly_vhx.eval(beta[0]),
+        ]) * &commitment.polys_px[5];
+        let poly_sig_c = Poly::from(vec![
+            eta[2] * van_poly_vhx.eval(beta[1]) * van_poly_vhx.eval(beta[0]),
+        ]) * &commitment.polys_px[8];
+
+        dsp_poly!(poly_sig_a);
+        dsp_poly!(poly_sig_b);
+        dsp_poly!(poly_sig_c);
+
+        poly_sig_a * (poly_pi[1] * poly_pi[2])
+            + poly_sig_b * (poly_pi[0] * poly_pi[2])
+            + poly_sig_c * (poly_pi[0] * poly_pi[1])
     }
 }

@@ -284,6 +284,7 @@ impl ProofGeneration {
         // let beta_2 = Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(10)).to_string()));
         let beta_1 = Mfp::from(22);
         let beta_2 = Mfp::from(80);
+        let beta_3 = Mfp::from(5);
 
         let (r_a_xk, r_b_xk, r_c_xk) = Self::calculate_r_polynomials_with_beta(commitment, beta_1);
 
