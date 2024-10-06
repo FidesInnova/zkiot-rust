@@ -263,10 +263,11 @@ impl Verification {
         
         println!("set_h_len: {}", set_h_len);
         println!("======================================");
+
         poly_sx.eval(*beta_1) + sum_1.eval(*beta_1) - *sigma_2 * poly_z_hat_x.eval(*beta_1)
-            == h_1x.eval(*beta_1) * van_poly_vhx.eval(*beta_1)
-                + *beta_1 * g_1x.eval(*beta_1)
-                + div_mod_val(*sigma_1, Mfp::from(set_h_len as u64))
+        == h_1x.eval(*beta_1) * van_poly_vhx.eval(*beta_1)
+            + *beta_1 * g_1x.eval(*beta_1)
+            + div_mod_val(*sigma_1, Mfp::from(set_h_len as u64))
     }
 
     // z^A​(β1​)z^B​(β1​)−z^C​(β1​)=h0​(β1​)vH​(β1​)
