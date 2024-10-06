@@ -41,7 +41,7 @@ fn main() -> Result<()> {
     
     // .: Verification :.
     let verification = Verification::new(proof_generation);
-    let verification_result = verification.verify(&commitmnet, verifying_key);
+    let verification_result = verification.verify(&commitmnet, verifying_key, setup.generator);
 
     println!("Verification result {verification_result}");
     Ok(())

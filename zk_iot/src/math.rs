@@ -746,7 +746,7 @@ pub mod kzg {
         res
     }
 
-    pub fn commit(poly_in: &Poly, ck: &Vec<Mfp>, g: u64) -> Mfp {
+    pub fn commit(poly_in: &Poly, ck: &[Mfp], g: u64) -> Mfp {
         let mut res_poly = Mfp::ONE;
 
         if let Degree::Num(deg) = poly_in.degree() {

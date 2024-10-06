@@ -1,9 +1,9 @@
 use ark_ff::Field;
-use rustnomial::{Evaluable, FreeSizePolynomial};
+use rustnomial::{Evaluable, FreeSizePolynomial, SizedPolynomial};
 
 use crate::{
     dsp_poly,
-    math::{div_mod, div_mod_val, e_func, exp_mod, func_u, lagrange_interpolate, vanishing_poly, Mfp, Poly},
+    math::{div_mod, div_mod_val, e_func, exp_mod, func_u, kzg, lagrange_interpolate, vanishing_poly, Mfp, Poly},
     to_bint, utils::{get_points_set, mat_to_vec},
 };
 
@@ -38,7 +38,7 @@ impl Verification {
         }
     }
 
-    pub fn verify(&self, commitment: &Commitment, vk: Mfp) -> bool {
+    pub fn verify(&self, commitment: &Commitment, (ck, vk): (&[Mfp], Mfp), g: Mfp) -> bool {
         let poly_sx = Self::get_poly(&self.data[18]);
         // TODO:
         // From wiki: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
@@ -51,10 +51,12 @@ impl Verification {
         // let eta_a = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(1))).to_string()));
         // let eta_b = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(2))).to_string()));
         // let eta_c = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(3))).to_string()));
-
+        // let z = hash(poly_sx(22));
+        
         let set_h_len = commitment.set_h.len();
         let set_k_len = commitment.set_k.len();
         // Randoms:
+        let z = Mfp::from(2);
         let alpha = Mfp::from(10);
         let beta = vec![Mfp::from(22), Mfp::from(80), Mfp::from(5)];
         let eta = vec![Mfp::from(2), Mfp::from(30), Mfp::from(100)];
@@ -76,8 +78,8 @@ impl Verification {
         self.check_1(&commitment, &beta, &eta) &&
         self.check_2(&beta, alpha, set_h_len) &&
         self.check_3(&commitment, alpha, &beta, &eta, set_h_len) &&
-        self.check_4(&beta, set_h_len)
-        // && Self::check_equation_5(val_com_p, Mfp::from(g), val_y_p, val_commit_poly_qx, vk, z)
+        self.check_4(&beta, set_h_len) && 
+        self.check_5(&commitment, (ck, vk), z, g)
     }
 
     fn check_1(&self, commitment: &Commitment, beta: &[Mfp], eta: &[Mfp]) -> bool {
@@ -152,8 +154,7 @@ impl Verification {
             &Self::get_value(&self.data[12]),
             &Self::get_value(&self.data[21]),
             set_h_len,
-        ) && 
-        false
+        )
     }
 
 
@@ -166,9 +167,35 @@ impl Verification {
     }
 
 
-    fn check_5() -> bool {
+    fn check_5(&self, commitment: &Commitment, (ck, vk): (&[Mfp], Mfp), z: Mfp, g: Mfp) -> bool {
+        // TODO: All random (1..P)
+        let eta_values = vec![
+            Mfp::from(1),  // eta_w
+            Mfp::from(4),  // eta_z_a
+            Mfp::from(10), // eta_z_b
+            Mfp::from(8),  // eta_z_c
+            Mfp::from(32), // eta_h0
+            Mfp::from(45), // eta_s
+            Mfp::from(92), // eta_g1
+            Mfp::from(11), // eta_h1
+            Mfp::from(1),  // eta_g2
+            Mfp::from(5),  // eta_h2
+            Mfp::from(25), // eta_g3
+            Mfp::from(63), // eta_h3
+        ];
+
+        let poly_px = eta_values
+                .iter()
+                .enumerate()
+                .filter(|&(i, _)| i == 24 && i != 21) // Filter out indices 24 and 21 which are sigma
+                .map(|(i, &eta)| Poly::from(vec![eta]) * Self::get_poly(&self.data[i + 13]))
+                .fold(Poly::zero(), |acc, poly| acc + poly);
         
-        false
+        let val_y_p = poly_px.eval(z);
+        let poly_px_commit = kzg::commit(&poly_px, ck, to_bint!(g));
+
+        
+        Self::check_equation_5(val_com_p, g, val_y_p, val_commit_poly_qx, vk, z)
     }
 
     #[inline]
@@ -263,7 +290,7 @@ impl Verification {
         
         println!("set_h_len: {}", set_h_len);
         println!("======================================");
-
+        
         poly_sx.eval(*beta_1) + sum_1.eval(*beta_1) - *sigma_2 * poly_z_hat_x.eval(*beta_1)
         == h_1x.eval(*beta_1) * van_poly_vhx.eval(*beta_1)
             + *beta_1 * g_1x.eval(*beta_1)
