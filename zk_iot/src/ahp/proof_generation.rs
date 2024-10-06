@@ -49,22 +49,19 @@ impl ProofGeneration {
         // Random inertation for zc:
         points_zc.push((Mfp::from(150), Mfp::from(1)));
         points_zc.push((Mfp::from(80), Mfp::from(100)));
-            
+
         let poly_z_hat_a = lagrange_interpolate(&points_za);
         let poly_z_hat_b = lagrange_interpolate(&points_zb);
         let poly_z_hat_c = lagrange_interpolate(&points_zc);
-    
+
         (poly_z_hat_a, poly_z_hat_b, poly_z_hat_c)
     }
 
     // Helper function to compute interpolations for w(h)
-    fn compute_x_w_vanishing_interpolation(
-        commitment: &Commitment,
-    ) -> (Poly, Poly, Poly) {
+    fn compute_x_w_vanishing_interpolation(commitment: &Commitment) -> (Poly, Poly, Poly) {
         // Split set_h into two subsets based on index t
         let set_h_1 = &commitment.set_h[0..commitment.numebr_t_zero].to_vec(); // H[>∣x∣]
         let set_h_2 = &commitment.set_h[commitment.numebr_t_zero..].to_vec(); // H[<=∣x∣]
-
 
         // Interpolate polynomial for x^(h) over the subset H[>∣x∣]
         let z_vec = &mat_to_vec(&commitment.matrices.z);
@@ -75,8 +72,6 @@ impl ProofGeneration {
         let z_vec = &mat_to_vec(&commitment.matrices.z);
         let points = get_points_set(&z_vec[commitment.numebr_t_zero..], set_h_2);
         let wh = lagrange_interpolate(&points);
-
-
 
         // Compute the vanishing polynomial for the subset H[<=∣x∣]
         let van_poly_vh1 = vanishing_poly(set_h_1);
@@ -105,7 +100,10 @@ impl ProofGeneration {
         (poly_x_hat, poly_w_hat, van_poly_vh1)
     }
 
-    fn calculate_r_polynomials_with_alpha(commitment: &Commitment, alpha: Mfp) -> (Poly, Poly, Poly) {
+    fn calculate_r_polynomials_with_alpha(
+        commitment: &Commitment,
+        alpha: Mfp,
+    ) -> (Poly, Poly, Poly) {
         // ∑ r(alpha_2=10, k) * A^(k,x)
         let r_a_kx = sigma_rkx_mkx(
             &commitment.set_h,
@@ -143,8 +141,10 @@ impl ProofGeneration {
         (r_a_kx, r_b_kx, r_c_kx)
     }
 
-
-    fn calculate_r_polynomials_with_beta(commitment: &Commitment, beta_1: Mfp) -> (Poly, Poly, Poly) {
+    fn calculate_r_polynomials_with_beta(
+        commitment: &Commitment,
+        beta_1: Mfp,
+    ) -> (Poly, Poly, Poly) {
         // ∑ r(alpha_2=10, k) * A^(x,k)
         let r_a_xk = m_xk(
             &beta_1,
@@ -189,8 +189,10 @@ impl ProofGeneration {
     ) -> Box<[AHPData]> {
         // Generate and interpolate points for matrices za, zb, zc
         // TODO: needs 'b'
-        let (poly_z_hat_a, poly_z_hat_b, poly_z_hat_c) = Self::generate_z_interpolations(commitment);
-        let (poly_x_hat, poly_w_hat, van_poly_vh1) = Self::compute_x_w_vanishing_interpolation(commitment);
+        let (poly_z_hat_a, poly_z_hat_b, poly_z_hat_c) =
+            Self::generate_z_interpolations(commitment);
+        let (poly_x_hat, poly_w_hat, van_poly_vh1) =
+            Self::compute_x_w_vanishing_interpolation(commitment);
         println!("w_hat:"); // Output the interpolated polynomial for wˉ(h)
         dsp_poly!(poly_w_hat);
 
@@ -208,7 +210,7 @@ impl ProofGeneration {
         // TODO: needs 'b'
         // Generate a random polynomial (currently hardcoded for demonstration)
         // let poly_sx = Self::generate_random_polynomial(2 * commitment.set_h.len() + b - 1, (0,P));
-        let poly_sx = Self::generate_random_polynomial(2 * commitment.set_h.len() + 2 - 1, (0,P));
+        let poly_sx = Self::generate_random_polynomial(2 * commitment.set_h.len() + 2 - 1, (0, P));
         println!("poly_sx");
         dsp_poly!(poly_sx);
 
@@ -273,7 +275,7 @@ impl ProofGeneration {
         println!("Poly h_1x: ");
         dsp_poly!(h_1x);
 
-        let g_1x =  div_mod(&div_res.1, &Poly::new(vec![Mfp::ONE, Mfp::ZERO])).0;
+        let g_1x = div_mod(&div_res.1, &Poly::new(vec![Mfp::ONE, Mfp::ZERO])).0;
         println!("Poly g_1x:");
         dsp_poly!(g_1x);
 
@@ -302,12 +304,12 @@ impl ProofGeneration {
         println!("r(alpha_2=10, x) * ∑_m [η_M M^(x, β1)]: ");
         dsp_poly!(poly_sigma_2);
 
-        let div_res =  div_mod(&poly_sigma_2, &van_poly_vhx);
+        let div_res = div_mod(&poly_sigma_2, &van_poly_vhx);
         let h_2x = div_res.0;
         println!("Poly h_2x: ");
         dsp_poly!(h_2x);
 
-        let g_2x =  div_mod(&div_res.1, &Poly::new(vec![Mfp::ONE, Mfp::ZERO])).0;
+        let g_2x = div_mod(&div_res.1, &Poly::new(vec![Mfp::ONE, Mfp::ZERO])).0;
         println!("Poly g_2x:");
         dsp_poly!(g_2x);
 
@@ -315,7 +317,13 @@ impl ProofGeneration {
         let mut sigma_3 = Mfp::ZERO;
 
         // f_3x
-        let poly_f_3x = Self::gen_poly_fx(&mut sigma_3, &commitment, &van_poly_vhx, &vec![eta_a, eta_b, eta_c], &vec![beta_1, beta_2]);
+        let poly_f_3x = Self::gen_poly_fx(
+            &mut sigma_3,
+            &commitment,
+            &van_poly_vhx,
+            &vec![eta_a, eta_b, eta_c],
+            &vec![beta_1, beta_2],
+        );
         println!("poly_f_3x");
         dsp_poly!(poly_f_3x);
         println!("sigma_3: {}", sigma_3);
@@ -352,20 +360,24 @@ impl ProofGeneration {
         println!("van_poly_vkx");
         dsp_poly!(van_poly_vkx);
 
-        let sigma_3_set_k = Mfp::from(sigma_3 * (exp_mod(commitment.set_k.len() as u64, P - 2)));
+        let sigma_3_set_k =
+            div_mod_val(Mfp::from(sigma_3), Mfp::from(commitment.set_k.len() as u64));
         println!("sigma_3_set_k {}", sigma_3_set_k);
 
-        let poly_f_3x_t = poly_f_3x - Poly::from(vec![sigma_3_set_k]);
-        let g_3x =  div_mod(&poly_f_3x_t, &Poly::from(vec![Mfp::ONE, Mfp::ZERO])).0;
+        let poly_f_3x = poly_f_3x - Poly::from(vec![sigma_3_set_k]);
+
+        println!("poly_f_3x");
+        dsp_poly!(poly_f_3x);
+
+        let g_3x = div_mod(&poly_f_3x, &Poly::from(vec![Mfp::ONE, Mfp::ZERO])).0;
         println!("g_3x");
-        dsp_poly!(g_3x);
 
-        let h_3x = poly_a_x.clone() 
-        - div_mod(&(&poly_b_x * (poly_f_3x_t.clone() + Poly::from(vec![sigma_3_set_k]))), &van_poly_vkx).0;
-
+        let h_3x = (poly_a_x.clone()
+            - (&poly_b_x * (poly_f_3x.clone() + Poly::from(vec![sigma_3_set_k]))))
+        .div_mod(&van_poly_vkx)
+        .0;
         println!("h_3x");
-        dsp_poly!(h_3x);
-        // let poly_z_hat_x = &poly_w_hat * &van_poly_vh1 + poly_x_hat;
+
         let polys_proof = [
             poly_w_hat,
             poly_z_hat_a,
@@ -431,7 +443,6 @@ impl ProofGeneration {
         Self::create_proof(&polys_proof, &sigma, &commit_x, val_y_p, val_commit_poly_qx)
     }
 
-
     fn generate_random_polynomial(degree: usize, coefficient_range: (u64, u64)) -> Poly {
         let mut rng = rand::thread_rng();
         let coefficients: Vec<Mfp> = repeat_with(|| {
@@ -441,18 +452,16 @@ impl ProofGeneration {
         .take(degree + 1) // +1 because degree is the highest power
         .collect();
 
-
         // TODO: Random numebrs from Wiki
         let coefficients = [5, 0, 101, 17, 0, 1, 20, 0, 0, 3, 115]
-                            .iter()
-                            .map(|v| Mfp::from(*v))
-                            .collect::<Vec<Mfp>>();
+            .iter()
+            .map(|v| Mfp::from(*v))
+            .collect::<Vec<Mfp>>();
 
         let mut rand_poly = Poly::from(coefficients);
         rand_poly.trim();
         rand_poly
     }
-
 
     fn create_proof(
         polys_proof: &[Poly],
@@ -483,7 +492,7 @@ impl ProofGeneration {
             AHPData::Polynomial(write_term(&polys_proof[5])), // [18]: P7AHP: sx
             AHPData::Polynomial(write_term(&polys_proof[6])), // [19]: P8AHP: g_1
             AHPData::Polynomial(write_term(&polys_proof[7])), // [20]: P9AHP: h_1
-            AHPData::Value(to_bint!(sigma[1])),         // [21]: P10AHP: sigma_2
+            AHPData::Value(to_bint!(sigma[1])),      // [21]: P10AHP: sigma_2
             AHPData::Polynomial(write_term(&polys_proof[8])), // [22]: P11AHP: g_2
             AHPData::Polynomial(write_term(&polys_proof[9])), // [23]: P12AHP: h_2
             AHPData::Value(to_bint!(sigma[2])),      // [24]: P13AHP: sigma_3
@@ -496,7 +505,13 @@ impl ProofGeneration {
         Box::new(pi_ahp)
     }
 
-    fn gen_poly_fx(sigma_3: &mut Mfp, commitment: &Commitment, van_poly_vhx: &Poly, eta: &Vec<Mfp>, beta: &Vec<Mfp>) -> Poly {
+    fn gen_poly_fx(
+        sigma_3: &mut Mfp,
+        commitment: &Commitment,
+        van_poly_vhx: &Poly,
+        eta: &Vec<Mfp>,
+        beta: &Vec<Mfp>,
+    ) -> Poly {
         let mut points_f_3: Vec<Point> = vec![];
         for k in commitment.set_k.iter() {
             let sig_a = sigma_m(
