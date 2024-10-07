@@ -184,6 +184,7 @@ impl CommitmentBuilder {
             _index = 1 + ni + counter;
             c_mat[(_index, _index)] = Mfp::ONE;
 
+
             let left_val = gate.val_left.map_or(Mfp::ONE, Mfp::from);
             let right_val = gate.val_right.map_or(Mfp::ONE, Mfp::from);
 
@@ -191,6 +192,7 @@ impl CommitmentBuilder {
                 GateType::Add => {
                     a_mat[(_index, 0)] = Mfp::ONE;
 
+                    
                     b_mat[(_index, gate.inx_left - ld_counter)] = left_val;
                     b_mat[(_index, gate.inx_right)] = right_val;
 

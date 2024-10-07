@@ -701,17 +701,12 @@ pub fn sigma_yi_li(points: &HashMap<Mfp, Mfp>, set_k: &Vec<Mfp>) -> Poly {
 
 
 pub fn e_func(a: Mfp, b: Mfp, g: Mfp) -> Mfp {
-    let a = log_mod(g, a);
-    let b = log_mod(g, b);
-
-    // (a^b)%p == (a^(b%(p-1)) % p 
-    let exp = (to_bint!(a) * to_bint!(b)) % (P - 1);
-    
-    println!("a: {}", a);
-    println!("b: {}", b);
-    println!("res: {}", exp);
-
-    exp_mod(3, exp)
+    // let a_r = a / g;
+    let a_r = Mfp::from(div_mod_val(a, g));
+    // let b_r = b / g;
+    let b_r = Mfp::from(div_mod_val(b, g));
+    let exp = a_r * b_r;
+    Mfp::from(3) * exp 
 }
 
 pub fn div_mod_val(a: Mfp, b: Mfp) -> Mfp {
@@ -724,7 +719,7 @@ pub fn compute_all_commitment(polys: &[Poly], ck: &Vec<Mfp>, g: u64) -> Vec<Mfp>
     let mut res = vec![];
 
     for poly in polys.iter() {
-        let commitment_num = kzg::commit(&poly, &ck, g);
+        let commitment_num = kzg::commit(&poly, &ck);
         res.push(commitment_num);
     }
 
@@ -740,14 +735,14 @@ pub mod kzg {
 
         for _ in 0..max {
             res.push(s);
-            s = exp_mod(to_bint!(s), tau);
+            s = Mfp::from(to_bint!(s) * tau);
         }
 
         res
     }
 
-    pub fn commit(poly_in: &Poly, ck: &[Mfp], g: u64) -> Mfp {
-        let mut res_poly = Mfp::ONE;
+    pub fn commit(poly_in: &Poly, ck: &[Mfp]) -> Mfp {
+        let mut res_poly = Mfp::ZERO;
 
         if let Degree::Num(deg) = poly_in.degree() {
             for i in 0..=deg {
@@ -756,18 +751,14 @@ pub mod kzg {
                         continue;
                     }
                     Term::Term(t, _) => {
-                        let exp = exp_mod(to_bint!(ck[i]), to_bint!(t));
-                        res_poly *= exp;
+                        let exp = Mfp::from(to_bint!(t) * to_bint!(ck[i]));
+                        res_poly += exp;
                     }
                 }
             }
         }
 
-        if res_poly == Mfp::ONE {
-            Mfp::from(g)
-        } else {
-            res_poly
-        }
+        res_poly
     }
 }
 

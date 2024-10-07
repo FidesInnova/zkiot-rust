@@ -4,11 +4,9 @@ use ahp::{proof_verification::Verification, setup::Setup};
 // use rand::{thread_rng, Rng};
 use rustnomial::{Evaluable, FreeSizePolynomial, Polynomial};
 use anyhow::Result;
-use ark_ff::Field;
 
 use parser::parse_from_lines;
 use zk_iot::*;
-use utils::*;
 use math::*;
 use json_file::*;
 
@@ -17,6 +15,7 @@ fn main() -> Result<()> {
     // .:‌Setup :.
     let setup = Setup::new();
     let (commitment_key, verifying_key) = setup.key_generate();
+    println!("ck: {:?}, vk: {}", dsp_vec!(commitment_key), verifying_key);
 
 
     // Open line number file containing indices for reading opcodes
@@ -38,10 +37,11 @@ fn main() -> Result<()> {
     let proof_generation = ahp::proof_generation::ProofGeneration::new()
                         .get_proof(&commitmnet, &commitment_key, setup.generator);
 
+    println!("{:#?}", proof_generation);
     
     // .: Verification :.
     let verification = Verification::new(proof_generation);
-    let verification_result = verification.verify(&commitmnet, verifying_key, setup.generator);
+    let verification_result = verification.verify(&commitmnet, (&commitment_key, verifying_key), Mfp::from(setup.generator));
 
     println!("Verification result {verification_result}");
     Ok(())

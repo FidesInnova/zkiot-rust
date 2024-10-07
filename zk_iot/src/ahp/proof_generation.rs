@@ -412,10 +412,10 @@ impl ProofGeneration {
         let poly_px = eta_values
             .iter()
             .enumerate()
-            .map(|(i, &eta)| Poly::from(vec![eta]) * polys_proof[i].clone())
+            .map(|(i, &eta)|  { Poly::from(vec![eta]) * polys_proof[i].clone() })
             .fold(Poly::zero(), |acc, poly| acc + poly);
 
-        println!("poly_px: ");
+        println!("poly_px:");
         dsp_poly!(poly_px);
 
         // TODO:
@@ -432,7 +432,7 @@ impl ProofGeneration {
         println!("poly_qx");
         dsp_poly!(poly_qx);
 
-        let val_commit_poly_qx = kzg::commit(&poly_qx, commitment_key, generator);
+        let val_commit_poly_qx = kzg::commit(&poly_qx, commitment_key);
         println!("val_commit_qx: {}", val_commit_poly_qx);
 
         let sigma = [sigma_1, sigma_2, sigma_3];
