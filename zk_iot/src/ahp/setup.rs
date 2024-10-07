@@ -1,64 +1,68 @@
-use crate::{
-    dsp_vec, math::*, to_bint
-};
+use std::io::Read;
+use std::path::Path;
+use std::path::PathBuf;
 
+use anyhow::Result;
+use serde_json::from_str;
+use serde_json::json;
 
+use serde_json::Value;
+
+use crate::json_file::open_file;
+use crate::json_file::store_in_json_file;
+use crate::json_file::write_set;
+use crate::math::kzg;
+use crate::math::Mfp;
+use crate::math::GENERATOR;
+use crate::to_bint;
+
+#[derive(Debug)]
 pub struct Setup {
-    pub number_gate: u64,
-    pub number_output: u64,
-    pub number_input: u64,
-    pub generator: u64,
-    pub random_tau: u64,
-    pub random_b: u64,
-    pub set_h_len: u64,
-    pub set_k_len: u64,
-    pub numebr_t_zero: u64,
+    ck: Vec<Mfp>,
+    vk: Mfp
 }
 
 impl Setup {
     pub fn new() -> Self {
-        // Initialize
-        let ng = 3; // Number of gates
-        let no = 1; // Number of outputs
-        let ni = 1; // Number of inputs (registers)
-        let g  = 2; // Generator number
-
-        // TODO: Define a random value b within the range F(0..P-n) and ensure 0 < b <= P - n
-        // let b = thread_rng().gen_range(0..50);
-        let b = 2;
-        let tau = 119;
-
-        let set_h_len: u64 = ng + ni + 1;
-        let numebr_t_zero: u64 = ni + 1;
-        let set_k_len = ((set_h_len * set_h_len - set_h_len) / 2)
-            - ((numebr_t_zero * numebr_t_zero - numebr_t_zero) / 2);
-
         Self {
-            number_gate: ng,
-            number_output: no,
-            number_input: ni,
-            generator: g,
-            random_tau: tau,
-            random_b: b,
-            set_h_len,
-            set_k_len,
-            numebr_t_zero,
+            ck: vec![],
+            vk: Mfp::default()
         }
     }
 
-    pub fn key_generate(&self) -> (Vec<Mfp>, Mfp) {
-        let b = self.random_b;
-        let n = self.set_h_len;
-        let m = self.set_k_len;
+    pub fn key_generate(&mut self) {
+        // TODO: Define a random value b within the range F(0..P-n) and ensure 0 < b <= P - n
+        // let b = thread_rng().gen_range(0..50);
 
-        // Calculate each expression
-        let expr_vec: Vec<u64> = vec![
-            m, self.number_gate - self.number_input + b, n + b, n + 2 * b - 1, 2 * n + b - 1, n + b - 1, n - 1, m - 1, 6 * m - 6
-        ];
-        let max_expr = *expr_vec.iter().max().unwrap();
-        let ck = kzg::setup(max_expr, self.random_tau, self.generator);
-        let vk = ck[1];
+        let tau = 119;
+        let ck = kzg::setup(10_000, tau, GENERATOR);
+        self.ck = ck;
+        self.vk = self.ck[1];
+    }
 
-        (ck, vk)
+    pub fn store(&self, path: &str) -> Result<()> {
+        let json_value = json!({
+            "ck": write_set(&self.ck),
+            "vk": to_bint!(self.vk)
+        });
+        
+        store_in_json_file(json_value, path)
+    }
+
+    
+    pub fn restore(path: &str) -> Result<(Vec<Mfp>, Mfp)> {
+        // Read the JSON file
+        let mut reader = open_file(&PathBuf::from(path))?;
+        // Read the contents into a String
+        let mut contents = String::new();
+        reader.read_to_string(&mut contents)?;
+
+        // Parse the JSON data
+        let json_value: Value = from_str(&contents)?;
+        // Extract and convert the "ck"
+        let ck: Vec<u64> = serde_json::from_value(json_value["ck"].clone())?;
+        let ck: Vec<Mfp> = ck.iter().map(|v| Mfp::from(*v)).collect();
+        let vk = Mfp::from(ck[1]);
+        Ok((ck.clone(), vk))
     }
 }

@@ -16,7 +16,9 @@ use crate::{dsp_poly, field, to_bint, utils::add_random_points};
 // pub const P: u64 = 2013265921;
 // pub const P: u64 = 4294967295;
 pub const P: u64 = 181;
-// pub const P: u64 = 7;
+
+
+pub const GENERATOR: u64 = 2;
 
 field!(Mfp, P);
 

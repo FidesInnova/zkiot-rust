@@ -1,14 +1,14 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, io::Read, path::PathBuf};
 
 use crate::{
-    dsp_mat, dsp_poly, dsp_vec, json_file::store_commit_json, math::*, to_bint, utils::*,
+    dsp_mat, dsp_poly, dsp_vec, json_file::{open_file, read_term, store_commit_json, store_in_json_file, write_set, write_term, ClassData}, math::*, to_bint, utils::*,
 };
 use anyhow::Result;
 use ark_ff::{Field, PrimeField};
 use nalgebra::DMatrix;
 use rustnomial::Evaluable;
-
-use super::setup::Setup;
+use serde::{Deserialize, Serialize};
+use serde_json::{from_str, json, Value};
 
 #[derive(Debug)]
 pub enum Component {
@@ -48,27 +48,27 @@ pub struct Commitment {
 
 impl Commitment {
     // Constructor method Generate sets and Initilize matrices
-    pub fn new(setup: &Setup) -> CommitmentBuilder {
-        let set_h_len: u64 = (setup.number_gate + setup.number_input + 1)
+    pub fn new(class_data: ClassData) -> CommitmentBuilder {
+        let set_h_len: u64 = (class_data.n_g + class_data.n_i + 1)
             .try_into()
             .unwrap();
-        let numebr_t_zero: u64 = (setup.number_input + 1).try_into().unwrap(); // Number of rows (|x| = self.numebr_t_zero, where self.numebr_t_zero = ni + 1)
+        let numebr_t_zero: u64 = (class_data.n_i + 1).try_into().unwrap(); // Number of rows (|x| = self.numebr_t_zero, where self.numebr_t_zero = ni + 1)
         let set_k_len = ((set_h_len * set_h_len - set_h_len) / 2)
             - ((numebr_t_zero * numebr_t_zero - numebr_t_zero) / 2);
 
         let generator_h = to_bint!(exp_mod(
-            setup.generator,
+            GENERATOR,
             (Mfp::MODULUS.0[0] - 1) / set_h_len
         )); // Compute the generator for set H
         let generator_k = to_bint!(exp_mod(
-            setup.generator,
+            GENERATOR,
             (Mfp::MODULUS.0[0] - 1) / set_k_len
         )); // Compute the generator for set K
 
         let set_h = generate_set(generator_h, set_h_len);
         let set_k = generate_set(generator_k, set_k_len);
 
-        let matrix_size = setup.number_gate + setup.number_input + 1;
+        let matrix_size = class_data.n_g + class_data.n_i + 1;
         let matrices = Matrices::new(matrix_size.try_into().unwrap());
 
         CommitmentBuilder {
@@ -111,13 +111,35 @@ impl Commitment {
     }
 
     /// Store in Json file
-    fn store(&self, path: &str) -> Result<()> {
-        todo!()
+    pub fn store(&self, path: &str) -> Result<()> {
+        let polys_px_t: Vec<Vec<u64>> = self.polys_px.iter().map(|p| write_term(p)).collect();
+        let json_value = json!({
+            "polys_px": polys_px_t,
+            "z_vec": write_set(&mat_to_vec(&self.matrices.z))
+        });
+        store_in_json_file(json_value, path)
     }
 
     /// Restore Commitment from Json file
-    fn restore(path: &str) -> Result<Self> {
-        todo!()
+    pub fn restore(path: &str) -> Result<(Vec<Poly>, Vec<Mfp>)> {
+        // Read the JSON file
+        let mut reader = open_file(&PathBuf::from(path))?;
+        // Read the contents into a String
+        let mut contents = String::new();
+        reader.read_to_string(&mut contents)?;
+
+        // Parse the JSON data
+        let json_value: Value = from_str(&contents)?;
+
+        // Extract and convert the "polys_px"
+        let polys_px: Vec<Vec<Value>> = serde_json::from_value(json_value["polys_px"].clone())?;
+        let polys_px: Vec<Poly> = polys_px.iter().map(|v| read_term(v)).collect();
+
+        // Extract and convert the "z_vec"
+        let z_vec: Vec<u64> = serde_json::from_value(json_value["z_vec"].clone())?;
+        let z_vec: Vec<Mfp> = z_vec.iter().map(|v| Mfp::from(*v)).collect();
+        
+        Ok((polys_px, z_vec))
     }
 }
 
@@ -205,6 +227,7 @@ impl CommitmentBuilder {
                     z_mat[i + 1] = z_mat[i] * right_val;
                 }
                 GateType::Ld => {
+                    let right_val = gate.val_right.map_or(Mfp::ZERO, Mfp::from); 
                     z_mat[i + 1] = right_val;
                     ld_counter += 1;
                     continue;

@@ -1,8 +1,13 @@
+use std::fs::File;
+use std::io::BufReader;
+use std::io::BufWriter;
 use std::iter::repeat_with;
+use std::path::PathBuf;
 
 use crate::ahp::commitment::Commitment;
 use crate::dsp_poly;
 use crate::dsp_vec;
+use crate::json_file::open_file;
 use crate::json_file::write_term;
 use crate::math::*;
 use crate::to_bint;
@@ -13,8 +18,12 @@ use rand::Rng;
 use rustnomial::Evaluable;
 use rustnomial::FreeSizePolynomial;
 use rustnomial::SizedPolynomial;
+use serde::Deserialize;
+use serde::Serialize;
 
-#[derive(Debug)]
+
+// Assuming AHPData is defined as follows
+#[derive(Serialize, Deserialize, Debug)]
 pub enum AHPData {
     Commit(u64),
     Value(u64),
@@ -584,11 +593,16 @@ impl ProofGeneration {
             + poly_sig_c * (poly_pi[0] * poly_pi[1])
     }
 
-    pub fn store(&self, path: &str) -> Result<()> {
-        todo!()
+    pub fn store(&self, path: &str, proof_data: Box<[AHPData]>) -> Result<()> {
+        let file = File::create(path)?;
+        let writer = BufWriter::new(file);
+        serde_json::to_writer(writer, &proof_data)?;
+        Ok(())
     }
 
-    pub fn restore(path: &str) -> Result<Self> {
-        todo!()
+    pub fn restore(path: &str) -> Result<Box<[AHPData]>> {
+        let reader = open_file(&PathBuf::from(path))?;
+        let proof_data: Vec<AHPData> = serde_json::from_reader(reader)?;
+        Ok(proof_data.into_boxed_slice()) 
     }
 }

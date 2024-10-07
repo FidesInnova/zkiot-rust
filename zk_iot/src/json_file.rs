@@ -1,10 +1,11 @@
 //! Utilities for storing polynomials and sets in JSON files.
 
-use std::{collections::HashMap, fs::{self, File, OpenOptions}, io::{BufReader, Write}, path::PathBuf};
+use std::{collections::HashMap, fs::{self, File, OpenOptions}, io::{BufReader, Write}, ops::Deref, path::PathBuf};
 use crate::{dsp_poly, dsp_vec, math::{Mfp, Poly}, to_bint};
 use ark_ff::Field;
 use rustnomial::{Degree, SizedPolynomial};
-use serde_json::{json, Value};
+use serde::Deserialize;
+use serde_json::{json, Value, Deserializer};
 use anyhow::{anyhow, Context, Result};
 
 
@@ -57,7 +58,7 @@ pub fn write_term(poly: &Poly) -> Vec<u64> {
 /// - If the file already exists, it will be truncated, and the new value will replace any existing data.
 /// - If the file does not exist, it creates a new JSON file with the provided value.
 /// - The updated data is then written back to the file in a compact format.
-fn add_value_to_json_file(value: Value, path: &str) -> Result<()> {
+pub fn store_in_json_file(value: Value, path: &str) -> Result<()> {
     let json_string = serde_json::to_string(&value)?;
     let mut file = OpenOptions::new().write(true).create(true).truncate(true).open(path)?;
     file.write_all(json_string.as_bytes())?;
@@ -72,7 +73,7 @@ fn add_value_to_json_file(value: Value, path: &str) -> Result<()> {
 /// # Returns
 /// Returns a `Vec<u64>` containing the converted values, where each `Mfp` object 
 /// is transformed into a `u64` representation using the `to_bint!` macro.
-fn write_set(set: &Vec<Mfp>) -> Vec<u64> {
+pub fn write_set(set: &Vec<Mfp>) -> Vec<u64> {
     set.iter().map(|v| to_bint!(*v) as u64).collect::<Vec<u64>>()
 }
 
@@ -105,10 +106,10 @@ pub fn store_commit_json(polys: &[&Poly], m: usize, n: usize) -> Result<()> {
         "PolynomialCommitment": "KZG"
     });
 
-    add_value_to_json_file(json_value, JSON_COMMIT_PATH)
+    store_in_json_file(json_value, JSON_COMMIT_PATH)
 }
 
-fn read_term(poly: &[Value]) -> Poly {
+pub fn read_term(poly: &[Value]) -> Poly {
     let poly_vec = poly.to_vec().iter().rev().map(|v| Mfp::from(v.as_u64().unwrap())).collect::<Vec<Mfp>>();
     let mut poly = Poly::from(poly_vec);
     poly.trim();
@@ -179,7 +180,7 @@ pub fn store_proof_json(polys: &[&Poly], sigma: &[&Mfp], b: usize, set_h_len: us
         "curve": "bn128"
     });
 
-    add_value_to_json_file(json_value, JSON_PROOF_PATH)
+    store_in_json_file(json_value, JSON_PROOF_PATH)
 }
 
 
@@ -211,7 +212,6 @@ pub fn restore_proof_json(json_path: &str) -> Result<(Vec<Poly>, Vec<Mfp>)> {
     Ok((polys, sigma))
 }
 
-
 /// Opens a file and returns a buffered reader.
 ///
 /// # Parameters
@@ -227,4 +227,33 @@ pub fn restore_proof_json(json_path: &str) -> Result<(Vec<Poly>, Vec<Mfp>)> {
 pub fn open_file(file_path: &PathBuf) -> Result<BufReader<File>> {
     let file = File::open(file_path)?;
     Ok(BufReader::new(file))
+}
+
+#[derive(Debug, Deserialize, Clone, Copy)]
+pub struct ClassData {
+    pub n_g: u64,
+    pub n_i: u64,
+    pub n: u64,
+    pub m: u64,
+    row_a: u64,
+    col_a: u64,
+    val_a: u64,
+    row_b: u64,
+    col_b: u64,
+    val_b: u64,
+    row_c: u64,
+    col_c: u64,
+    val_c: u64,
+}
+
+pub fn get_class_data(path: &str, class_type: &str) -> Result<ClassData> {
+    let reader = open_file(&PathBuf::from(path))?;
+    // Deserialize the JSON into a HashMap
+    let data: HashMap<String, ClassData> = serde_json::from_reader(reader)?;
+    let class_to_access = class_type;
+    if let Some(class_data) = data.get(class_to_access) {
+        Ok(class_data.clone())
+    } else {
+        Err(anyhow!("Class {} doesn't exist", class_to_access))
+    }
 }
