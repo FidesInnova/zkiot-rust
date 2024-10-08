@@ -36,28 +36,32 @@ impl ProofGeneration {
         Self {}
     }
 
-    fn generate_z_interpolations(commitment: &Commitment) -> (Poly, Poly, Poly) {
+    fn generate_z_interpolations(commitment: &Commitment, random_b: u64) -> (Poly, Poly, Poly) {
         let mut points_za =
             get_points_set(&mat_to_vec(&commitment.get_matrix_az()), &commitment.set_h);
         let mut points_zb =
             get_points_set(&mat_to_vec(&commitment.get_matrix_bz()), &commitment.set_h);
         let mut points_zc =
             get_points_set(&mat_to_vec(&commitment.get_matrix_cz()), &commitment.set_h);
-        // push_random_points(&mut points_za, b, &vec_to_set(&commitment.set_h));
-        // push_random_points(&mut points_zb, b, &vec_to_set(&commitment.set_h));
-        // push_random_points(&mut points_zc, b, &vec_to_set(&commitment.set_h));
+            
+        // TODO: Random values were taken from WIKI. After the test is completed, these inserts should be deleted or commented out.
+        // Wiki link: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
+        // Uncomment and adjust the line below to push random points
+        push_random_points(&mut points_za, random_b, &vec_to_set(&commitment.set_h));
+        push_random_points(&mut points_zb, random_b, &vec_to_set(&commitment.set_h));
+        push_random_points(&mut points_zc, random_b, &vec_to_set(&commitment.set_h));
 
         // TODO:
-        // From wiki: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
+        // insert 'b' random poinsts
         // Random inertation for za:
-        points_za.push((Mfp::from(150), Mfp::from(5)));
-        points_za.push((Mfp::from(80), Mfp::from(47)));
-        // Random inertation for zb:
-        points_zb.push((Mfp::from(150), Mfp::from(15)));
-        points_zb.push((Mfp::from(80), Mfp::from(170)));
-        // Random inertation for zc:
-        points_zc.push((Mfp::from(150), Mfp::from(1)));
-        points_zc.push((Mfp::from(80), Mfp::from(100)));
+        // points_za.push((Mfp::from(150), Mfp::from(5)));
+        // points_za.push((Mfp::from(80), Mfp::from(47)));
+        // // Random inertation for zb:
+        // points_zb.push((Mfp::from(150), Mfp::from(15)));
+        // points_zb.push((Mfp::from(80), Mfp::from(170)));
+        // // Random inertation for zc:
+        // points_zc.push((Mfp::from(150), Mfp::from(1)));
+        // points_zc.push((Mfp::from(80), Mfp::from(100)));
 
         let poly_z_hat_a = lagrange_interpolate(&points_za);
         let poly_z_hat_b = lagrange_interpolate(&points_zb);
@@ -67,7 +71,7 @@ impl ProofGeneration {
     }
 
     // Helper function to compute interpolations for w(h)
-    fn compute_x_w_vanishing_interpolation(commitment: &Commitment) -> (Poly, Poly, Poly) {
+    fn compute_x_w_vanishing_interpolation(commitment: &Commitment,  random_b: u64) -> (Poly, Poly, Poly) {
         // Split set_h into two subsets based on index t
         let set_h_1 = &commitment.set_h[0..commitment.numebr_t_zero].to_vec(); // H[>∣x∣]
         let set_h_2 = &commitment.set_h[commitment.numebr_t_zero..].to_vec(); // H[<=∣x∣]
@@ -98,10 +102,10 @@ impl ProofGeneration {
 
         // TODO:
         // Uncomment this line to insert random points for wˉ(h) from the set
-        // push_random_points(&mut points_w, b, &vec_to_set(&commitment.set_h));
+        push_random_points(&mut points_w, random_b, &vec_to_set(&commitment.set_h));
         // From wiki: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
-        points_w.push((Mfp::from(150), Mfp::from(42)));
-        points_w.push((Mfp::from(80), Mfp::from(180)));
+        // points_w.push((Mfp::from(150), Mfp::from(42)));
+        // points_w.push((Mfp::from(80), Mfp::from(180)));
 
         // Interpolate polynomial for wˉ(h) based on the points_w
         let poly_w_hat = lagrange_interpolate(&points_w);
@@ -194,14 +198,14 @@ impl ProofGeneration {
         &self,
         commitment: &Commitment,
         commitment_key: &Vec<Mfp>,
-        generator: u64,
     ) -> Box<[AHPData]> {
+        let random_b = 2;
         // Generate and interpolate points for matrices za, zb, zc
-        // TODO: needs 'b'
+        // TODO: needs 'b': inster 'b' random poinsts
         let (poly_z_hat_a, poly_z_hat_b, poly_z_hat_c) =
-            Self::generate_z_interpolations(commitment);
+            Self::generate_z_interpolations(commitment, random_b);
         let (poly_x_hat, poly_w_hat, van_poly_vh1) =
-            Self::compute_x_w_vanishing_interpolation(commitment);
+            Self::compute_x_w_vanishing_interpolation(commitment, random_b);
         println!("w_hat:"); // Output the interpolated polynomial for wˉ(h)
         dsp_poly!(poly_w_hat);
 
@@ -216,7 +220,7 @@ impl ProofGeneration {
         println!("h0(x):");
         dsp_poly!(poly_h_0);
 
-        // TODO: needs 'b'
+        // TODO: needs 'b': inster 'b' random poinsts
         // Generate a random polynomial (currently hardcoded for demonstration)
         // let poly_sx = Self::generate_random_polynomial(2 * commitment.set_h.len() + b - 1, (0,P));
         let poly_sx = Self::generate_random_polynomial(2 * commitment.set_h.len() + 2 - 1, (0, P));
@@ -345,9 +349,12 @@ impl ProofGeneration {
             * (Poly::from(vec![beta_1]) - &commitment.polys_px[7]);
         let polys_pi = vec![&poly_pi_a, &poly_pi_b, &poly_pi_c];
 
+        println!("poly_pi_a");
         dsp_poly!(poly_pi_a);
+        println!("poly_pi_b");
         dsp_poly!(poly_pi_b);
-        dsp_poly!(poly_pi_b);
+        println!("poly_pi_c");
+        dsp_poly!(poly_pi_c);
 
         // a(x)
         let poly_a_x = Self::gen_poly_ax(
@@ -380,12 +387,14 @@ impl ProofGeneration {
 
         let g_3x = div_mod(&poly_f_3x, &Poly::from(vec![Mfp::ONE, Mfp::ZERO])).0;
         println!("g_3x");
+        dsp_poly!(g_3x);
 
         let h_3x = (poly_a_x.clone()
             - (&poly_b_x * (poly_f_3x.clone() + Poly::from(vec![sigma_3_set_k]))))
         .div_mod(&van_poly_vkx)
         .0;
         println!("h_3x");
+        dsp_poly!(h_3x);
 
         let polys_proof = [
             poly_w_hat,
@@ -401,7 +410,7 @@ impl ProofGeneration {
             g_3x,
             h_3x,
         ];
-
+        
         // TODO: All random (1..P)
         let eta_values = vec![
             Mfp::from(1),  // eta_w
@@ -446,7 +455,7 @@ impl ProofGeneration {
 
         let sigma = [sigma_1, sigma_2, sigma_3];
 
-        let commit_x = compute_all_commitment(&polys_proof, commitment_key, generator);
+        let commit_x = compute_all_commitment(&polys_proof, commitment_key, GENERATOR);
         println!("commit_x: {}", dsp_vec!(commit_x));
 
         Self::create_proof(&polys_proof, &sigma, &commit_x, val_y_p, val_commit_poly_qx)
@@ -461,11 +470,11 @@ impl ProofGeneration {
         .take(degree + 1) // +1 because degree is the highest power
         .collect();
 
-        // TODO: Random numebrs from Wiki
-        let coefficients = [5, 0, 101, 17, 0, 1, 20, 0, 0, 3, 115]
-            .iter()
-            .map(|v| Mfp::from(*v))
-            .collect::<Vec<Mfp>>();
+        // TODO: Random numebrs from Wiki, Comment it after test
+        // let coefficients = [5, 0, 101, 17, 0, 1, 20, 0, 0, 3, 115]
+        //     .iter()
+        //     .map(|v| Mfp::from(*v))
+        //     .collect::<Vec<Mfp>>();
 
         let mut rand_poly = Poly::from(coefficients);
         rand_poly.trim();
@@ -574,18 +583,24 @@ impl ProofGeneration {
         eta: Vec<Mfp>,
         poly_pi: &Vec<&Poly>,
     ) -> Poly {
+        let val_vhx_beta_1 = van_poly_vhx.eval(beta[0]);
+        let val_vhx_beta_2 = van_poly_vhx.eval(beta[1]);
+        
         let poly_sig_a = Poly::from(vec![
-            eta[0] * van_poly_vhx.eval(beta[1]) * van_poly_vhx.eval(beta[0]),
+            eta[0] * val_vhx_beta_2 * val_vhx_beta_1,
         ]) * &commitment.polys_px[2];
         let poly_sig_b = Poly::from(vec![
-            eta[1] * van_poly_vhx.eval(beta[1]) * van_poly_vhx.eval(beta[0]),
+            eta[1] * val_vhx_beta_2 * val_vhx_beta_1,
         ]) * &commitment.polys_px[5];
         let poly_sig_c = Poly::from(vec![
-            eta[2] * van_poly_vhx.eval(beta[1]) * van_poly_vhx.eval(beta[0]),
+            eta[2] * val_vhx_beta_2 * val_vhx_beta_1,
         ]) * &commitment.polys_px[8];
-
+        
+        println!("poly_sig_a");
         dsp_poly!(poly_sig_a);
+        println!("poly_sig_b");
         dsp_poly!(poly_sig_b);
+        println!("poly_sig_c");
         dsp_poly!(poly_sig_c);
 
         poly_sig_a * (poly_pi[1] * poly_pi[2])

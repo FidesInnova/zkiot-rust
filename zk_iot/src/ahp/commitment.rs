@@ -1,13 +1,11 @@
 use std::{collections::HashMap, io::Read, path::PathBuf};
 
 use crate::{
-    dsp_mat, dsp_poly, dsp_vec, json_file::{open_file, read_term, store_commit_json, store_in_json_file, write_set, write_term, ClassData}, math::*, to_bint, utils::*,
+    dsp_mat, dsp_poly, dsp_vec, json_file::{open_file, read_term, store_in_json_file, write_set, write_term, ClassData}, math::*, to_bint, utils::*,
 };
 use anyhow::Result;
 use ark_ff::{Field, PrimeField};
 use nalgebra::DMatrix;
-use rustnomial::Evaluable;
-use serde::{Deserialize, Serialize};
 use serde_json::{from_str, json, Value};
 
 #[derive(Debug)]
@@ -254,25 +252,21 @@ impl CommitmentBuilder {
     }
 
     pub fn gen_polynomials(&mut self) -> Self {
-        // TODO:
-        // Uncomment and adjust the line below to push random points
-        // push_random_points(&mut points_za, b, &vec_to_set(&self.commitm.set_h));
-        // push_random_points(&mut points_zb, b, &vec_to_set(&self.commitm.set_h));
-        // push_random_points(&mut points_zc, b, &vec_to_set(&self.commitm.set_h));
+        // TODO: Random values were taken from WIKI. After the test is completed, these inserts should be deleted or commented out.
+        // Wiki link: (https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/2-commitment-phase#id-2-5-2-ahp-commitment)
         // Matrix A:
-        // From wiki: (https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/2-commitment-phase#id-2-5-2-ahp-commitment)
         let mut points_row_p_a = get_matrix_point_row(
             &self.commitm.matrices.a,
             &self.commitm.set_h,
             &self.commitm.set_k,
         );
         // rowA' = (48, 1), (73, 135), (62, 125), (132, 59), (65, 42), (80, 1)
-        points_row_p_a.insert(Mfp::from(48), Mfp::from(1));
-        points_row_p_a.insert(Mfp::from(73), Mfp::from(135));
-        points_row_p_a.insert(Mfp::from(62), Mfp::from(125));
-        points_row_p_a.insert(Mfp::from(132), Mfp::from(59));
-        points_row_p_a.insert(Mfp::from(65), Mfp::from(42));
-        points_row_p_a.insert(Mfp::from(80), Mfp::from(1));
+        // points_row_p_a.insert(Mfp::from(48), Mfp::from(1));
+        // points_row_p_a.insert(Mfp::from(73), Mfp::from(135));
+        // points_row_p_a.insert(Mfp::from(62), Mfp::from(125));
+        // points_row_p_a.insert(Mfp::from(132), Mfp::from(59));
+        // points_row_p_a.insert(Mfp::from(65), Mfp::from(42));
+        // points_row_p_a.insert(Mfp::from(80), Mfp::from(1));
 
         let mut points_col_p_a = get_matrix_point_col(
             &self.commitm.matrices.a,
@@ -280,12 +274,12 @@ impl CommitmentBuilder {
             &self.commitm.set_k,
         );
         // colA' = (48, 42), (73, 1), (62, 135), (132, 125), (65, 59), (80, 42)
-        points_col_p_a.insert(Mfp::from(48), Mfp::from(42));
-        points_col_p_a.insert(Mfp::from(73), Mfp::from(1));
-        points_col_p_a.insert(Mfp::from(62), Mfp::from(135));
-        points_col_p_a.insert(Mfp::from(132), Mfp::from(125));
-        points_col_p_a.insert(Mfp::from(65), Mfp::from(59));
-        points_col_p_a.insert(Mfp::from(80), Mfp::from(42));
+        // points_col_p_a.insert(Mfp::from(48), Mfp::from(42));
+        // points_col_p_a.insert(Mfp::from(73), Mfp::from(1));
+        // points_col_p_a.insert(Mfp::from(62), Mfp::from(135));
+        // points_col_p_a.insert(Mfp::from(132), Mfp::from(125));
+        // points_col_p_a.insert(Mfp::from(65), Mfp::from(59));
+        // points_col_p_a.insert(Mfp::from(80), Mfp::from(42));
 
         let points_val_p_a = get_matrix_point_val(
             &self.commitm.matrices.a,
@@ -302,24 +296,23 @@ impl CommitmentBuilder {
             &self.commitm.set_k,
         );
         // rowB' = (73, 59), (62, 1), (132, 42), (65, 135), (80, 59)
-        points_row_p_b.insert(Mfp::from(73), Mfp::from(59));
-        points_row_p_b.insert(Mfp::from(62), Mfp::from(1));
-        points_row_p_b.insert(Mfp::from(132), Mfp::from(42));
-        points_row_p_b.insert(Mfp::from(65), Mfp::from(135));
-        points_row_p_b.insert(Mfp::from(80), Mfp::from(59));
+        // points_row_p_b.insert(Mfp::from(73), Mfp::from(59));
+        // points_row_p_b.insert(Mfp::from(62), Mfp::from(1));
+        // points_row_p_b.insert(Mfp::from(132), Mfp::from(42));
+        // points_row_p_b.insert(Mfp::from(65), Mfp::from(135));
+        // points_row_p_b.insert(Mfp::from(80), Mfp::from(59));
 
         let mut points_col_p_b = get_matrix_point_col(
             &self.commitm.matrices.b,
             &self.commitm.set_h,
             &self.commitm.set_k,
         );
-
         // colB' = (73, 59), (62, 42), (132, 125), (65, 1), (80, 135)
-        points_col_p_b.insert(Mfp::from(73), Mfp::from(59));
-        points_col_p_b.insert(Mfp::from(62), Mfp::from(42));
-        points_col_p_b.insert(Mfp::from(132), Mfp::from(125));
-        points_col_p_b.insert(Mfp::from(65), Mfp::from(1));
-        points_col_p_b.insert(Mfp::from(80), Mfp::from(135));
+        // points_col_p_b.insert(Mfp::from(73), Mfp::from(59));
+        // points_col_p_b.insert(Mfp::from(62), Mfp::from(42));
+        // points_col_p_b.insert(Mfp::from(132), Mfp::from(125));
+        // points_col_p_b.insert(Mfp::from(65), Mfp::from(1));
+        // points_col_p_b.insert(Mfp::from(80), Mfp::from(135));
 
         let points_val_p_b = get_matrix_point_val(
             &self.commitm.matrices.b,
@@ -337,12 +330,12 @@ impl CommitmentBuilder {
         );
         // FIXME: Wiki
         // rowC' = (48, 1), (73, 59), (62, 125), (132, 1), (65, 135), (80, 42)
-        points_row_p_c.insert(Mfp::from(48), Mfp::from(1));
-        points_row_p_c.insert(Mfp::from(73), Mfp::from(59));
-        points_row_p_c.insert(Mfp::from(62), Mfp::from(125));
-        points_row_p_c.insert(Mfp::from(132), Mfp::from(1));
-        points_row_p_c.insert(Mfp::from(65), Mfp::from(135));
-        points_row_p_c.insert(Mfp::from(80), Mfp::from(42));
+        // points_row_p_c.insert(Mfp::from(48), Mfp::from(1));
+        // points_row_p_c.insert(Mfp::from(73), Mfp::from(59));
+        // points_row_p_c.insert(Mfp::from(62), Mfp::from(125));
+        // points_row_p_c.insert(Mfp::from(132), Mfp::from(1));
+        // points_row_p_c.insert(Mfp::from(65), Mfp::from(135));
+        // points_row_p_c.insert(Mfp::from(80), Mfp::from(42));
 
         let mut points_col_p_c = get_matrix_point_col(
             &self.commitm.matrices.c,
@@ -351,12 +344,12 @@ impl CommitmentBuilder {
         );
         // FIXME: Wiki
         // colC' = (48, 125), (73, 59), (62, 1), (132, 1), (65, 42), (80, 59)
-        points_col_p_c.insert(Mfp::from(48), Mfp::from(125));
-        points_col_p_c.insert(Mfp::from(73), Mfp::from(59));
-        points_col_p_c.insert(Mfp::from(62), Mfp::from(1));
-        points_col_p_c.insert(Mfp::from(132), Mfp::from(1));
-        points_col_p_c.insert(Mfp::from(65), Mfp::from(42));
-        points_col_p_c.insert(Mfp::from(80), Mfp::from(59));
+        // points_col_p_c.insert(Mfp::from(48), Mfp::from(125));
+        // points_col_p_c.insert(Mfp::from(73), Mfp::from(59));
+        // points_col_p_c.insert(Mfp::from(62), Mfp::from(1));
+        // points_col_p_c.insert(Mfp::from(132), Mfp::from(1));
+        // points_col_p_c.insert(Mfp::from(65), Mfp::from(42));
+        // points_col_p_c.insert(Mfp::from(80), Mfp::from(59));
 
         let points_val_p_c = get_matrix_point_val(
             &self.commitm.matrices.c,

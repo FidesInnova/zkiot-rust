@@ -14,11 +14,15 @@ use crate::{dsp_poly, field, to_bint, utils::add_random_points};
 // 2013265921
 // pub const P: u64 = 18446744069414584321;
 // pub const P: u64 = 2013265921;
-// pub const P: u64 = 4294967295;
-pub const P: u64 = 181;
 
+// pub const P: u64 = 45151681;
+// pub const GENERATOR: u64 = 61;
 
-pub const GENERATOR: u64 = 2;
+pub const P: u64 = 2147195779;
+pub const GENERATOR: u64 = 34;
+
+// pub const P: u64 = 181;
+// pub const GENERATOR: u64 = 2;
 
 field!(Mfp, P);
 
@@ -439,7 +443,7 @@ pub fn get_matrix_point_row(mat: &DMatrix<Mfp>, set_h: &[Mfp], set_k: &[Mfp]) ->
         }
     }
 
-    add_random_points(&mut res, c, set_h, set_k);
+    add_random_points(&mut res, c, set_h, set_k).unwrap();
 
     res
 }
@@ -473,7 +477,7 @@ pub fn get_matrix_point_col(mat: &DMatrix<Mfp>, set_h: &[Mfp], set_k: &[Mfp]) ->
         }
     }
 
-    add_random_points(&mut res, c, set_h, set_k);
+    add_random_points(&mut res, c, set_h, set_k).unwrap();
 
     res
 }
@@ -703,10 +707,10 @@ pub fn sigma_yi_li(points: &HashMap<Mfp, Mfp>, set_k: &Vec<Mfp>) -> Poly {
 
 
 pub fn e_func(a: Mfp, b: Mfp, g: Mfp) -> Mfp {
-    // let a_r = a / g;
+    println!("a: {a}, b: {b}");
     let a_r = Mfp::from(div_mod_val(a, g));
-    // let b_r = b / g;
     let b_r = Mfp::from(div_mod_val(b, g));
+    println!("a_r: {a_r}, b_r: {b_r}");
     let exp = a_r * b_r;
     Mfp::from(3) * exp 
 }
@@ -732,12 +736,12 @@ pub mod kzg {
     use super::*;
     pub fn setup(max: u64, tau: u64, g: u64) -> Vec<Mfp> {
         let mut res = vec![];
-        let mut s = Mfp::from(g);
+        let mut tmp = Mfp::from(g);
         let tau = tau % (P - 1);
 
         for _ in 0..max {
-            res.push(s);
-            s = Mfp::from(to_bint!(s) * tau);
+            res.push(tmp);
+            tmp = Mfp::from(to_bint!(tmp) * tau);
         }
 
         res
@@ -939,16 +943,5 @@ mod math_test {
 
         assert_eq!(polynomial_points1, lagrange_interpolate(&points1));
         assert_eq!(polynomial_points2, lagrange_interpolate(&points2));
-    }
-
-    #[test]
-    fn test_interpolate_huge() {
-        let mut rng = thread_rng();
-        let points: Vec<Point> = (0..700)
-            .into_iter()
-            .map(|_| (Mfp::from(rng.gen_range(1..P)), Mfp::from(rng.gen_range(1..P))))
-            .collect();
-        
-        let inter_poly = lagrange_interpolate(&points); 
     }
 }

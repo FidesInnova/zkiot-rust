@@ -10,16 +10,17 @@ use zk_iot::{
 };
 
 fn main() -> Result<()> {
-    // get data class
-    let class_data = get_class_data("../class_table.json", "test")
+    // Get data class
+    let class_data = get_class_data("class_table.json", "test")
         .with_context(|| "Failed to get class data")?;
 
-    // get ck from setup file
+    // Get commitment key from setup file
     let (ck, vk) =
-        Setup::restore("../zkp_data/setup.json").with_context(|| "Failed to get setup data")?;
-    let (polys_px, z_vec) = Commitment::restore("../zkp_data/commit.json")?;
-    let proof_generation = ProofGeneration::restore("../zkp_data/proof.json").with_context(|| "Failed to get proof data")?;
+        Setup::restore("zkp_data/setup.json").with_context(|| "Failed to get setup data")?;
+    let (polys_px, z_vec) = Commitment::restore("zkp_data/commit.json")?;
+    let proof_generation = ProofGeneration::restore("zkp_data/proof.json").with_context(|| "Failed to get proof data")?;
 
+    
     // .: Verification :.
     let verification = Verification::new(proof_generation);
     let verification_result = verification.verify((&ck, vk), class_data, &polys_px, z_vec);

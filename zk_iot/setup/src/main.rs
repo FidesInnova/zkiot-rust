@@ -6,7 +6,7 @@ fn main() -> anyhow::Result<()> {
     setup.key_generate();
 
     setup
-        .store("../zkp_data/setup.json")
+        .store("zkp_data/setup.json")
         .with_context(|| "Failed to generate setup file")?;
 
     println!("Setup file generated successfully");
