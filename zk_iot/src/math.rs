@@ -7,6 +7,8 @@ use rustnomial::*;
 use std::collections::HashMap;
 use std::ops::Neg;
 
+use rayon::prelude::*; // For parallel iteration
+
 use crate::{dsp_poly, field, to_bint, utils::add_random_points};
 
 /// Define the constant modulus for field operations.
@@ -18,11 +20,11 @@ use crate::{dsp_poly, field, to_bint, utils::add_random_points};
 // pub const P: u64 = 45151681;
 // pub const GENERATOR: u64 = 61;
 
-// pub const P: u64 = 2147195779;
-// pub const GENERATOR: u64 = 34;
+pub const P: u64 = 2147458699;
+pub const GENERATOR: u64 = 3;
 
-pub const P: u64 = 181;
-pub const GENERATOR: u64 = 2;
+// pub const P: u64 = 181;
+// pub const GENERATOR: u64 = 2;
 
 field!(Mfp, P);
 
@@ -180,7 +182,6 @@ pub(crate) fn first_term(poly_vec: &[Mfp]) -> Term<Mfp> {
     Term::ZeroTerm
 }
 
-use rayon::prelude::*; // For parallel iteration
 /// Performs Lagrange interpolation to find the polynomial that passes through
 /// a given set of points.
 ///
@@ -248,8 +249,9 @@ pub fn lagrange_interpolate(points: &[Point]) -> Poly {
 /// This function generates a set of field elements using the specified generator
 /// and length. Each element in the resulting vector is computed as `ms_gen^i`, where
 /// `i` ranges from 0 to `len - 1`.
-pub fn generate_set(ms_gen: u64, len: u64) -> Vec<Mfp> {
-    (0..len).map(|i| exp_mod(ms_gen, i)).collect()
+pub fn generate_set(len: u64) -> Vec<Mfp> {
+    let g = to_bint!(exp_mod(GENERATOR, (P - 1) / len)); // Compute the generator for set H
+    (0..len).map(|i| exp_mod(g, i)).collect()
 }
 
 /// Computes the commitment of a list of polynomials using a specified degree and
@@ -715,9 +717,13 @@ pub fn e_func(a: Mfp, b: Mfp, g: Mfp) -> Mfp {
     Mfp::from(3) * exp 
 }
 
+pub fn invers_val(a: Mfp) -> Mfp {
+    exp_mod(to_bint!(a), P - 2)
+}
+
 pub fn div_mod_val(a: Mfp, b: Mfp) -> Mfp {
     let numerator = a;
-    let denominator = exp_mod(to_bint!(b), P - 2);
+    let denominator = invers_val(b);
     numerator * denominator
 }
 

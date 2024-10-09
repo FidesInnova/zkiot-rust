@@ -1,11 +1,21 @@
-use std::{collections::HashMap, io::Read, path::PathBuf};
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::{BufWriter, Read},
+    path::PathBuf,
+};
 
 use crate::{
-    dsp_mat, dsp_poly, dsp_vec, json_file::{open_file, read_term, store_in_json_file, write_set, write_term, ClassData}, math::*, to_bint, utils::*,
+    dsp_mat, dsp_poly, dsp_vec,
+    json_file::{open_file, read_term, store_in_json_file, write_set, write_term, ClassData},
+    math::*,
+    to_bint,
+    utils::*,
 };
 use anyhow::Result;
 use ark_ff::{Field, PrimeField};
 use nalgebra::DMatrix;
+use serde::{Deserialize, Serialize};
 use serde_json::{from_str, json, Value};
 
 #[derive(Debug)]
@@ -47,24 +57,13 @@ pub struct Commitment {
 impl Commitment {
     // Constructor method Generate sets and Initilize matrices
     pub fn new(class_data: ClassData) -> CommitmentBuilder {
-        let set_h_len: u64 = (class_data.n_g + class_data.n_i + 1)
-            .try_into()
-            .unwrap();
+        let set_h_len: u64 = (class_data.n_g + class_data.n_i + 1).try_into().unwrap();
         let numebr_t_zero: u64 = (class_data.n_i + 1).try_into().unwrap(); // Number of rows (|x| = self.numebr_t_zero, where self.numebr_t_zero = ni + 1)
         let set_k_len = ((set_h_len * set_h_len - set_h_len) / 2)
             - ((numebr_t_zero * numebr_t_zero - numebr_t_zero) / 2);
 
-        let generator_h = to_bint!(exp_mod(
-            GENERATOR,
-            (Mfp::MODULUS.0[0] - 1) / set_h_len
-        )); // Compute the generator for set H
-        let generator_k = to_bint!(exp_mod(
-            GENERATOR,
-            (Mfp::MODULUS.0[0] - 1) / set_k_len
-        )); // Compute the generator for set K
-
-        let set_h = generate_set(generator_h, set_h_len);
-        let set_k = generate_set(generator_k, set_k_len);
+        let set_h = generate_set(set_h_len);
+        let set_k = generate_set(set_k_len);
 
         let matrix_size = class_data.n_g + class_data.n_i + 1;
         let matrices = Matrices::new(matrix_size.try_into().unwrap());
@@ -110,34 +109,104 @@ impl Commitment {
 
     /// Store in Json file
     pub fn store(&self, path: &str) -> Result<()> {
+        let file = File::create(path)?;
+        let writer = BufWriter::new(file);
+
+        // Extract values for CommitmentJson from the Commitment struct
         let polys_px_t: Vec<Vec<u64>> = self.polys_px.iter().map(|p| write_term(p)).collect();
-        let json_value = json!({
-            "polys_px": polys_px_t,
-            "z_vec": write_set(&mat_to_vec(&self.matrices.z))
-        });
-        store_in_json_file(json_value, path)
+        let points_px_t: Vec<Vec<(u64, u64)>> = self
+            .points_px
+            .iter()
+            .map(|points| {
+                points
+                    .iter()
+                    .map(|(&key, &val)| (to_bint!(key), to_bint!(val)))
+                    .collect()
+            })
+            .collect();
+        let matrix_oz_vec = [
+            write_set(&mat_to_vec(&self.get_matrix_az())),
+            write_set(&mat_to_vec(&self.get_matrix_bz())),
+            write_set(&mat_to_vec(&self.get_matrix_cz())),
+        ];
+        let z_vec = write_set(&mat_to_vec(&self.matrices.z));
+
+        let commitment_json = CommitmentJson::new(matrix_oz_vec, points_px_t, polys_px_t, z_vec);
+        serde_json::to_writer(writer, &commitment_json)?;
+
+        Ok(())
     }
 
     /// Restore Commitment from Json file
-    pub fn restore(path: &str) -> Result<(Vec<Poly>, Vec<Mfp>)> {
-        // Read the JSON file
-        let mut reader = open_file(&PathBuf::from(path))?;
-        // Read the contents into a String
-        let mut contents = String::new();
-        reader.read_to_string(&mut contents)?;
+    pub fn restore(path: &str) -> Result<CommitmentJson> {
+        let reader = open_file(&PathBuf::from(path))?;
+        let commitment_json: CommitmentJson = serde_json::from_reader(reader)?;
+        Ok(commitment_json)
+    }
+}
 
-        // Parse the JSON data
-        let json_value: Value = from_str(&contents)?;
-
-        // Extract and convert the "polys_px"
-        let polys_px: Vec<Vec<Value>> = serde_json::from_value(json_value["polys_px"].clone())?;
-        let polys_px: Vec<Poly> = polys_px.iter().map(|v| read_term(v)).collect();
-
-        // Extract and convert the "z_vec"
-        let z_vec: Vec<u64> = serde_json::from_value(json_value["z_vec"].clone())?;
-        let z_vec: Vec<Mfp> = z_vec.iter().map(|v| Mfp::from(*v)).collect();
-        
-        Ok((polys_px, z_vec))
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct CommitmentJson {
+    matrix_oz_vec: [Vec<u64>; 3],
+    points_px: Vec<Vec<(u64, u64)>>,
+    polys_px: Vec<Vec<u64>>,
+    z_vec: Vec<u64>,
+}
+impl CommitmentJson {
+    pub fn new(
+        matrix_oz_vec: [Vec<u64>; 3],
+        points_px_t: Vec<Vec<(u64, u64)>>,
+        polys_px_t: Vec<Vec<u64>>,
+        z_vec: Vec<u64>,
+    ) -> Self {
+        Self {
+            matrix_oz_vec,
+            points_px: points_px_t,
+            polys_px: polys_px_t,
+            z_vec,
+        }
+    }
+    pub fn get_z_vec(&self) -> Vec<Mfp> {
+        self.z_vec.iter().map(|v| Mfp::from(*v)).collect()
+    }
+    pub fn get_polys_px(&self) -> Vec<Poly> {
+        self.polys_px
+            .iter()
+            .map(|v| {
+                let mut poly =
+                    Poly::from(v.iter().rev().map(|&t| Mfp::from(t)).collect::<Vec<Mfp>>());
+                poly.trim();
+                poly
+            })
+            .collect()
+    }
+    pub fn get_points_px(&self) -> Vec<HashMap<Mfp, Mfp>> {
+        self.points_px
+            .iter()
+            .map(|points| {
+                points
+                    .iter()
+                    .map(|&p| (Mfp::from(p.0), Mfp::from(p.1)))
+                    .collect()
+            })
+            .collect()
+    }
+    // 0: az, 1: bz, 2: cz
+    pub fn get_matrix_oz_vec(&self) -> [Vec<Mfp>; 3] {
+        [
+            self.matrix_oz_vec[0]
+                .iter()
+                .map(|&n| Mfp::from(n))
+                .collect(),
+            self.matrix_oz_vec[1]
+                .iter()
+                .map(|&n| Mfp::from(n))
+                .collect(),
+            self.matrix_oz_vec[2]
+                .iter()
+                .map(|&n| Mfp::from(n))
+                .collect(),
+        ]
     }
 }
 
@@ -183,11 +252,11 @@ impl CommitmentBuilder {
     /// A, B, and C as well as the polynomial matrix `z_mat` based on the type of each gate:
     /// - **Add** gates: Updates matrices and modifies `z_mat` with addition.
     /// - **Mul** gates: Updates matrices and modifies `z_mat` with multiplication.
-    /// 
+    ///
     /// The matrices are populated with values according to the gate definitions, and the
     /// `z_mat` matrix is updated with the results of operations specified by the gates.
-    /// 
-    /// For further details, please refer to the documentation: 
+    ///
+    /// For further details, please refer to the documentation:
     /// [Documentation Link](https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/2-commitment-phase)
     pub fn gen_matrices(&mut self, gates: Vec<Gate>, number_inputs: usize) -> Self {
         // Initialize matrices A, B, C and z based on parsed gates
@@ -204,15 +273,19 @@ impl CommitmentBuilder {
             _index = 1 + ni + counter;
             c_mat[(_index, _index)] = Mfp::ONE;
 
-
             let left_val = gate.val_left.map_or(Mfp::ONE, Mfp::from);
             let right_val = gate.val_right.map_or(Mfp::ONE, Mfp::from);
 
             match gate.gate_type {
+                GateType::Ld => {
+                    let right_val = gate.val_right.map_or(Mfp::ZERO, Mfp::from);
+                    z_mat[i + 1] = right_val;
+                    ld_counter += 1;
+                    continue;
+                }
                 GateType::Add => {
                     a_mat[(_index, 0)] = Mfp::ONE;
 
-                    
                     b_mat[(_index, gate.inx_left - ld_counter)] = left_val;
                     b_mat[(_index, gate.inx_right)] = right_val;
 
@@ -224,11 +297,22 @@ impl CommitmentBuilder {
 
                     z_mat[i + 1] = z_mat[i] * right_val;
                 }
-                GateType::Ld => {
-                    let right_val = gate.val_right.map_or(Mfp::ZERO, Mfp::from); 
-                    z_mat[i + 1] = right_val;
-                    ld_counter += 1;
-                    continue;
+                GateType::Sub => {
+                    a_mat[(_index, 0)] = Mfp::ONE;
+                    b_mat[(_index, gate.inx_left - ld_counter)] = if left_val == Mfp::ONE {
+                        left_val
+                    } else {
+                        -left_val
+                    };
+                    b_mat[(_index, gate.inx_right)] = -right_val;
+
+                    z_mat[i + 1] = z_mat[i] - gate.val_right.map_or(Mfp::ZERO, Mfp::from);
+                }
+                GateType::Div => {
+                    a_mat[(_index, gate.inx_left - ld_counter)] = invers_val(left_val);
+                    b_mat[(_index, gate.inx_right)] = invers_val(right_val);
+
+                    z_mat[i + 1] = div_mod_val(z_mat[i], right_val);
                 }
             }
             counter += 1;

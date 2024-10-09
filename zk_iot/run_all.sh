@@ -9,5 +9,6 @@ FILENAME="$1"
 
 echo "" > "$FILENAME" && \
 cargo run -p setup >> "$FILENAME" && \
+cargo run -p commitment >> "$FILENAME" && \
 cargo run -p proof_generation >> "$FILENAME" && \
 cargo run -p proof_verification >> "$FILENAME"

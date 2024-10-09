@@ -78,6 +78,7 @@ pub fn write_set(set: &Vec<Mfp>) -> Vec<u64> {
 }
 
 
+
 pub fn read_term(poly: &[Value]) -> Poly {
     let poly_vec = poly.to_vec().iter().rev().map(|v| Mfp::from(v.as_u64().unwrap())).collect::<Vec<Mfp>>();
     let mut poly = Poly::from(poly_vec);

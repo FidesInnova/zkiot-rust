@@ -11,14 +11,14 @@ use crate::{
     utils::{get_points_set, mat_to_vec},
 };
 
-use super::{commitment::Commitment, proof_generation::AHPData};
+use super::{commitment::Commitment, proof_generation::{AHPData, Polys, ProofGeneration, ProofGenerationJson}};
 
 pub struct Verification {
-    pub data: Box<[AHPData]>,
+    pub data: ProofGenerationJson,
 }
 
 impl Verification {
-    pub fn new(data: Box<[AHPData]>) -> Self {
+    pub fn new(data: ProofGenerationJson ) -> Self {
         Self { data }
     }
 
@@ -29,7 +29,7 @@ impl Verification {
         }
     }
 
-    fn get_poly(data: &AHPData) -> Poly {
+    fn vec_to_poly(data: &AHPData) -> Poly {
         if let AHPData::Polynomial(poly) = data {
             Poly::new(
                 poly.iter()
@@ -49,7 +49,7 @@ impl Verification {
         polys_px: &Vec<Poly>,
         z_vec: Vec<Mfp>,
     ) -> bool {
-        let poly_sx = Self::get_poly(&self.data[18]);
+        let poly_sx = &self.data.get_poly(Polys::Sx as usize);
         // TODO:
         // From wiki: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
         //             Step 6
@@ -69,18 +69,14 @@ impl Verification {
         let eta = vec![Mfp::from(2), Mfp::from(30), Mfp::from(100)];
         let t = (class_data.n_i + 1) as usize;
 
-        let generator_h = to_bint!(exp_mod(GENERATOR, (P - 1) / class_data.n)); // Compute the generator for set H
-        let set_h = generate_set(generator_h, class_data.n);
+        let set_h_len = class_data.n as usize;
+        let set_h = generate_set(set_h_len as u64);
+        let set_k_len = class_data.m as usize;
 
-        self.check_1(
-            &polys_px,
-            &beta,
-            &eta,
-            class_data.n as usize,
-            class_data.m as usize,
-        ) && self.check_2(&beta, alpha, set_h.len())
+        self.check_1(&polys_px, &beta, &eta, set_h_len, set_k_len)
+            && self.check_2(&beta, alpha, set_h_len)
             && self.check_3(z_vec, alpha, &beta, &eta, &set_h, t)
-            && self.check_4(&beta, set_h.len())
+            && self.check_4(&beta, set_h_len)
             && self.check_5((ck, vk), z, Mfp::from(GENERATOR))
     }
 
@@ -95,41 +91,37 @@ impl Verification {
         let van_poly_vkx = Self::vanishing_poly(set_k_len);
         let van_poly_vhx = Self::vanishing_poly(set_h_len);
 
-        let poly_pi_a =
-            (Poly::from(vec![beta[1]]) - &polys_px[0]) * (Poly::from(vec![beta[0]]) - &polys_px[1]);
-        let poly_pi_b =
-            (Poly::from(vec![beta[1]]) - &polys_px[3]) * (Poly::from(vec![beta[0]]) - &polys_px[4]);
-        let poly_pi_c =
-            (Poly::from(vec![beta[1]]) - &polys_px[6]) * (Poly::from(vec![beta[0]]) - &polys_px[7]);
-        let polys_pi = vec![&poly_pi_a, &poly_pi_b, &poly_pi_c];
+        let (pi_a, pi_b, pi_c) = ProofGeneration::compute_polys_pi(beta[0], beta[1], &polys_px);
+        let polys_pi = vec![&pi_a, &pi_b, &pi_c];
+
 
         let poly_a_x = Self::gen_poly_ax(polys_px, beta, &van_poly_vhx, eta, &polys_pi);
         let poly_b_x = polys_pi[0] * polys_pi[1] * polys_pi[2];
 
         Self::check_equation_1(
-            &Self::get_poly(&self.data[26]),
-            &Self::get_poly(&self.data[25]),
+            &self.data.get_poly(Polys::H3x as usize),
+            &self.data.get_poly(Polys::G3x as usize),
             &van_poly_vkx,
             &poly_a_x,
             &poly_b_x,
             &beta[2],
-            &Self::get_value(&self.data[24]),
+            &self.data.get_sigma(3),
             set_k_len,
         )
     }
-
+    
     fn check_2(&self, beta: &[Mfp], alpha: Mfp, set_h_len: usize) -> bool {
         let van_poly_vhx = Self::vanishing_poly(set_h_len);
         let poly_r = func_u(Some(alpha), None, set_h_len);
 
         Self::check_equation_2(
             &poly_r,
-            &Self::get_poly(&self.data[23]),
-            &Self::get_poly(&self.data[22]),
+            &self.data.get_poly(Polys::H2x as usize),
+            &self.data.get_poly(Polys::G2x as usize),
             &van_poly_vhx,
             &beta[1],
-            &Self::get_value(&self.data[21]),
-            &Self::get_value(&self.data[24]),
+            &self.data.get_sigma(2),
+            &self.data.get_sigma(3),
             set_h_len,
         )
     }
@@ -145,7 +137,7 @@ impl Verification {
     ) -> bool {
         let van_poly_vhx = Self::vanishing_poly(set_h.len());
         let poly_r = func_u(Some(alpha), None, set_h.len());
-        let sum_1 = Self::gen_poly_sigma(&eta, &self.data, &poly_r);
+        let sum_1 = self.gen_poly_sigma(&eta, &poly_r);
         let set_h_1 = &set_h[0..t_zero].to_vec(); // H[>∣x∣]
                                                   // let z_vec = &mat_to_vec(&commitment.matrices.z);
         let points = get_points_set(&z_vec[0..t_zero], set_h_1);
@@ -153,26 +145,26 @@ impl Verification {
         // Interpolate polynomial w(h) over the subset H[<=∣x∣]
         // Compute the vanishing polynomial for the subset H[<=∣x∣]
         let van_poly_vh1 = vanishing_poly(set_h_1);
-        let poly_z_hat_x = Self::get_poly(&self.data[13]) * &van_poly_vh1 + poly_x_hat;
+        let poly_z_hat_x = &self.data.get_poly(Polys::WHat as usize) * &van_poly_vh1 + poly_x_hat;
 
         Self::check_equation_3(
-            &Self::get_poly(&self.data[18]),
+            &self.data.get_poly(Polys::Sx as usize),
             &sum_1,
             &poly_z_hat_x,
-            &Self::get_poly(&self.data[20]),
-            &Self::get_poly(&self.data[19]),
+            &self.data.get_poly(Polys::H1x as usize),
+            &self.data.get_poly(Polys::G1x as usize),
             &van_poly_vhx,
             &beta[0],
-            &Self::get_value(&self.data[12]),
-            &Self::get_value(&self.data[21]),
+            &self.data.get_sigma(1),
+            &self.data.get_sigma(2),
             set_h.len(),
         )
     }
 
     fn check_4(&self, beta: &[Mfp], set_h_len: usize) -> bool {
         let van_poly_vhx = Self::vanishing_poly(set_h_len);
-        let poly_ab_c = &Self::get_poly(&self.data[14]) * &Self::get_poly(&self.data[15])
-            - &Self::get_poly(&self.data[16]);
+        let poly_ab_c = &self.data.get_poly(Polys::ZHatA as usize) * &self.data.get_poly(Polys::ZHatB as usize)
+            - &self.data.get_poly(Polys::ZHatC as usize);
         let poly_h_0 = div_mod(&poly_ab_c, &van_poly_vhx).0;
         Self::check_equation_4(&poly_ab_c, &poly_h_0, &van_poly_vhx, &beta[0])
     }
@@ -194,23 +186,12 @@ impl Verification {
             Mfp::from(63), // eta_h3
         ];
 
-        let mut poly_px = Poly::zero();
-        let mut loop_counter = 0;
-        let mut eta_counter = 0;
-        let mut skip_counter = 0;
-
-        while loop_counter < eta_values.len() + skip_counter {
-            if [24, 21].contains(&(loop_counter + 13)) {
-                skip_counter += 1;
-                loop_counter += 1;
-                continue;
-            }
-
-            poly_px += Poly::from(vec![eta_values[eta_counter]])
-                * Self::get_poly(&self.data[loop_counter + 13]);
-            loop_counter += 1;
-            eta_counter += 1;
-        }
+        
+        let poly_px = eta_values
+            .iter()
+            .enumerate()
+            .map(|(i, &eta)| Poly::from(vec![eta]) * &self.data.get_poly(i).clone())
+            .fold(Poly::zero(), |acc, poly| acc + poly);
 
         let val_y_p = poly_px.eval(z);
         let val_commit_poly_px = kzg::commit(&poly_px, ck);
@@ -222,11 +203,12 @@ impl Verification {
         Self::check_equation_5(val_commit_poly_px, g, val_y_p, val_commit_poly_qx, vk, z)
     }
 
+    
     #[inline]
-    fn gen_poly_sigma(eta: &[Mfp], data: &[AHPData], poly_r: &Poly) -> Poly {
-        let sigma_eta_z_x = Poly::new(vec![eta[0]]) * &Self::get_poly(&data[14])
-            + Poly::new(vec![eta[1]]) * &Self::get_poly(&data[15])
-            + Poly::new(vec![eta[2]]) * &Self::get_poly(&data[16]);
+    fn gen_poly_sigma(&self, eta: &[Mfp], poly_r: &Poly) -> Poly {
+        let sigma_eta_z_x = Poly::new(vec![eta[0]]) * &self.data.get_poly(Polys::ZHatA as usize)
+            + Poly::new(vec![eta[1]]) * &self.data.get_poly(Polys::ZHatB as usize)
+            + Poly::new(vec![eta[2]]) * &self.data.get_poly(Polys::ZHatC as usize);
         poly_r * sigma_eta_z_x
     }
 
@@ -342,10 +324,12 @@ impl Verification {
     ) -> bool {
         println!("val_commit_px: {val_commit_poly_px}, val_y_p: {val_y_p}, vk: {vk}, val_commit_poly_qx: {val_commit_poly_qx}");
 
-        let e_1 = e_func(val_commit_poly_px - Mfp::from(to_bint!(g) * to_bint!(val_y_p)), g, g);
+        let e_1 = e_func(
+            val_commit_poly_px - Mfp::from(to_bint!(g) * to_bint!(val_y_p)),
+            g,
+            g,
+        );
         println!("eq51: {}", e_1);
-
-
 
         let e_2 = e_func(
             val_commit_poly_qx,

@@ -36,7 +36,7 @@ def count_instructions(file_path):
 
 
 # Specify the path to your file
-file_path = 'opcodes.txt'
+file_path = 'sample.txt'
 
 # Count the instructions
 n_i, n_g = count_instructions(file_path)

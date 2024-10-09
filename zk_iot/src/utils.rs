@@ -31,7 +31,9 @@ use crate::math::P;
 #[derive(Debug, Clone, Copy)]
 pub enum GateType {
     Add,
+    Sub,
     Mul,
+    Div,
     Ld
 }
 

@@ -148,8 +148,10 @@ fn read_parse_lines(reader: BufReader<File>) -> Result<Vec<Gate>> {
 /// that the operation is not supported.
 fn gate_type(op: &str) -> Result<GateType> {
     match op {
-        "mul" => Ok(GateType::Mul),
         "addi" => Ok(GateType::Add),
+        "sub" => Ok(GateType::Sub),
+        "mul" => Ok(GateType::Mul),
+        "div" => Ok(GateType::Div),
         "ld" => Ok(GateType::Ld),
         _ => Err(anyhow!("operation is not support: {}", op)),
     }
