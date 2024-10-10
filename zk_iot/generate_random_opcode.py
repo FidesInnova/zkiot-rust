@@ -1,4 +1,5 @@
 import random
+import sys
 
 def generate_random_opcode(num_opcodes, file_path):
     # Define possible opcodes
@@ -17,9 +18,16 @@ def generate_random_opcode(num_opcodes, file_path):
             immediate = random.randint(1, 2**31 - 1)  # Random immediate value
             file.write(f"{address}:       02f407b3                {opcode}    R1, R1 ,{immediate}\n")
 
+def write_numbers_to_file(count, filename):
+    with open(filename, 'w') as file:
+        for number in range(1, count + 1):
+            file.write(f"{number}\n")
+
+
 # Specify the number of opcodes to generate and the output file path
-num_opcodes = 20  # You can change this to generate more or fewer opcodes
-file_path = 'sample.txt'  # Output file name
+num_opcodes = int(sys.argv[1])  # You can change this to generate more or fewer opcodes
+file_path = 'sample.txt' 
 generate_random_opcode(num_opcodes, file_path)
 
+write_numbers_to_file(num_opcodes, 'line_num.txt')
 print(f"Generated {num_opcodes} opcodes and saved to '{file_path}'.")

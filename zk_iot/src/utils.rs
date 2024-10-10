@@ -18,7 +18,7 @@ use rand::Rng;
 use crate::define_get_points_fn;
 use crate::get_val;
 
-use crate::math::lagrange_interpolate;
+use crate::math::newton_interpolate;
 use crate::math::Point;
 use crate::math::Poly;
 use crate::math::Mfp;
@@ -335,11 +335,11 @@ pub fn print_hashmap(points: &HashMap<Mfp, Mfp>, set_k: &[Mfp]) {
 /// 3. The value polynomial is obtained by performing Lagrange interpolation on the points corresponding to the non-zero values in the matrix.
 pub fn encode_matrix_m(matrix: &DMatrix<Mfp>, set_h: &[Mfp], set_k: &[Mfp]) -> Vec<Poly> {
     let points  = get_points_row(matrix, set_h, set_k);   
-    let row     = lagrange_interpolate(&points);                                        
+    let row     = newton_interpolate(&points);                                        
     let points  = get_points_col(matrix, set_h, set_k);  
-    let col     = lagrange_interpolate(&points);                 
+    let col     = newton_interpolate(&points);                 
     let points  = get_points_val(matrix, set_h, set_k);
-    let val     = lagrange_interpolate(&points);
+    let val     = newton_interpolate(&points);
 
     // println!("lag row:");
     // dsp_poly!(row);

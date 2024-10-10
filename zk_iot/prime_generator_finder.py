@@ -5,17 +5,29 @@ from sympy import is_primitive_root
 def is_prime(n):
     if n <= 1:
         return False
-    for i in range(2, int(n**0.5) + 1):
+    if n == 2:
+        return True  # 2 is prime
+    if n % 2 == 0:
+        return False  # eliminate even numbers
+
+    # Check only odd divisors from 3 to sqrt(n)
+    for i in range(3, int(n**0.5) + 1, 2):
         if n % i == 0:
             return False
     return True
 
 def find_largest_prime(n, m):
     max_32_bit = 2**31 - 1
-    for num in range(max_32_bit, 1, -1):
-        if is_prime(num) and (num - 1) % n == 0 and (num - 1) % m == 0:
+    
+    # Convert m to an integer
+    m = int(m)
+
+    # Start from the largest number and go down in steps of n * m
+    for num in range(max_32_bit - (max_32_bit - 1) % (n * m), 1, -(n * m)):
+        if is_prime(num):
             return num
     return None
+
 
 def count_instructions(file_path):
     n_i = 0  # Counter for 'ld' instructions
@@ -46,7 +58,7 @@ n = n_i + n_g + 1
 m = ((n**2 - n ) / 2) - ((t**2 - t ) / 2)
 
 print(f"n_g: {n_g}\nn_i: {n_i}")
-print(f"n: {n}\nm: {m}")
+print(f"n: {n}\nm: {int(m)}")
 
 # Find the largest prime number
 largest_prime = find_largest_prime(n, m)

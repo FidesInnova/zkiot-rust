@@ -8,7 +8,7 @@ fi
 FILENAME="$1"
 
 echo "" > "$FILENAME" && \
-cargo run -p setup >> "$FILENAME" && \
-cargo run -p commitment >> "$FILENAME" && \
-cargo run -p proof_generation >> "$FILENAME" && \
-cargo run -p proof_verification >> "$FILENAME"
+cargo run -p setup --release >> "$FILENAME" && \
+cargo run -p commitment --release >> "$FILENAME" && \
+cargo run -p proof_generation --release >> "$FILENAME" && \
+cargo run -p proof_verification --release >> "$FILENAME"

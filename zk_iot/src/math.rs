@@ -1,11 +1,12 @@
 //! Module for mathematical functions and utilities for finite field operations using the `Mfp` type and polynomials.
 
 use ark_ff::{Field, PrimeField};
-use nalgebra::DMatrix;
+use nalgebra::{Complex, DMatrix};
 use rand::{seq::SliceRandom, thread_rng};
 use rustnomial::*;
 use std::collections::HashMap;
 use std::ops::Neg;
+use ark_ff::Zero;
 
 use rayon::prelude::*; // For parallel iteration
 
@@ -20,8 +21,8 @@ use crate::{dsp_poly, field, to_bint, utils::add_random_points};
 // pub const P: u64 = 45151681;
 // pub const GENERATOR: u64 = 61;
 
-pub const P: u64 = 2147458699;
-pub const GENERATOR: u64 = 3;
+pub const P: u64 = 2137706209;
+pub const GENERATOR: u64 = 19;
 
 // pub const P: u64 = 181;
 // pub const GENERATOR: u64 = 2;
@@ -34,8 +35,6 @@ pub type Poly = Polynomial<Mfp>;
 /// Type alias for a 2D point in the `Mfp` field.
 pub type Point = (Mfp, Mfp);
 
-/// Type alias for a 2D point and a value in the `Mfp` field.
-pub type Point2d = (Point, Mfp);
 
 /// Computes the modular exponentiation of `a` raised to the power `b`
 /// and returns the result as an element of the finite field `Mfp`.
@@ -144,8 +143,6 @@ pub fn div_mod(a: &Poly, rhs: &Poly) -> (Poly, Poly) {
     (Poly::new(div), Poly::new(remainder))
 }
 
-use ark_ff::Zero;
-
 fn vec_sub_w_scale(
     lhs: &mut [Mfp],
     lhs_degree: usize,
@@ -162,7 +159,7 @@ fn vec_sub_w_scale(
     }
 }
 
-pub(crate) fn first_term(poly_vec: &[Mfp]) -> Term<Mfp> {
+fn first_term(poly_vec: &[Mfp]) -> Term<Mfp> {
     for (degree, chunk) in poly_vec.chunks_exact(4).enumerate() {
         for (index, &value) in chunk.iter().enumerate() {
             if !value.is_zero() {
@@ -182,57 +179,40 @@ pub(crate) fn first_term(poly_vec: &[Mfp]) -> Term<Mfp> {
     Term::ZeroTerm
 }
 
-/// Performs Lagrange interpolation to find the polynomial that passes through
-/// a given set of points.
-///
-/// # Parameters
-/// - `points`: A vector of tuples where each tuple contains a point `(x_i, y_i)`
-///   with `x_i` and `y_i` being coordinates in the finite field.
-///
-/// # Returns
-/// Returns a `Poly` object representing the interpolated polynomial.
-///
-/// # Description
-/// This function calculates the Lagrange basis polynomials for each point and
-/// combines them to form the final polynomial that interpolates all given points.
-/// For each point `(x_i, y_i)`, it constructs the Lagrange basis polynomial and
-/// accumulates the weighted sum to form the final polynomial.
-pub fn lagrange_interpolate(points: &[Point]) -> Poly {
-    // Collect results from parallel execution
-    let partial_results: Vec<Poly> = points.par_iter().map(|(x_i, y_i)| {
-        let mut poly_nume_all: Poly = Poly::new(vec![Mfp::ONE]);
-        let mut poly_deno_all = Mfp::ONE;
 
-        let x_i_mfp = Mfp::from(*x_i); // Precompute x_i once
+pub fn newton_interpolate(points: &[Point]) -> Poly {
+    let n = points.len();
+    let mut divided_differences = vec![vec![Mfp::ZERO; n]; n];
 
-        for (x_j, _) in points.iter() {
-            if x_i != x_j {
-                let x_j_mfp = Mfp::from(*x_j); // Precompute x_j once
+    // Initialize the divided differences table with y-values
+    for (i, (_, y)) in points.iter().enumerate() {
+        divided_differences[i][0] = *y;
+    }
 
-                // Construct Lagrange basis polynomial for the current point
-                let poly_nume: Poly = Poly::new(vec![Mfp::ONE, x_j_mfp.neg()]);
-                let poly_deno = x_i_mfp - x_j_mfp;
-
-                // Accumulate the numerator and denominator for the basis polynomial
-                poly_nume_all *= poly_nume;
-                poly_deno_all *= poly_deno;
-            }
+    // Compute the divided differences table
+    for j in 1..n {
+        for i in 0..(n - j) {
+            let x_i = Mfp::from(points[i].0);
+            let x_ij = Mfp::from(points[i + j].0);
+            let numerator = divided_differences[i + 1][j - 1] - divided_differences[i][j - 1];
+            let denominator = x_ij - x_i;
+            divided_differences[i][j] = div_mod_val(numerator, denominator);
         }
-        let inv_deno = exp_mod(to_bint!(poly_deno_all), P - 2);
-        // Return the weighted basis polynomial for this point
-        Poly::new(vec![*y_i]) * (poly_nume_all * inv_deno)
-    }).collect();
+    }
 
-    // Combine all partial results into the final result (done sequentially)
-    let mut poly_res: Poly = Poly::new(vec![Mfp::ZERO]);
-    for poly in partial_results {
-        poly_res += poly;
+    // Build the Newton polynomial
+    let mut poly_res = Poly::new(vec![divided_differences[0][0]]);
+    let mut poly_term = Poly::new(vec![Mfp::ONE]);
+
+    for i in 1..n {
+        let x_i = Mfp::from(points[i - 1].0);
+        let new_term = Poly::new(vec![Mfp::ONE, x_i.neg()]);
+        poly_term *= new_term; // Multiply by (x - x_i) for each term
+        poly_res += poly_term.clone() * divided_differences[0][i];
     }
 
     poly_res
 }
-
-
 
 /// Generates a vector of elements in the finite field `Mfp` based on the given
 /// generator and length.
@@ -254,90 +234,6 @@ pub fn generate_set(len: u64) -> Vec<Mfp> {
     (0..len).map(|i| exp_mod(g, i)).collect()
 }
 
-/// Computes the commitment of a list of polynomials using a specified degree and
-/// generator.
-///
-/// # Parameters
-/// - `o`: A vector of polynomials (`Vec<Poly>`) to commit.
-/// - `d`: A degree value used in the computation.
-/// - `g`: A generator value used in the computation.
-///
-/// # Returns
-/// Returns a vector of `Mfp` values representing the commitments of the input polynomials.
-///
-/// # Description
-/// This function computes a commitment for each polynomial in the vector `o` using
-/// the given degree `d` and generator `g`. It performs the commitment calculation
-/// by evaluating each polynomial and multiplying the results, adjusting based on the
-/// degree and generator. If the result of the commitment is `Mfp::ONE`, it defaults to
-/// the generator value `g`.
-///
-pub fn commit(o: &Vec<Poly>, d: u64, g: u64) -> Vec<Mfp> {
-    let mut res = vec![];
-
-    for poly in o {
-        let mut res_poly = Mfp::ONE;
-
-        if let Degree::Num(deg) = poly.degree() {
-            let mut s = Mfp::from(g);
-            let d = d % (P - 1);
-
-            for i in 0..=deg {
-                let coef = poly.terms[deg - i].into_bigint().0[0];
-                let value = exp_mod(s.into_bigint().0[0], coef);
-                res_poly *= value;
-                s = exp_mod(s.into_bigint().0[0], d);
-            }
-        }
-
-        if res_poly == Mfp::ONE {
-            res.push(Mfp::from(g));
-        } else {
-            res.push(res_poly);
-        }
-    }
-
-    res
-}
-
-/// Generates a vector of field elements based on a given generator and parameters.
-///
-/// # Parameters
-/// - `ms_gen`: The generator value for the finite field.
-/// - `n`: The upper bound index for generating elements.
-/// - `t`: The starting index for generating elements.
-/// - `len`: The total length of the resulting vector.
-///
-/// # Returns
-/// Returns a vector of `Mfp` elements. The vector starts with elements generated by raising
-/// the generator `ms_gen` to powers from `t` to `n - 1`. If the vector length `len` is greater
-/// than the number of generated elements, the remaining space is filled with zeros.
-///
-/// # Description
-/// This function generates field elements using the specified generator for indices starting
-/// from `t` up to `n - 1`. If the total length of the vector is greater than the number of
-/// generated elements, the function appends zeros to the end of the vector to reach the
-/// specified length.
-///
-/// # Panics
-/// Panics if the calculated number of zeros to be appended is negative. This is ensured by the
-/// assertion that `zeros >= 0`.
-pub fn generate_set_eval(ms_gen: u64, n: usize, t: usize, len: usize) -> Vec<Mfp> {
-    let mut set: Vec<Mfp> = vec![];
-    for i in t..n {
-        set.push(exp_mod(ms_gen, i as u64));
-    }
-    let zeros = len as isize - n as isize + t as isize;
-
-    assert!(zeros >= 0);
-
-    if zeros > 0 {
-        for _ in 0..zeros {
-            set.push(Mfp::ZERO);
-        }
-    }
-    set
-}
 
 /// Computes the vanishing polynomial for a given set of field elements.
 ///
@@ -704,7 +600,7 @@ pub fn sigma_yi_li(points: &HashMap<Mfp, Mfp>, set_k: &Vec<Mfp>) -> Poly {
         let val = points.get(k).unwrap_or(&Mfp::ZERO);
         points_li.push((*k, *val));
     }
-    lagrange_interpolate(&points_li)
+    newton_interpolate(&points_li)
 }
 
 
@@ -809,6 +705,7 @@ pub fn log_mod(a: Mfp, b: Mfp) -> Mfp {
 #[cfg(test)]
 mod math_test {
     use super::*;
+    use ark_ff::UniformRand;
     use rand::Rng;
 
     #[test]
@@ -947,7 +844,7 @@ mod math_test {
             Mfp::from(0),
         ]);
 
-        assert_eq!(polynomial_points1, lagrange_interpolate(&points1));
-        assert_eq!(polynomial_points2, lagrange_interpolate(&points2));
+        assert_eq!(polynomial_points1, newton_interpolate(&points1));
+        assert_eq!(polynomial_points2, newton_interpolate(&points2));
     }
 }

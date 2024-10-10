@@ -18,31 +18,6 @@ use nalgebra::DMatrix;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_str, json, Value};
 
-#[derive(Debug)]
-pub enum Component {
-    Row,
-    Col,
-    Val,
-}
-
-#[derive(Debug)]
-pub enum EntityType {
-    Polynomial(Component, Lable),
-    Points(Component, Lable),
-}
-
-#[derive(Debug)]
-pub enum Lable {
-    A,
-    B,
-    C,
-}
-
-#[derive(Debug)]
-pub enum DataType {
-    Polynomial(Poly),
-    Points(HashMap<Mfp, Mfp>),
-}
 
 #[derive(Debug, Clone)]
 pub struct Commitment {
@@ -100,9 +75,11 @@ impl Commitment {
     pub fn get_matrix_az(&self) -> DMatrix<Mfp> {
         &self.matrices.a * &self.matrices.z
     }
+
     pub fn get_matrix_bz(&self) -> DMatrix<Mfp> {
         &self.matrices.b * &self.matrices.z
     }
+
     pub fn get_matrix_cz(&self) -> DMatrix<Mfp> {
         &self.matrices.c * &self.matrices.z
     }
@@ -112,28 +89,17 @@ impl Commitment {
         let file = File::create(path)?;
         let writer = BufWriter::new(file);
 
-        // Extract values for CommitmentJson from the Commitment struct
-        let polys_px_t: Vec<Vec<u64>> = self.polys_px.iter().map(|p| write_term(p)).collect();
-        let points_px_t: Vec<Vec<(u64, u64)>> = self
-            .points_px
-            .iter()
-            .map(|points| {
-                points
-                    .iter()
-                    .map(|(&key, &val)| (to_bint!(key), to_bint!(val)))
-                    .collect()
-            })
-            .collect();
-        let matrix_oz_vec = [
-            write_set(&mat_to_vec(&self.get_matrix_az())),
-            write_set(&mat_to_vec(&self.get_matrix_bz())),
-            write_set(&mat_to_vec(&self.get_matrix_cz())),
-        ];
-        let z_vec = write_set(&mat_to_vec(&self.matrices.z));
-
-        let commitment_json = CommitmentJson::new(matrix_oz_vec, points_px_t, polys_px_t, z_vec);
+        let commitment_json = CommitmentJson::new(
+            [
+                &self.get_matrix_az(),
+                &self.get_matrix_bz(),
+                &self.get_matrix_cz(),
+            ],
+            &self.points_px,
+            &self.polys_px,
+            &self.matrices.z,
+        );
         serde_json::to_writer(writer, &commitment_json)?;
-
         Ok(())
     }
 
@@ -154,11 +120,29 @@ pub struct CommitmentJson {
 }
 impl CommitmentJson {
     pub fn new(
-        matrix_oz_vec: [Vec<u64>; 3],
-        points_px_t: Vec<Vec<(u64, u64)>>,
-        polys_px_t: Vec<Vec<u64>>,
-        z_vec: Vec<u64>,
+        matrix_oz_vec: [&DMatrix<Mfp>; 3],
+        points_px: &Vec<HashMap<Mfp, Mfp>>,
+        polys_px: &Vec<Poly>,
+        z_vec: &DMatrix<Mfp>,
     ) -> Self {
+        // Extract values for CommitmentJson from the Commitment struct
+        let polys_px_t: Vec<Vec<u64>> = polys_px.iter().map(|p| write_term(p)).collect();
+        let points_px_t: Vec<Vec<(u64, u64)>> = points_px
+            .iter()
+            .map(|points| {
+                points
+                    .iter()
+                    .map(|(&key, &val)| (to_bint!(key), to_bint!(val)))
+                    .collect()
+            })
+            .collect();
+        let matrix_oz_vec = [
+            write_set(&mat_to_vec(&matrix_oz_vec[0])),
+            write_set(&mat_to_vec(&matrix_oz_vec[1])),
+            write_set(&mat_to_vec(&matrix_oz_vec[2])),
+        ];
+        let z_vec = write_set(&mat_to_vec(&z_vec));
+
         Self {
             matrix_oz_vec,
             points_px: points_px_t,
@@ -299,12 +283,14 @@ impl CommitmentBuilder {
                 }
                 GateType::Sub => {
                     a_mat[(_index, 0)] = Mfp::ONE;
-                    b_mat[(_index, gate.inx_left - ld_counter)] = if left_val == Mfp::ONE {
-                        left_val
-                    } else {
-                        -left_val
+                    b_mat[(_index, gate.inx_left - ld_counter)] = match to_bint!(left_val) {
+                        1 => Mfp::ONE,
+                        _ => -left_val,
                     };
-                    b_mat[(_index, gate.inx_right)] = -right_val;
+                    b_mat[(_index, gate.inx_right)] = match to_bint!(right_val) {
+                        1 => Mfp::ONE,
+                        _ => -right_val,
+                    };
 
                     z_mat[i + 1] = z_mat[i] - gate.val_right.map_or(Mfp::ZERO, Mfp::from);
                 }

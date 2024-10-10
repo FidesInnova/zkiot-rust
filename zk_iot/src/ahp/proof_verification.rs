@@ -4,7 +4,7 @@ use rustnomial::{Evaluable, FreeSizePolynomial, SizedPolynomial};
 use crate::{
     json_file::ClassData,
     math::{
-        div_mod, div_mod_val, e_func, exp_mod, func_u, generate_set, kzg, lagrange_interpolate,
+        div_mod, div_mod_val, e_func, exp_mod, func_u, generate_set, kzg, newton_interpolate,
         vanishing_poly, Mfp, Poly, GENERATOR, P,
     },
     to_bint,
@@ -141,7 +141,7 @@ impl Verification {
         let set_h_1 = &set_h[0..t_zero].to_vec(); // H[>∣x∣]
                                                   // let z_vec = &mat_to_vec(&commitment.matrices.z);
         let points = get_points_set(&z_vec[0..t_zero], set_h_1);
-        let poly_x_hat = lagrange_interpolate(&points);
+        let poly_x_hat = newton_interpolate(&points);
         // Interpolate polynomial w(h) over the subset H[<=∣x∣]
         // Compute the vanishing polynomial for the subset H[<=∣x∣]
         let van_poly_vh1 = vanishing_poly(set_h_1);

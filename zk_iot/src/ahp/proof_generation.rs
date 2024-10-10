@@ -1,11 +1,9 @@
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::BufReader;
 use std::io::BufWriter;
 use std::iter::repeat_with;
 use std::path::PathBuf;
 
-use crate::ahp::commitment::Commitment;
 use crate::dsp_poly;
 use crate::dsp_vec;
 use crate::json_file::open_file;
@@ -86,9 +84,9 @@ impl ProofGeneration {
         // points_zc.push((Mfp::from(150), Mfp::from(1)));
         // points_zc.push((Mfp::from(80), Mfp::from(100)));
 
-        let poly_z_hat_a = lagrange_interpolate(&points_za);
-        let poly_z_hat_b = lagrange_interpolate(&points_zb);
-        let poly_z_hat_c = lagrange_interpolate(&points_zc);
+        let poly_z_hat_a = newton_interpolate(&points_za);
+        let poly_z_hat_b = newton_interpolate(&points_zb);
+        let poly_z_hat_c = newton_interpolate(&points_zc);
 
         (poly_z_hat_a, poly_z_hat_b, poly_z_hat_c)
     }
@@ -106,11 +104,11 @@ impl ProofGeneration {
 
         // Interpolate polynomial for x^(h) over the subset H[>∣x∣]
         let points = get_points_set(&z_vec[0..numebr_t_zero], set_h_1);
-        let poly_x_hat = lagrange_interpolate(&points);
+        let poly_x_hat = newton_interpolate(&points);
 
         // Interpolate polynomial w(h) over the subset H[<=∣x∣]
         let points = get_points_set(&z_vec[numebr_t_zero..], set_h_2);
-        let wh = lagrange_interpolate(&points);
+        let wh = newton_interpolate(&points);
 
         // Compute the vanishing polynomial for the subset H[<=∣x∣]
         let van_poly_vh1 = vanishing_poly(set_h_1);
@@ -134,7 +132,7 @@ impl ProofGeneration {
         // points_w.push((Mfp::from(80), Mfp::from(180)));
 
         // Interpolate polynomial for wˉ(h) based on the points_w
-        let poly_w_hat = lagrange_interpolate(&points_w);
+        let poly_w_hat = newton_interpolate(&points_w);
 
         (poly_x_hat, poly_w_hat, van_poly_vh1)
     }
@@ -537,6 +535,10 @@ impl ProofGeneration {
             AHPData::Commit(to_bint!(commit_x[10])),            // [10]: COM11AHP
             AHPData::Commit(to_bint!(commit_x[11])),            // [11]: COM12AHP
             AHPData::Sigma(to_bint!(sigma[0])),                 // [12]: P1AHP: sigma_1
+            AHPData::Sigma(to_bint!(sigma[1])),                 // [21]: P10AHP: sigma_2
+            AHPData::Sigma(to_bint!(sigma[2])),                 // [24]: P13AHP: sigma_3
+            AHPData::Value(to_bint!(val_y_p)),                  // [27]: P16AHP: y'
+            AHPData::Value(to_bint!(val_commit_poly_qx)),       // [28]: P17AHP: val_com_qx
             AHPData::Polynomial(write_term(&polys_proof[0])),   // [13]: P2AHP: w^x
             AHPData::Polynomial(write_term(&polys_proof[1])),   // [14]: P3AHP: z^a
             AHPData::Polynomial(write_term(&polys_proof[2])),   // [15]: P4AHP: z^b
@@ -545,14 +547,10 @@ impl ProofGeneration {
             AHPData::Polynomial(write_term(&polys_proof[5])),   // [18]: P7AHP: sx
             AHPData::Polynomial(write_term(&polys_proof[6])),   // [19]: P8AHP: g_1
             AHPData::Polynomial(write_term(&polys_proof[7])),   // [20]: P9AHP: h_1
-            AHPData::Sigma(to_bint!(sigma[1])),                 // [21]: P10AHP: sigma_2
             AHPData::Polynomial(write_term(&polys_proof[8])),   // [22]: P11AHP: g_2
             AHPData::Polynomial(write_term(&polys_proof[9])),   // [23]: P12AHP: h_2
-            AHPData::Sigma(to_bint!(sigma[2])),                 // [24]: P13AHP: sigma_3
             AHPData::Polynomial(write_term(&polys_proof[10])),  // [25]: P14AHP: g_3
             AHPData::Polynomial(write_term(&polys_proof[11])),  // [26]: P15AHP: h_3
-            AHPData::Value(to_bint!(val_y_p)),                  // [27]: P16AHP: y'
-            AHPData::Value(to_bint!(val_commit_poly_qx)),       // [28]: P17AHP: val_com_qx
         ];
 
         Box::new(pi_ahp)
@@ -597,7 +595,7 @@ impl ProofGeneration {
             *sigma_3 += sum;
             points_f_3.push((*k, sum));
         }
-        lagrange_interpolate(&points_f_3)
+        newton_interpolate(&points_f_3)
     }
 
     fn gen_poly_ax(
@@ -629,6 +627,7 @@ impl ProofGeneration {
     pub fn store(&self, path: &str, proof_data: Box<[AHPData]>) -> Result<()> {
         let file = File::create(path)?;
         let writer = BufWriter::new(file);
+
         let proof_json = ProofGenerationJson::new(proof_data);
         serde_json::to_writer(writer, &proof_json)?;
         Ok(())
