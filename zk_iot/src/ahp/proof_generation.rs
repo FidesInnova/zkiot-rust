@@ -41,6 +41,11 @@ pub enum Polys {
 }
 
 
+pub enum AhpValue {
+    Yp,
+    CommitQx
+}
+
 // Assuming AHPData is defined as follows
 #[derive(Serialize, Deserialize, Debug)]
 pub enum AHPData {
@@ -48,12 +53,12 @@ pub enum AHPData {
     Value(u64),
     Sigma(u64),
     Polynomial(Vec<u64>),
+    Array(Vec<u64>)
 }
-pub struct ProofGeneration {}
-
+pub struct ProofGeneration;
 impl ProofGeneration {
     pub fn new() -> Self {
-        Self {}
+        Self
     }
 
     fn generate_z_interpolations(
@@ -68,9 +73,9 @@ impl ProofGeneration {
         // TODO: Random values were taken from WIKI. After the test is completed, these inserts should be deleted or commented out.
         // Wiki link: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
         // Uncomment and adjust the line below to push random points
-        push_random_points(&mut points_za, random_b, &vec_to_set(set_h));
-        push_random_points(&mut points_zb, random_b, &vec_to_set(set_h));
-        push_random_points(&mut points_zc, random_b, &vec_to_set(set_h));
+        // push_random_points(&mut points_za, random_b, &vec_to_set(set_h));
+        // push_random_points(&mut points_zb, random_b, &vec_to_set(set_h));
+        // push_random_points(&mut points_zc, random_b, &vec_to_set(set_h));
 
         // TODO:
         // insert 'b' random poinsts
@@ -126,7 +131,7 @@ impl ProofGeneration {
 
         // TODO:
         // Uncomment this line to insert random points for wˉ(h) from the set
-        push_random_points(&mut points_w, random_b, &vec_to_set(&set_h));
+        // push_random_points(&mut points_w, random_b, &vec_to_set(&set_h));
         // From wiki: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
         // points_w.push((Mfp::from(150), Mfp::from(42)));
         // points_w.push((Mfp::from(80), Mfp::from(180)));
@@ -504,10 +509,10 @@ impl ProofGeneration {
         .collect();
 
         // TODO: Random numebrs from Wiki, Comment it after test
-        // let coefficients = [5, 0, 101, 17, 0, 1, 20, 0, 0, 3, 115]
-        //     .iter()
-        //     .map(|v| Mfp::from(*v))
-        //     .collect::<Vec<Mfp>>();
+        let coefficients = [5, 0, 101, 17, 0, 1, 20, 0, 0, 3, 115]
+            .iter()
+            .map(|v| Mfp::from(*v))
+            .collect::<Vec<Mfp>>();
 
         let mut rand_poly = Poly::from(coefficients);
         rand_poly.trim();
@@ -607,10 +612,11 @@ impl ProofGeneration {
     ) -> Poly {
         let val_vhx_beta_1 = van_poly_vhx.eval(beta[0]);
         let val_vhx_beta_2 = van_poly_vhx.eval(beta[1]);
+        let beta_mul = val_vhx_beta_2 * val_vhx_beta_1;
 
-        let poly_sig_a = Poly::from(vec![eta[0] * val_vhx_beta_2 * val_vhx_beta_1]) * &polys_px[2];
-        let poly_sig_b = Poly::from(vec![eta[1] * val_vhx_beta_2 * val_vhx_beta_1]) * &polys_px[5];
-        let poly_sig_c = Poly::from(vec![eta[2] * val_vhx_beta_2 * val_vhx_beta_1]) * &polys_px[8];
+        let poly_sig_a = Poly::from(vec![eta[0] * beta_mul]) * &polys_px[2];
+        let poly_sig_b = Poly::from(vec![eta[1] * beta_mul]) * &polys_px[5];
+        let poly_sig_c = Poly::from(vec![eta[2] * beta_mul]) * &polys_px[8];
 
         println!("poly_sig_a");
         dsp_poly!(poly_sig_a);
@@ -660,7 +666,8 @@ impl ProofGenerationJson {
                 AHPData::Commit(c) => commits.push(c),
                 AHPData::Value(v) => values.push(v),
                 AHPData::Polynomial(p) => polys.push(p),
-                AHPData::Sigma(s) => sigma.push(s)
+                AHPData::Sigma(s) => sigma.push(s),
+                AHPData::Array(_) => todo!(),
             }
         }
 
@@ -686,9 +693,4 @@ impl ProofGenerationJson {
     pub fn get_value(&self, val: usize) -> Mfp {
         Mfp::from(self.values[val])
     }
-}
-
-pub enum AhpValue {
-    Yp,
-    CommitQx
 }

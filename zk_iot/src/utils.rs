@@ -300,8 +300,10 @@ pub fn add_random_points(
     let mut rng = rand::thread_rng();
 
     for i in c..set_k.len() {
-        let rand_h = set_h.choose(&mut rng).ok_or(anyhow!("Failed to choose a random element from set_h"))?;
-        points.insert(set_k[i], *rand_h);
+        // TODO: 
+        // let rand_h = set_h.choose(&mut rng).ok_or(anyhow!("Failed to choose a random element from set_h"))?;
+        let rand_h = set_h[i % set_h.len()];
+        points.insert(set_k[i], rand_h);
     }
 
 

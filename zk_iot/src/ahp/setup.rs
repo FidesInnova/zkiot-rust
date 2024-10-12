@@ -39,8 +39,8 @@ impl Setup {
 
     pub fn key_generate(&mut self, num: u64) {
         // TODO:
-        let tau = thread_rng().gen_range(1..P - 1);
-        // let tau = 119;
+        // let tau = thread_rng().gen_range(1..P - 1);
+        let tau = 119;
 
         let ck = kzg::setup(num, tau, GENERATOR);
         self.ck = ck;

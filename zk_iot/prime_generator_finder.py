@@ -16,15 +16,19 @@ def is_prime(n):
             return False
     return True
 
-def find_largest_prime(n, m):
+def find_large_prime(n, m):
     max_32_bit = 2**31 - 1
-    
-    # Convert m to an integer
     m = int(m)
-
-    # Start from the largest number and go down in steps of n * m
     for num in range(max_32_bit - (max_32_bit - 1) % (n * m), 1, -(n * m)):
         if is_prime(num):
+            return num
+    return None
+
+def find_small_prime(n, m):
+    max_32_bit = 2**31 - 1
+    m = int(m)
+    for num in range(1, max_32_bit, 1):
+        if is_prime(num) and (num - 1)% m == 0 and (num - 1) % n == 0:
             return num
     return None
 
@@ -61,7 +65,8 @@ print(f"n_g: {n_g}\nn_i: {n_i}")
 print(f"n: {n}\nm: {int(m)}")
 
 # Find the largest prime number
-largest_prime = find_largest_prime(n, m)
+# largest_prime = find_largest_prime(n, m)
+largest_prime = find_small_prime(n, m)
 
 if largest_prime:
     print(f"Largest prime number found: {largest_prime}")

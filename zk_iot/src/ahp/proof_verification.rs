@@ -128,19 +128,20 @@ impl Verification {
 
     fn check_3(
         &self,
-        z_vec: Vec<Mfp>,
+        x: Vec<Mfp>,
         alpha: Mfp,
         beta: &[Mfp],
         eta: &[Mfp],
         set_h: &Vec<Mfp>,
         t_zero: usize,
     ) -> bool {
+
         let van_poly_vhx = Self::vanishing_poly(set_h.len());
         let poly_r = func_u(Some(alpha), None, set_h.len());
         let sum_1 = self.gen_poly_sigma(&eta, &poly_r);
         let set_h_1 = &set_h[0..t_zero].to_vec(); // H[>∣x∣]
                                                   // let z_vec = &mat_to_vec(&commitment.matrices.z);
-        let points = get_points_set(&z_vec[0..t_zero], set_h_1);
+        let points = get_points_set(&x, set_h_1);
         let poly_x_hat = newton_interpolate(&points);
         // Interpolate polynomial w(h) over the subset H[<=∣x∣]
         // Compute the vanishing polynomial for the subset H[<=∣x∣]
