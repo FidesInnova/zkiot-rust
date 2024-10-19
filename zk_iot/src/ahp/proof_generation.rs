@@ -100,7 +100,8 @@ impl ProofGeneration {
     fn compute_x_w_vanishing_interpolation(
         random_b: u64,
         set_h: &Vec<Mfp>,
-        z_vec: &Vec<Mfp>,
+        x_vec: &Vec<Mfp>,
+        cz_mat_vec: &Vec<Mfp>,
         numebr_t_zero: usize,
     ) -> (Poly, Poly, Poly) {
         // Split set_h into two subsets based on index t
@@ -108,12 +109,12 @@ impl ProofGeneration {
         let set_h_2 = &set_h[numebr_t_zero..].to_vec(); // H[<=∣x∣]
 
         // Interpolate polynomial for x^(h) over the subset H[>∣x∣]
-        let points = get_points_set(&z_vec[0..numebr_t_zero], set_h_1);
+        let points = get_points_set(&x_vec[0..numebr_t_zero], set_h_1);
         let poly_x_hat = newton_interpolate(&points);
-
         // Interpolate polynomial w(h) over the subset H[<=∣x∣]
-        let points = get_points_set(&z_vec[numebr_t_zero..], set_h_2);
-        let wh = newton_interpolate(&points);
+        // FIXME:
+        let points = get_points_set(&cz_mat_vec[numebr_t_zero..], set_h_2);
+        let w_hat = newton_interpolate(&points);
 
         // Compute the vanishing polynomial for the subset H[<=∣x∣]
         let van_poly_vh1 = vanishing_poly(set_h_1);
@@ -124,7 +125,7 @@ impl ProofGeneration {
         for i in set_h_2 {
             // Compute the adjusted polynomial wˉ(h) for each element in the subset
 
-            let w_bar_h = (wh.eval(*i) - poly_x_hat.eval(*i))
+            let w_bar_h = (w_hat.eval(*i) - poly_x_hat.eval(*i))
                 * exp_mod(to_bint!(van_poly_vh1.eval(*i)), P - 2);
             points_w.push((*i, w_bar_h));
         }
@@ -229,6 +230,7 @@ impl ProofGeneration {
             random_b,
             &set_h,
             &commitment_json.get_z_vec(),
+            &commitment_json.get_matrix_oz_vec()[2],
             numebr_t_zero,
         );
         println!("w_hat:"); // Output the interpolated polynomial for wˉ(h)

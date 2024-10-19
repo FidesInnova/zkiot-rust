@@ -47,7 +47,7 @@ impl Verification {
         (ck, vk): (&[Mfp], Mfp),
         class_data: ClassData,
         polys_px: &Vec<Poly>,
-        z_vec: Vec<Mfp>,
+        x_vec: Vec<Mfp>,
     ) -> bool {
         let poly_sx = &self.data.get_poly(Polys::Sx as usize);
         // TODO:
@@ -68,14 +68,13 @@ impl Verification {
         let beta = vec![Mfp::from(22), Mfp::from(80), Mfp::from(5)];
         let eta = vec![Mfp::from(2), Mfp::from(30), Mfp::from(100)];
         let t = (class_data.n_i + 1) as usize;
-
         let set_h_len = class_data.n as usize;
         let set_h = generate_set(set_h_len as u64);
         let set_k_len = class_data.m as usize;
 
         self.check_1(&polys_px, &beta, &eta, set_h_len, set_k_len)
             && self.check_2(&beta, alpha, set_h_len)
-            && self.check_3(z_vec, alpha, &beta, &eta, &set_h, t)
+            && self.check_3(x_vec, alpha, &beta, &eta, &set_h, t)
             && self.check_4(&beta, set_h_len)
             && self.check_5((ck, vk), z, Mfp::from(GENERATOR))
     }
@@ -141,6 +140,8 @@ impl Verification {
         let sum_1 = self.gen_poly_sigma(&eta, &poly_r);
         let set_h_1 = &set_h[0..t_zero].to_vec(); // H[>∣x∣]
                                                   // let z_vec = &mat_to_vec(&commitment.matrices.z);
+        // FIXME:
+        // let points = get_points_set(&x, set_h_1);
         let points = get_points_set(&x, set_h_1);
         let poly_x_hat = newton_interpolate(&points);
         // Interpolate polynomial w(h) over the subset H[<=∣x∣]

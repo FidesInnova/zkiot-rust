@@ -1,11 +1,161 @@
 //! Module for parsing gate information from text files into `Gate` objects.
 
 use anyhow::{anyhow, Context, Result};
+use ark_ff::Field;
 use std::{fs::File, path::PathBuf};
 use std::io::{BufRead, BufReader};
 
-use crate::utils::{Gate, GateType};
 use crate::json_file::*;
+use crate::math::Mfp;
+
+#[derive(Debug)]
+enum ZKPRegister {
+    X0,  // Hardwired zero
+    X1,  // Return address (ra)
+    X2,  // Stack pointer (sp)
+    X3,  // Global pointer (gp)
+    X4,  // Thread pointer (tp)
+    X5,  // Temporary register (t0)
+    X6,  // Temporary register (t1)
+    X7,  // Temporary register (t2)
+    X8,  // Platform register (s0)
+    X9,  // Platform register (s1)
+    X10, // Argument register (a0)
+    X11, // Argument register (a1)
+    X12, // Temporary register (a2)
+    X13, // Temporary register (a3)
+    X14, // Temporary register (a4)
+    X15, // Temporary register (a5)
+    X16, // Temporary register (a6)
+    X17, // Temporary register (a7)
+    X18, // Saved register (s2)
+    X19, // Saved register (s3)
+    X20, // Saved register (s4)
+    X21, // Saved register (s5)
+    X22, // Saved register (s6)
+    X23, // Saved register (s7)
+    X24, // Saved register (s8)
+    X25, // Saved register (s9)
+    X26, // Saved register (s10)
+    X27, // Saved register (s11)
+    X28, // Temporary register (t3)
+    X29, // Frame pointer (t4)
+    X30, // Return address (t5)
+    X31, // Integer register (t6)
+}
+
+
+#[derive(Debug)]
+enum RiscvReg {
+    Zero, // x0 - Hardwired zero
+    Ra,   // x1 - Return address
+    Sp,   // x2 - Stack pointer
+    Gp,   // x3 - Global pointer
+    Tp,   // x4 - Thread pointer
+    T0,   // x5 - Temporary register
+    T1,   // x6 - Temporary register
+    T2,   // x7 - Temporary register
+    S0,   // x8 - Saved register
+    S1,   // x9 - Saved register
+    A0,   // x10 - Argument register
+    A1,   // x11 - Argument register
+    T3,   // x12 - Temporary register
+    T4,   // x13 - Temporary register
+    T5,   // x14 - Temporary register
+    T6,   // x15 - Temporary register
+    A2,   // x16 - Temporary register
+    A3,   // x17 - Temporary register
+    A4,   // x18 - Saved register
+    A5,   // x19 - Saved register
+    A6,   // x20 - Saved register
+    A7,   // x21 - Saved register
+    S2,   // x22 - Saved register
+    S3,   // x23 - Saved register
+    S4,   // x24 - Saved register
+    S5,   // x25 - Saved register
+    S6,   // x26 - Saved register
+    S7,   // x27 - Saved register
+    S8,   // x28 - Saved register
+    S9,   // x29 - Saved register
+    S10,  // x30 - Temporary register
+    S11,  // x31 - Integer register
+}
+
+
+/// Represents the type of a gate.
+///
+/// This enum defines the possible types of gates,
+/// specifically addition and multiplication gates.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum GateType {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Ld
+}
+
+/// Represents a gate with its parameters.
+///
+/// # Fields
+/// - `inx_left`: The index of the left input of the gate.
+/// - `inx_right`: The index of the right input of the gate.
+/// - `val_left`: Optional value for the left input, if provided.
+/// - `val_right`: Optional value for the right input, if provided.
+/// - `gate_type`: The type of the gate, which can be either an addition or multiplication gate.
+///
+/// # Description
+/// This struct is used to define a gate. It includes the indices for the
+/// left and right inputs, optional values for these inputs, and the type of gate being used.
+#[derive(Debug)]
+pub struct Gate {
+    pub inx_left: usize,
+    pub inx_right: usize,
+    pub val_left: Option<u64>,
+    pub val_right: Option<u64>,
+    pub reg_left: u8,
+    pub reg_right: u8,
+    pub gate_type: GateType,
+}
+
+impl Gate {
+    /// Creates a new instance of a `Gate`.
+    ///
+    /// # Parameters
+    /// - `l`: The index of the left input.
+    /// - `r`: The index of the right input.
+    /// - `val_left`: Optional value for the left input.
+    /// - `val_right`: Optional value for the right input.
+    /// - `gtype`: The type of gate (addition or multiplication).
+    ///
+    /// # Returns
+    /// Returns a `Gate` instance with the specified parameters.
+    ///
+    /// # Description
+    /// This constructor method initializes a `Gate` with the provided indices, optional
+    /// values, and gate type.
+    pub fn new(
+        inx_left: usize,
+        inx_right: usize,
+        val_left: Option<u64>,
+        val_right: Option<u64>,
+        reg_left: u8,
+        reg_right: u8,
+        gate_type: GateType,
+    ) -> Self {
+        Self {
+            inx_left,
+            inx_right,
+            val_left,
+            val_right,
+            reg_left,
+            reg_right,
+            gate_type,
+        }
+    }
+}
+
+
 
 /// Parses a line of text into a tuple containing a specific element and a vector of elements.
 ///
@@ -29,6 +179,64 @@ fn parse_line(line: &str, index: usize) -> Result<(&str, Vec<&str>)> {
         Ok((parts[2], parts[3..].to_vec()))
     } else {
         Err(anyhow!("a problem occurred in line {}", index))
+    }
+}
+
+fn match_reg(reg: &str) -> u8 {
+    // TODO: Add zero?
+    match reg.to_lowercase().as_str() {
+        "ra" => 1,   // x1 - Return address
+        "sp" => 2,   // x2 - Stack pointer
+        "gp" => 3,   // x3 - Global pointer
+        "tp" => 4,   // x4 - Thread pointer
+        "t0" => 5,   // x5 - Temporary register
+        "t1" => 6,   // x6 - Temporary register
+        "t2" => 7,   // x7 - Temporary register
+        "s0" => 8,   // x8 - Platform register
+        "s1" => 9,   // x9 - Platform register
+        "a0" => 10,  // x10 - Argument register
+        "a1" => 11,  // x11 - Argument register
+        "a2" => 12,  // x12 - Temporary register
+        "a3" => 13,  // x13 - Temporary register
+        "a4" => 14,  // x14 - Temporary register
+        "a5" => 15,  // x15 - Temporary register
+        "a6" => 16,  // x16 - Temporary register
+        "a7" => 17,  // x17 - Temporary register
+        "s2" => 18,  // x18 - Saved register
+        "s3" => 19,  // x19 - Saved register
+        "s4" => 20,  // x20 - Saved register
+        "s5" => 21,  // x21 - Saved register
+        "s6" => 22,  // x22 - Saved register
+        "s7" => 23,  // x23 - Saved register
+        "s8" => 24,  // x24 - Saved register
+        "s9" => 25,  // x25 - Saved register
+        "s10" => 26, // x26 - Saved register
+        "s11" => 27, // x27 - Saved register
+        "t3" => 28,  // x28 - Temporary register
+        "t4" => 29,  // x29 - Frame pointer
+        "t5" => 30,  // x30 - Return address
+        "t6" => 31,  // x31 - Integer register
+        _ => panic!("Invalid register: {}", reg),
+    }
+}
+
+fn register_parser(reg: Vec<&str>) -> (u8, u8) {
+    let left_reg = match_reg(reg[0]);
+    let right_reg = match_reg(reg[1]);
+    (left_reg, right_reg)
+}
+
+#[derive(Debug)]
+pub struct RegData {
+    pub init_val: Mfp,
+    pub witness: Vec<Mfp>,
+}
+impl RegData {
+    pub fn new(val: Mfp) -> Self {
+        Self { init_val: val, witness: vec![] }
+    }
+    fn get_final(&mut self) -> Option<Mfp> {
+        self.witness.pop()
     }
 }
 
@@ -58,74 +266,23 @@ pub fn parse_from_lines(line_file: BufReader<File>, opcodes_file: &PathBuf) -> R
             continue;
         }
 
-        let constant = operands.get(2)
+        let constant_right = operands.get(2)
             .ok_or_else(|| anyhow!("Missing operand at index 2 for line {}", line_num))?
             .parse::<u64>()
-            .context(format!("Error parsing constant from operands for line {}", line_num))?;
+            .ok();
 
-        let gate = Gate::new(line_num, 0, None, Some(constant), gate_type?);
-        gates.push(gate);
-    }
-
-    Ok(gates)
-}
-
-/// Parses a file to generate a vector of `Gate` objects.
-///
-/// # Parameters
-/// - `file_path`: A `PathBuf` representing the path to the file that contains the gate data.
-///
-/// # Returns
-/// - `Ok(Vec<Gate>)`: A vector of `Gate` objects parsed from the file.
-/// - `Err(anyhow::Error)`: An error if there is an issue opening or reading the file.
-///
-/// # Description
-/// The `parser` function reads the file located at `file_path`, parses its content into `Gate` objects,
-/// and returns the resulting vector. It utilizes the `open_file` function to handle the file reading
-/// and then delegates parsing to `read_parse_lines`.
-pub fn parser(file_path: PathBuf) -> Result<Vec<Gate>> {
-    let reader = open_file(&file_path)?;
-    let gates = read_parse_lines(reader)?;
-    Ok(gates)
-}
-
-/// Parses gates from a file containing line numbers and a corresponding opcodes file.
-///
-/// # Parameters
-/// - `line_file`: A reference to a `PathBuf` representing the path to the file with line numbers.
-/// - `opcodes_file`: A reference to a `PathBuf` representing the path to the file with opcodes.
-///
-/// # Returns
-/// - `Ok(Vec<Gate>)`: A vector of `Gate` objects if parsing is successful.
-/// - `Err(anyhow::Error)`: An error if there is an issue reading or parsing the files.
-///
-/// # Description
-/// This function processes each line in the `line_file`, treating the content as line numbers that
-/// reference specific lines in the `opcodes_file`. For each valid line, it parses the corresponding
-/// opcode line to determine the operation and operands, constructs a `Gate` object, and adds it to
-/// the resulting vector. Errors are handled and reported with contextual information.
-fn read_parse_lines(reader: BufReader<File>) -> Result<Vec<Gate>> {
-    let mut gates = Vec::new();
-
-    for (index, line_result) in reader.lines().enumerate() {
-        let line = line_result
-            .context(format!("Error reading line {}: unable to read line", index + 1))?;
-        
-        let (operation, operands) = parse_line(&line, index)
-            .context(format!("Error parsing line {}: {}", index + 1, line))?;
-        
-        let gate_type = gate_type(operation);
-        if let Err(ref e) = gate_type {
-            eprintln!("Error determining gate type for line {}: {}", index + 1, e);
-            continue;
-        }
-
-        let constant = operands.get(2)
-            .ok_or_else(|| anyhow!("Missing operand at index 2 for line {}", index + 1))?
+        // let constant_left = None;
+        let constant_left = operands.get(1)
+            .ok_or_else(|| anyhow!("Missing operand at index 1 for line {}", line_num))?
             .parse::<u64>()
-            .context(format!("Error parsing constant from operands for line {}", index + 1))?;
+            .ok();
 
-        let gate = Gate::new(index + 1, 0, None, Some(constant), gate_type?);
+        let reg_data = register_parser(operands.clone());
+
+        let gate = Gate::new(line_num, 0, constant_left, constant_right, reg_data.0, reg_data.1, gate_type.unwrap());
+
+        // println!("gate ==> {:?}", gate);
+        
         gates.push(gate);
     }
 

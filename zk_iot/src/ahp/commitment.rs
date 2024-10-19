@@ -6,11 +6,7 @@ use std::{
 };
 
 use crate::{
-    dsp_mat, dsp_poly, dsp_vec,
-    json_file::{open_file, read_term, store_in_json_file, write_set, write_term, ClassData},
-    math::*,
-    to_bint,
-    utils::*,
+    dsp_mat, dsp_poly, dsp_vec, json_file::{open_file, read_term, store_in_json_file, write_set, write_term, ClassData}, math::*, parser::{Gate, GateType, RegData}, to_bint, utils::*
 };
 use anyhow::Result;
 use ark_ff::{Field, PrimeField};
@@ -97,7 +93,7 @@ impl Commitment {
             ],
             &self.points_px,
             &self.polys_px,
-            &self.matrices.z,
+            &mat_to_vec(&self.matrices.z)[0..self.numebr_t_zero].to_vec(),
         );
         serde_json::to_writer(writer, &commitment_json)?;
         Ok(())
@@ -116,14 +112,14 @@ pub struct CommitmentJson {
     matrix_oz_vec: [Vec<u64>; 3],
     points_px: Vec<Vec<(u64, u64)>>,
     polys_px: Vec<Vec<u64>>,
-    z_vec: Vec<u64>,
+    x_vec: Vec<u64>,
 }
 impl CommitmentJson {
     pub fn new(
         matrix_oz_vec: [&DMatrix<Mfp>; 3],
         points_px: &Vec<HashMap<Mfp, Mfp>>,
         polys_px: &Vec<Poly>,
-        z_vec: &DMatrix<Mfp>,
+        x_vec: &Vec<Mfp>,
     ) -> Self {
         // Extract values for CommitmentJson from the Commitment struct
         let polys_px_t: Vec<Vec<u64>> = polys_px.iter().map(|p| write_term(p)).collect();
@@ -141,17 +137,18 @@ impl CommitmentJson {
             write_set(&mat_to_vec(&matrix_oz_vec[1])),
             write_set(&mat_to_vec(&matrix_oz_vec[2])),
         ];
-        let z_vec = write_set(&mat_to_vec(&z_vec));
-
+        
+        
+        let x_vec = write_set(&x_vec);
         Self {
             matrix_oz_vec,
             points_px: points_px_t,
             polys_px: polys_px_t,
-            z_vec,
+            x_vec,
         }
     }
     pub fn get_z_vec(&self) -> Vec<Mfp> {
-        self.z_vec.iter().map(|v| Mfp::from(*v)).collect()
+        self.x_vec.iter().map(|v| Mfp::from(*v)).collect()
     }
     pub fn get_polys_px(&self) -> Vec<Poly> {
         self.polys_px
@@ -208,8 +205,7 @@ impl Matrices {
         let a = DMatrix::<Mfp>::zeros(size, size);
         let b = DMatrix::<Mfp>::zeros(size, size);
         let c = DMatrix::<Mfp>::zeros(size, size);
-        let mut z = DMatrix::<Mfp>::zeros(size, 1);
-        z[0] = Mfp::ONE;
+        let z = DMatrix::<Mfp>::zeros(size, 1);
 
         Self { a, b, c, z, size }
     }
@@ -248,42 +244,83 @@ impl CommitmentBuilder {
         let a_mat = &mut self.commitm.matrices.a;
         let b_mat = &mut self.commitm.matrices.b;
         let c_mat = &mut self.commitm.matrices.c;
-        let z_mat = &mut self.commitm.matrices.z;
+
+        let mut regs_data: HashMap<u8, RegData> = HashMap::new();
 
         let mut _index = 0;
         let mut counter = 0;
         let mut ld_counter = 0;
+
         for (i, gate) in gates.iter().enumerate() {
-            _index = 1 + ni + counter;
-            c_mat[(_index, _index)] = Mfp::ONE;
-
-            let left_val = gate.val_left.map_or(Mfp::ONE, Mfp::from);
-            let right_val = gate.val_right.map_or(Mfp::ONE, Mfp::from);
-
             match gate.gate_type {
                 GateType::Ld => {
                     let right_val = gate.val_right.map_or(Mfp::ZERO, Mfp::from);
-                    z_mat[i + 1] = right_val;
+
+                    if !regs_data.contains_key(&gate.reg_left) {
+                        regs_data.insert(gate.reg_right, RegData::new(right_val));
+                    } else {
+                        panic!("The register has been loaded again!");
+                    }
+
                     ld_counter += 1;
                     continue;
                 }
                 GateType::Add => {
+                    _index = 1 + ni + counter;
+                    
+                    let left_val = gate.val_left.map_or(Mfp::ONE, Mfp::from);
+                    let right_val = gate.val_right.map_or(Mfp::ONE, Mfp::from);
+
+                    c_mat[(_index, _index)] = Mfp::ONE;
+
                     a_mat[(_index, 0)] = Mfp::ONE;
 
                     b_mat[(_index, gate.inx_left - ld_counter)] = left_val;
                     b_mat[(_index, gate.inx_right)] = right_val;
 
-                    z_mat[i + 1] = z_mat[i] + gate.val_right.map_or(Mfp::ZERO, Mfp::from);
+                    // z_mat[i + 1] = z_mat[i] + gate.val_right.map_or(Mfp::ZERO, Mfp::from);
+                    let right_val = gate.val_right.map_or(Mfp::ZERO, Mfp::from);
+
+                    if let Some(reg) = regs_data.get_mut(&gate.reg_right) {
+                        let new_value = match reg.witness.last() {
+                            Some(&val) => val + right_val,
+                            None => reg.init_val + right_val,
+                        };
+                        reg.witness.push(new_value);
+                    }
                 }
                 GateType::Mul => {
+                    _index = 1 + ni + counter;
+                    
+                    let left_val = gate.val_left.map_or(Mfp::ONE, Mfp::from);
+                    let right_val = gate.val_right.map_or(Mfp::ONE, Mfp::from);
+
+                    c_mat[(_index, _index)] = Mfp::ONE;
+
                     a_mat[(_index, gate.inx_left - ld_counter)] = left_val;
                     b_mat[(_index, gate.inx_right)] = right_val;
 
-                    z_mat[i + 1] = z_mat[i] * right_val;
+                    // z_mat[i + 1] = z_mat[i] * right_val;
+
+                    if let Some(reg) = regs_data.get_mut(&gate.reg_right) {
+                        let new_value = match reg.witness.last() {
+                            Some(&val) => val * right_val,
+                            None => reg.init_val * right_val,
+                        };
+                        reg.witness.push(new_value);
+                    }
                 }
                 GateType::Sub => {
+
+                    _index = 1 + ni + counter;
+                    
+                    let left_val = gate.val_left.map_or(Mfp::ONE, Mfp::from);
+                    let right_val = gate.val_right.map_or(Mfp::ONE, Mfp::from);
+
+                    c_mat[(_index, _index)] = Mfp::ONE;
+
                     a_mat[(_index, 0)] = Mfp::ONE;
-                    b_mat[(_index, gate.inx_left - ld_counter)] = match to_bint!(left_val) {
+                    b_mat[(_index, gate.inx_left)] = match to_bint!(left_val) {
                         1 => Mfp::ONE,
                         _ => -left_val,
                     };
@@ -292,13 +329,21 @@ impl CommitmentBuilder {
                         _ => -right_val,
                     };
 
-                    z_mat[i + 1] = z_mat[i] - gate.val_right.map_or(Mfp::ZERO, Mfp::from);
+                    // z_mat[i + 1] = z_mat[i] - gate.val_right.map_or(Mfp::ZERO, Mfp::from);
                 }
                 GateType::Div => {
-                    a_mat[(_index, gate.inx_left - ld_counter)] = invers_val(left_val);
+
+                    _index = 1 + ni + counter;
+                    
+                    let left_val = gate.val_left.map_or(Mfp::ONE, Mfp::from);
+                    let right_val = gate.val_right.map_or(Mfp::ONE, Mfp::from);
+
+                    c_mat[(_index, _index)] = Mfp::ONE;
+
+                    a_mat[(_index, gate.inx_left)] = invers_val(left_val);
                     b_mat[(_index, gate.inx_right)] = invers_val(right_val);
 
-                    z_mat[i + 1] = div_mod_val(z_mat[i], right_val);
+                    // z_mat[i + 1] = div_mod_val(z_mat[i], right_val);
                 }
             }
             counter += 1;
@@ -309,6 +354,9 @@ impl CommitmentBuilder {
         rows_to_zero(&mut self.commitm.matrices.b, self.commitm.numebr_t_zero);
         rows_to_zero(&mut self.commitm.matrices.c, self.commitm.numebr_t_zero);
 
+        
+        Self::gen_z_mat(&mut self.commitm.matrices.z, &regs_data);
+            
         println!("Mat A:");
         dsp_mat!(self.commitm.matrices.a);
         println!("Mat B:");
@@ -319,6 +367,43 @@ impl CommitmentBuilder {
         dsp_mat!(self.commitm.matrices.z);
 
         self.clone()
+    }
+
+    fn gen_z_mat(z_vec: &mut DMatrix<Mfp>, regs_data: &HashMap<u8, RegData>) {
+        z_vec[(0, 0)] = Mfp::ONE;
+        let mut z_vec_counter: usize = 1;
+
+        let mut witnesses: Vec<Mfp> = vec![];
+        let mut final_val = vec![];
+        for reg in 1..32 {
+            if regs_data.contains_key(&reg) {
+                let data = regs_data.get(&reg).unwrap();
+                // println!("data here ==> {:?}", data);
+                z_vec[(z_vec_counter, 0)] = data.init_val;
+                z_vec_counter += 1;
+                let mut witness = data.witness.clone();
+                if witness.is_empty() {
+                    continue;
+                }
+                let last_val = witness.pop().unwrap();
+                witnesses.extend(witness.iter());
+                final_val.push(last_val);
+            }
+        }
+
+        // println!("inits {:?}", mat_to_vec(z_vec));
+        // println!("witness {:?}", witnesses);
+        // println!("z_v_c {:?}", z_vec_counter);
+
+        for w in witnesses {
+            z_vec[(z_vec_counter, 0)] = w;
+            z_vec_counter += 1;
+        }
+
+        for f in final_val {
+            z_vec[(z_vec_counter, 0)] = f;
+            z_vec_counter += 1;
+        }
     }
 
     pub fn gen_polynomials(&mut self) -> Self {

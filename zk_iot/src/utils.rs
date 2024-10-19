@@ -24,74 +24,6 @@ use crate::math::Poly;
 use crate::math::Mfp;
 use crate::math::P;
 
-/// Represents the type of a gate.
-///
-/// This enum defines the possible types of gates,
-/// specifically addition and multiplication gates.
-#[derive(Debug, Clone, Copy)]
-pub enum GateType {
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Ld
-}
-
-/// Represents a gate with its parameters.
-///
-/// # Fields
-/// - `inx_left`: The index of the left input of the gate.
-/// - `inx_right`: The index of the right input of the gate.
-/// - `val_left`: Optional value for the left input, if provided.
-/// - `val_right`: Optional value for the right input, if provided.
-/// - `gate_type`: The type of the gate, which can be either an addition or multiplication gate.
-///
-/// # Description
-/// This struct is used to define a gate. It includes the indices for the
-/// left and right inputs, optional values for these inputs, and the type of gate being used.
-#[derive(Debug)]
-pub struct Gate {
-    pub inx_left: usize,
-    pub inx_right: usize,
-    pub val_left: Option<u64>,
-    pub val_right: Option<u64>,
-    pub gate_type: GateType,
-}
-
-impl Gate {
-    /// Creates a new instance of a `Gate`.
-    ///
-    /// # Parameters
-    /// - `l`: The index of the left input.
-    /// - `r`: The index of the right input.
-    /// - `val_left`: Optional value for the left input.
-    /// - `val_right`: Optional value for the right input.
-    /// - `gtype`: The type of gate (addition or multiplication).
-    ///
-    /// # Returns
-    /// Returns a `Gate` instance with the specified parameters.
-    ///
-    /// # Description
-    /// This constructor method initializes a `Gate` with the provided indices, optional
-    /// values, and gate type.
-    pub fn new(
-        l: usize,
-        r: usize,
-        val_left: Option<u64>,
-        val_right: Option<u64>,
-        gtype: GateType,
-    ) -> Self {
-        Self {
-            inx_left: l,
-            inx_right: r,
-            val_left,
-            val_right,
-            gate_type: gtype,
-        }
-    }
-}
-
-
 
 
 /// Sets the first `t` rows of the matrix `mat` to zero.
@@ -142,7 +74,7 @@ define_get_points_fn!(get_points_val, val);
 pub fn get_points_set(seq: &[Mfp], n: &[Mfp]) -> Vec<Point> {
     let mut points: Vec<Point> = vec![];
 
-    assert!(seq.len() == n.len(), "sets are not equal");
+    assert!(seq.len() == n.len(), "sets are not equal => {:?} & {:?}", seq, n);
 
     for point in n.iter().zip(seq.iter()) {
         points.push((*point.0, *point.1));
