@@ -316,7 +316,7 @@ impl CommitmentBuilder {
 
         let mut witnesses: Vec<Mfp> = vec![];
         let mut final_val = vec![];
-        for reg in 1..32 {
+        for reg in 0..32 {
             if regs_data.contains_key(&reg) {
                 let data = regs_data.get(&reg).unwrap();
                 // println!("data here ==> {:?}", data);
@@ -341,8 +341,8 @@ impl CommitmentBuilder {
             z_vec_counter += 1;
         }
 
-        for f in final_val {
-            z_vec[(z_vec_counter, 0)] = f;
+        for f in final_val.iter().rev() {
+            z_vec[(z_vec_counter, 0)] = *f;
             z_vec_counter += 1;
         }
     }

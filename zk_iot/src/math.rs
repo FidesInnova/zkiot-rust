@@ -21,8 +21,8 @@ use crate::{dsp_poly, field, to_bint, utils::add_random_points};
 // pub const P: u64 = 45151681;
 // pub const GENERATOR: u64 = 61;
 
-pub const P: u64 = 8779;
-pub const GENERATOR: u64 = 11;
+pub const P: u64 = 5107;
+pub const GENERATOR: u64 = 2;
 
 // pub const P: u64 = 181;
 // pub const GENERATOR: u64 = 2;

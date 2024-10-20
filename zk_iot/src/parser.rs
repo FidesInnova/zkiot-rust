@@ -185,6 +185,7 @@ fn parse_line(line: &str, index: usize) -> Result<(&str, Vec<&str>)> {
 fn match_reg(reg: &str) -> u8 {
     // TODO: Add zero?
     match reg.to_lowercase().as_str() {
+        "z" => 0, 
         "ra" => 1,   // x1 - Return address
         "sp" => 2,   // x2 - Stack pointer
         "gp" => 3,   // x3 - Global pointer

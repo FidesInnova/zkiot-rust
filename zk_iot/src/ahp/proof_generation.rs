@@ -241,15 +241,17 @@ impl ProofGeneration {
 
         // h_zero
         let van_poly_vhx = vanishing_poly(&set_h);
+
         println!("van_poly_vhx: ");
         dsp_poly!(van_poly_vhx);
 
         let poly_ab_c = &poly_z_hat_a * &poly_z_hat_b - &poly_z_hat_c;
+        println!("{:?} ,,, {:?}", poly_ab_c, van_poly_vhx);
         let poly_h_0 = div_mod(&poly_ab_c, &van_poly_vhx).0;
-
         println!("h0(x):");
         dsp_poly!(poly_h_0);
 
+        
         // Generate a random polynomial
         let poly_sx = Self::generate_random_polynomial(2 * set_h.len() + 2 - 1, (0, P));
         println!("poly_sx");
