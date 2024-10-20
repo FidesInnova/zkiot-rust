@@ -1,22 +1,25 @@
 import random
 import sys
 
+
+range_num = (1, 100)
+
 def generate_random_opcode(num_opcodes, file_path):
     # Define possible opcodes
-    opcodes = ['mul', 'addi', 'div', 'sub']  # Only include 'mul' and 'addi' for subsequent lines
+    opcodes = ['mul', 'add', 'sub', 'div']  # Only include 'mul' and 'addi' for subsequent lines
     
     with open(file_path, 'w') as file:
         # Generate the first opcode line with 'ld'
         address = f"{random.randint(0x40000000, 0x4FFFFFFF):08x}"
-        immediate = random.randint(1, 2**31 - 1)  # Random immediate value
-        file.write(f"{address}:       02f407b3                ld      R1, R1 ,{immediate}\n")
+        immediate = random.randint(range_num[0], range_num[1])  # Random immediate value
+        file.write(f"{address}:       02f407b3                ld     a1, a1 ,{immediate}\n")
         
         # Generate the remaining random opcodes
         for _ in range(1, num_opcodes):
             address = f"{random.randint(0x40000000, 0x4FFFFFFF):08x}"
             opcode = random.choice(opcodes)
-            immediate = random.randint(1, 2**31 - 1)  # Random immediate value
-            file.write(f"{address}:       02f407b3                {opcode}    R1, R1 ,{immediate}\n")
+            immediate = random.randint(range_num[0], range_num[1])  # Random immediate value
+            file.write(f"{address}:       02f407b3                {opcode}    a1, a1 ,{immediate}\n")
 
 def write_numbers_to_file(count, filename):
     with open(filename, 'w') as file:

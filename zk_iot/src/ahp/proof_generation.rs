@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use crate::dsp_poly;
 use crate::dsp_vec;
 use crate::json_file::open_file;
+use crate::json_file::write_set;
 use crate::json_file::write_term;
 use crate::json_file::ClassData;
 use crate::math::*;
@@ -21,6 +22,7 @@ use rustnomial::SizedPolynomial;
 use serde::Deserialize;
 use serde::Serialize;
 
+use super::commitment::Commitment;
 use super::commitment::CommitmentJson;
 
 
@@ -213,24 +215,25 @@ impl ProofGeneration {
         commitment_key: &Vec<Mfp>,
         class_data: ClassData,
         commitment_json: CommitmentJson,
+        commitment: Commitment
     ) -> Box<[AHPData]> {
         // Generate sets
         let set_h = generate_set(class_data.n);
         let set_k = generate_set(class_data.m);
-
         let numebr_t_zero: usize = (class_data.n_i + 1) as usize;
-
+        let x_vec = &mat_to_vec(&commitment.matrices.z)[..numebr_t_zero];
+        
         // TODO: Set 'random_b' to a random value in the range 1 to 50
         let random_b = 2;
 
         // Generate and interpolate points for matrices za, zb, zc
         let (poly_z_hat_a, poly_z_hat_b, poly_z_hat_c) =
-            Self::generate_z_interpolations(commitment_json.get_matrix_oz_vec(), random_b, &set_h);
+            Self::generate_z_interpolations(commitment.get_matrix_oz_vec(), random_b, &set_h);
         let (poly_x_hat, poly_w_hat, van_poly_vh1) = Self::compute_x_w_vanishing_interpolation(
             random_b,
             &set_h,
-            &commitment_json.get_z_vec(),
-            &commitment_json.get_matrix_oz_vec()[2],
+            &x_vec.to_vec(),
+            &mat_to_vec(&commitment.get_matrix_cz()),
             numebr_t_zero,
         );
         println!("w_hat:"); // Output the interpolated polynomial for wˉ(h)
@@ -487,7 +490,7 @@ impl ProofGeneration {
         let commit_x = compute_all_commitment(&polys_proof, commitment_key, GENERATOR);
         println!("commit_x: {}", dsp_vec!(commit_x));
 
-        Self::create_proof(&polys_proof, &sigma, &commit_x, val_y_p, val_commit_poly_qx)
+        Self::create_proof(&polys_proof, &sigma, &commit_x, val_y_p, val_commit_poly_qx, &x_vec.to_vec())
     }
 
     pub fn compute_polys_pi(beta_1: Mfp, beta_2: Mfp, polys_px: &[Poly]) -> (Poly, Poly, Poly) {
@@ -527,20 +530,22 @@ impl ProofGeneration {
         commit_x: &[Mfp],
         val_y_p: Mfp,
         val_commit_poly_qx: Mfp,
+        x_vec: &Vec<Mfp>,
     ) -> Box<[AHPData]> {
         let pi_ahp = [
-            AHPData::Commit(to_bint!(commit_x[0])),             // [0]: COM1AHP
-            AHPData::Commit(to_bint!(commit_x[1])),             // [1]: COM2AHP
-            AHPData::Commit(to_bint!(commit_x[2])),             // [2]: COM3AHP
-            AHPData::Commit(to_bint!(commit_x[3])),             // [3]: COM4AHP
-            AHPData::Commit(to_bint!(commit_x[4])),             // [4]: COM5AHP
-            AHPData::Commit(to_bint!(commit_x[5])),             // [5]: COM6AHP
-            AHPData::Commit(to_bint!(commit_x[6])),             // [6]: COM7AHP
-            AHPData::Commit(to_bint!(commit_x[7])),             // [7]: COM8AHP
-            AHPData::Commit(to_bint!(commit_x[8])),             // [8]: COM9AHP
-            AHPData::Commit(to_bint!(commit_x[9])),             // [9]: COM10AHP
-            AHPData::Commit(to_bint!(commit_x[10])),            // [10]: COM11AHP
-            AHPData::Commit(to_bint!(commit_x[11])),            // [11]: COM12AHP
+            AHPData::Array(write_set(x_vec)),                   // COM1AHP
+            AHPData::Commit(to_bint!(commit_x[0])),             // [0]: COM2AHP
+            AHPData::Commit(to_bint!(commit_x[1])),             // [1]: COM3AHP
+            AHPData::Commit(to_bint!(commit_x[2])),             // [2]: COM4AHP
+            AHPData::Commit(to_bint!(commit_x[3])),             // [3]: COM5AHP
+            AHPData::Commit(to_bint!(commit_x[4])),             // [4]: COM6AHP
+            AHPData::Commit(to_bint!(commit_x[5])),             // [5]: COM7AHP
+            AHPData::Commit(to_bint!(commit_x[6])),             // [6]: COM8AHP
+            AHPData::Commit(to_bint!(commit_x[7])),             // [7]: COM9AHP
+            AHPData::Commit(to_bint!(commit_x[8])),             // [8]: COM10AHP
+            AHPData::Commit(to_bint!(commit_x[9])),             // [9]: COM11AHP
+            AHPData::Commit(to_bint!(commit_x[10])),            // [10]: COM12AHP
+            AHPData::Commit(to_bint!(commit_x[11])),            // [11]: COM13AHP
             AHPData::Sigma(to_bint!(sigma[0])),                 // [12]: P1AHP: sigma_1
             AHPData::Sigma(to_bint!(sigma[1])),                 // [21]: P10AHP: sigma_2
             AHPData::Sigma(to_bint!(sigma[2])),                 // [24]: P13AHP: sigma_3
@@ -648,12 +653,13 @@ impl ProofGeneration {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ProofGenerationJson {
     commits: Vec<u64>,
     polys: Vec<Vec<u64>>,
     sigma: Vec<u64>,
     values: Vec<u64>,
+    x_vec: Vec<u64>
 }
 
 impl ProofGenerationJson {
@@ -662,14 +668,15 @@ impl ProofGenerationJson {
         let mut polys = vec![];
         let mut sigma = vec![];
         let mut values = vec![];
+        let mut x_vec = vec![];
 
         for val in proof_data {
             match val {
-                AHPData::Commit(c) => commits.push(c),
+                AHPData::Commit(v) => commits.push(v),
                 AHPData::Value(v) => values.push(v),
-                AHPData::Polynomial(p) => polys.push(p),
-                AHPData::Sigma(s) => sigma.push(s),
-                AHPData::Array(_) => todo!(),
+                AHPData::Polynomial(v) => polys.push(v),
+                AHPData::Sigma(v) => sigma.push(v),
+                AHPData::Array(v) => x_vec = v,
             }
         }
 
@@ -678,7 +685,12 @@ impl ProofGenerationJson {
             polys,
             sigma,
             values,
+            x_vec
         }
+    }
+
+    pub fn get_x_vec(&self) -> Vec<Mfp> {
+        self.x_vec.iter().map(|v| Mfp::from(*v)).collect()
     }
 
     pub fn get_poly(&self, poly: usize) -> Poly {

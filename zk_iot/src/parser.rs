@@ -271,7 +271,6 @@ pub fn parse_from_lines(line_file: BufReader<File>, opcodes_file: &PathBuf) -> R
             .parse::<u64>()
             .ok();
 
-        // let constant_left = None;
         let constant_left = operands.get(1)
             .ok_or_else(|| anyhow!("Missing operand at index 1 for line {}", line_num))?
             .parse::<u64>()
@@ -281,7 +280,7 @@ pub fn parse_from_lines(line_file: BufReader<File>, opcodes_file: &PathBuf) -> R
 
         let gate = Gate::new(line_num, 0, constant_left, constant_right, reg_data.0, reg_data.1, gate_type.unwrap());
 
-        // println!("gate ==> {:?}", gate);
+        println!("gate ==> {:?}", gate);
         
         gates.push(gate);
     }
@@ -305,7 +304,7 @@ pub fn parse_from_lines(line_file: BufReader<File>, opcodes_file: &PathBuf) -> R
 /// that the operation is not supported.
 fn gate_type(op: &str) -> Result<GateType> {
     match op {
-        "addi" => Ok(GateType::Add),
+        "add" => Ok(GateType::Add),
         "sub" => Ok(GateType::Sub),
         "mul" => Ok(GateType::Mul),
         "div" => Ok(GateType::Div),

@@ -18,35 +18,15 @@ pub struct Verification {
 }
 
 impl Verification {
-    pub fn new(data: ProofGenerationJson ) -> Self {
-        Self { data }
-    }
-
-    fn get_value(data: &AHPData) -> Mfp {
-        match data {
-            AHPData::Commit(val) | AHPData::Value(val) => Mfp::from(*val),
-            _ => panic!("Unexpected AHPData variant"),
-        }
-    }
-
-    fn vec_to_poly(data: &AHPData) -> Poly {
-        if let AHPData::Polynomial(poly) = data {
-            Poly::new(
-                poly.iter()
-                    .rev()
-                    .map(|&t| Mfp::from(t))
-                    .collect::<Vec<Mfp>>(),
-            )
-        } else {
-            panic!("Unexpected AHPData variant")
-        }
+    pub fn new(data: &ProofGenerationJson ) -> Self {
+        Self { data: data.clone() }
     }
 
     pub fn verify(
         &self,
         (ck, vk): (&[Mfp], Mfp),
         class_data: ClassData,
-        polys_px: &Vec<Poly>,
+        polys_px: Vec<Poly>,
         x_vec: Vec<Mfp>,
     ) -> bool {
         let poly_sx = &self.data.get_poly(Polys::Sx as usize);

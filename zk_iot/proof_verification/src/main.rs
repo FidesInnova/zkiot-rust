@@ -27,14 +27,14 @@ fn main() -> Result<()> {
         .with_context(|| "Error loading proof data")?;
 
     // .: Verification :.
-    let verification = Verification::new(proof_generation);
+    let verification = Verification::new(&proof_generation);
     let verification_result = verification.verify(
         (&setup_json.get_commitment_key(), setup_json.get_verifying_key()), 
         class_data, 
-        &commitment_json.get_polys_px(), 
-        commitment_json.get_z_vec()
+        commitment_json.get_polys_px(), 
+        proof_generation.get_x_vec()
     );
 
-    println!("Verification result: {}", verification_result);
+    eprintln!("Verification result: {}", verification_result);
     Ok(())
 }
