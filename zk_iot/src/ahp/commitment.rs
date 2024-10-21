@@ -6,14 +6,18 @@ use std::{
 };
 
 use crate::{
-    dsp_mat, dsp_poly, dsp_vec, json_file::{open_file, read_term, store_in_json_file, write_set, write_term, ClassData}, math::*, parser::{Gate, GateType, RegData}, to_bint, utils::*
+    dsp_mat, dsp_poly, dsp_vec,
+    json_file::{open_file, read_term, store_in_json_file, write_set, write_term, ClassData},
+    math::*,
+    parser::{Gate, GateType, RegData},
+    to_bint,
+    utils::*,
 };
 use anyhow::Result;
 use ark_ff::{Field, PrimeField};
 use nalgebra::DMatrix;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_str, json, Value};
-
 
 #[derive(Debug, Clone)]
 pub struct Commitment {
@@ -94,10 +98,7 @@ impl Commitment {
         let file = File::create(path)?;
         let writer = BufWriter::new(file);
 
-        let commitment_json = CommitmentJson::new(
-            &self.points_px,
-            &self.polys_px,
-        );
+        let commitment_json = CommitmentJson::new(&self.points_px, &self.polys_px);
         serde_json::to_writer(writer, &commitment_json)?;
         Ok(())
     }
@@ -116,10 +117,7 @@ pub struct CommitmentJson {
     polys_px: Vec<Vec<u64>>,
 }
 impl CommitmentJson {
-    pub fn new(
-        points_px: &Vec<HashMap<Mfp, Mfp>>,
-        polys_px: &Vec<Poly>,
-    ) -> Self {
+    pub fn new(points_px: &Vec<HashMap<Mfp, Mfp>>, polys_px: &Vec<Poly>) -> Self {
         // Extract values for CommitmentJson from the Commitment struct
         let polys_px_t: Vec<Vec<u64>> = polys_px.iter().map(|p| write_term(p)).collect();
         let points_px_t: Vec<Vec<(u64, u64)>> = points_px
@@ -131,8 +129,7 @@ impl CommitmentJson {
                     .collect()
             })
             .collect();
-        
-        
+
         Self {
             points_px: points_px_t,
             polys_px: polys_px_t,
@@ -220,53 +217,84 @@ impl CommitmentBuilder {
 
         let mut _index = 0;
         let mut counter = 0;
-        let mut ld_counter = 0;
+        let mat_size = self.commitm.matrices.size;
 
-        for (_, gate) in gates.iter().enumerate() {
+        for (i, gate) in gates.iter().enumerate() {
+            if gate.gate_type == GateType::Ld {
+                let right_val = gate.val_right.map_or(Mfp::ZERO, Mfp::from);
+                match regs_data.contains_key(&gate.reg_right) {
+                    true => panic!("The register has been loaded again!"),
+                    false => regs_data.insert(gate.reg_right, RegData::new(right_val)),
+                };
+                println!("Ld: {}", right_val);
+                // FIXME: are we need left val for ld?
+                // let left_val = gate.val_left.map_or(Mfp::ZERO, Mfp::from);
+                // match regs_data.contains_key(&gate.reg_left) {
+                //     true => panic!("The register has been loaded again!"),
+                //     false => regs_data.insert(gate.reg_left, RegData::new(left_val)),
+                // };
+                
+                continue;
+            }
+
             // Set index
             _index = 1 + ni + counter;
+
+            Self::add_val(&mut regs_data, gate, gate.gate_type);
 
             let left_val = gate.val_left.map_or(Mfp::ONE, Mfp::from);
             let right_val = gate.val_right.map_or(Mfp::ONE, Mfp::from);
 
+            println!("Loop: {} ------------", i);
             c_mat[(_index, _index)] = Mfp::ONE;
-
-            Self::add_val(&mut regs_data, gate, right_val, gate.gate_type);
-
+            println!("C[{}, {}] = 1", _index, _index);
             match gate.gate_type {
-                GateType::Ld => {
-                    let right_val = gate.val_right.map_or(Mfp::ZERO, Mfp::from);
-                    match regs_data.contains_key(&gate.reg_left) {
-                        true => panic!("The register has been loaded again!"),
-                        false => regs_data.insert(gate.reg_right, RegData::new(right_val)),
-                    };
-                    ld_counter += 1;
-                    continue;
-                }
                 GateType::Add => {
+                    println!("Gate: Add");
                     a_mat[(_index, 0)] = Mfp::ONE;
-                    b_mat[(_index, gate.inx_left - ld_counter)] = left_val;
+                    println!("A[{}, 0] = 1", _index);
+
+                    b_mat[(_index, gate.inx_left)] = left_val;
+                    println!("Left:  B[{}, {}] = {}", _index, gate.inx_left, left_val);
+
                     b_mat[(_index, gate.inx_right)] = right_val;
+                    println!("Right: B[{}, {}] = {}", _index, gate.inx_right, gate.inx_right);
                 }
                 GateType::Mul => {
-                    a_mat[(_index, gate.inx_left - ld_counter)] = left_val;
+                    println!("Gate: Mul");
+                    a_mat[(_index, gate.inx_left)] = left_val;
+                    println!("Left:  A[{}, {}] = {}", _index, gate.inx_left, left_val);
+
                     b_mat[(_index, gate.inx_right)] = right_val;
+                    println!("Right: B[{}, {}] = {}", _index, gate.inx_right, right_val);
                 }
                 GateType::Sub => {
+                    println!("Gate: Sub");
                     a_mat[(_index, 0)] = Mfp::ONE;
-                    b_mat[(_index, gate.inx_left - ld_counter)] = match to_bint!(left_val) {
+                    println!("A[{}, 0] = 1", _index);
+
+                    b_mat[(_index, gate.inx_left)] = match to_bint!(left_val) {
                         1 => Mfp::ONE,
                         _ => -left_val,
                     };
-                    b_mat[(_index, gate.inx_right)] = match to_bint!(right_val) {
+                    println!("Left:  B[{}, {}] = {}", _index, gate.inx_left, b_mat[(_index, gate.inx_left)]);
+
+                    b_mat[(_index, mat_size - gate.inx_right)] = match to_bint!(right_val) {
                         1 => Mfp::ONE,
                         _ => -right_val,
                     };
+                    println!("Right: B[{}, {}] = {}", _index, mat_size - gate.inx_right, b_mat[(_index, mat_size - gate.inx_right)]);
+
                 }
                 GateType::Div => {
-                    a_mat[(_index, gate.inx_left - ld_counter)] = invers_val(left_val);
-                    b_mat[(_index, gate.inx_right)] = invers_val(right_val);
+                    println!("Gate: Div");
+                    a_mat[(_index, gate.inx_left)] = invers_val(left_val);
+                    println!("Left:  A[{}, {}] = {}", _index, gate.inx_left, a_mat[(_index, gate.inx_left)]);
+
+                    b_mat[(_index, mat_size - gate.inx_right)] = invers_val(right_val);
+                    println!("Right: B[{}, {}] = {}", _index, mat_size - gate.inx_right, b_mat[(_index, mat_size - gate.inx_right)]);
                 }
+                _ => panic!("Invalid gate {:?}", gate.gate_type)
             }
             counter += 1;
         }
@@ -277,7 +305,7 @@ impl CommitmentBuilder {
         rows_to_zero(&mut self.commitm.matrices.c, self.commitm.numebr_t_zero);
 
         Self::gen_z_mat(&mut self.commitm.matrices.z, &regs_data);
-        
+
         println!("Mat A:");
         dsp_mat!(self.commitm.matrices.a);
         println!("Mat B:");
@@ -290,13 +318,25 @@ impl CommitmentBuilder {
         self.clone()
     }
 
-    fn add_val(regs_data: &mut HashMap<u8, RegData>, gate: &Gate, right_val: Mfp, operator: GateType) {
-        if let Some(reg) = regs_data.get_mut(&gate.reg_right) {
-            let new_value = match reg.witness.last() {
-                Some(&val) => Self::apply_operator(val, right_val, operator),
-                None => Self::apply_operator(reg.init_val, right_val, operator),
-            };
-            reg.witness.push(new_value);
+    fn add_val(regs_data: &mut HashMap<u8, RegData>, gate: &Gate, operator: GateType) {
+        if let Some(left_val) = gate.val_left {
+            if let Some(reg) = regs_data.get_mut(&gate.reg_right) {
+                let new_value = match reg.witness.last() {
+                    // FIXME: Correct left and right position
+                    Some(&val) => Self::apply_operator(val, Mfp::from(left_val), operator),
+                    None => Self::apply_operator(reg.init_val, Mfp::from(left_val), operator),
+                };
+                reg.witness.push(new_value);
+            }
+        }
+        if let Some(right_val) = gate.val_right {
+            if let Some(reg) = regs_data.get_mut(&gate.reg_right) {
+                let new_value = match reg.witness.last() {
+                    Some(&val) => Self::apply_operator(val, Mfp::from(right_val), operator),
+                    None => Self::apply_operator(reg.init_val, Mfp::from(right_val), operator),
+                };
+                reg.witness.push(new_value);
+            }
         }
     }
 

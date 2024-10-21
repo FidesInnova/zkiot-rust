@@ -9,8 +9,8 @@
 443c879d:       02f407b3                ld     s0, s0 ,0
 4902f612:       02f407b3                ld     s1, s1 ,0
 4beeb8ca:       02f407b3                ld     a0, a0 ,0
-4f9ebc5e:       02f407b3                ld     a1, a1 ,0
-49fd0689:       02f407b3                ld     a2, a2 ,0
+4f9ebc5e:       02f407b3                ld     a1, a1 ,7
+49fd0689:       02f407b3                ld     a2, a2 ,11
 43ddda37:       02f407b3                ld     a3, a3 ,0
 41246574:       02f407b3                ld     a4, a4 ,0
 4e4adcd1:       02f407b3                ld     a5, a5 ,0
@@ -30,7 +30,7 @@
 4725ea07:       02f407b3                ld     t4, t4 ,0
 4e5c98c1:       02f407b3                ld     t5, t5 ,0
 4ae91022:       02f407b3                ld     t6, t6 ,0
-4ea8c825:       02f407b3                add    z, z ,5
-47e19d67:       02f407b3                mul    ra, ra ,2
-41f0f570:       02f407b3                sub    ra, ra ,10
-41f0f570:       02f407b3                mul    z, z ,7
+4ea8c825:       02f407b3                add    z, 5, z
+47e19d67:       02f407b3                mul    ra, 2, ra
+41f0f570:       02f407b3                sub    ra, 10, ra
+41f0f570:       02f407b3                div    z, 7, z

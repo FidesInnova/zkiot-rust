@@ -44,7 +44,7 @@ def generate_random_opcode(num_opcodes, file_path):
     opcodes = ['mul', 'add', 'sub', 'div']  # Only include 'mul' and 'addi' for subsequent lines
     
     with open(file_path, 'w') as file:
-        for i in range(0, 32):
+        for i in range(11, 12):
             address = f"{random.randint(0x40000000, 0x4FFFFFFF):08x}"
             immediate = random.randint(range_num[0], range_num[1])  # Random immediate value
             file.write(f"{address}:       02f407b3                ld     {register_mapping[i][0]}, {register_mapping[i][0]} ,{immediate}\n")

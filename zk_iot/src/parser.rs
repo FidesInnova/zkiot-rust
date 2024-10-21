@@ -2,8 +2,8 @@
 
 use anyhow::{anyhow, Context, Result};
 use ark_ff::Field;
-use std::{fs::File, path::PathBuf};
 use std::io::{BufRead, BufReader};
+use std::{fs::File, path::PathBuf};
 
 use crate::json_file::*;
 use crate::math::Mfp;
@@ -44,7 +44,6 @@ enum ZKPRegister {
     X31, // Integer register (t6)
 }
 
-
 #[derive(Debug)]
 enum RiscvReg {
     Zero, // x0 - Hardwired zero
@@ -81,7 +80,6 @@ enum RiscvReg {
     S11,  // x31 - Integer register
 }
 
-
 /// Represents the type of a gate.
 ///
 /// This enum defines the possible types of gates,
@@ -92,7 +90,7 @@ pub enum GateType {
     Sub,
     Mul,
     Div,
-    Ld
+    Ld,
 }
 
 /// Represents a gate with its parameters.
@@ -155,8 +153,6 @@ impl Gate {
     }
 }
 
-
-
 /// Parses a line of text into a tuple containing a specific element and a vector of elements.
 ///
 /// # Parameters
@@ -182,10 +178,10 @@ fn parse_line(line: &str, index: usize) -> Result<(&str, Vec<&str>)> {
     }
 }
 
-fn match_reg(reg: &str) -> u8 {
+fn match_reg(reg: &str) -> Option<u8> {
     // TODO: Add zero?
-    match reg.to_lowercase().as_str() {
-        "z" => 0, 
+    let res = match reg.to_lowercase().as_str() {
+        "z" => 0,
         "ra" => 1,   // x1 - Return address
         "sp" => 2,   // x2 - Stack pointer
         "gp" => 3,   // x3 - Global pointer
@@ -217,13 +213,17 @@ fn match_reg(reg: &str) -> u8 {
         "t4" => 29,  // x29 - Frame pointer
         "t5" => 30,  // x30 - Return address
         "t6" => 31,  // x31 - Integer register
-        _ => panic!("Invalid register: {}", reg),
-    }
+        _ => return None,
+    };
+    Some(res)
 }
 
 fn register_parser(reg: Vec<&str>) -> (u8, u8) {
-    let left_reg = match_reg(reg[0]);
-    let right_reg = match_reg(reg[1]);
+    let left_reg = match_reg(reg[0]).expect(format!("Invalid left register: {}", reg[0]).as_str());
+    println!("reg --> {:?}, {:?}", reg[1], reg[2]);
+    let right_reg = match_reg(reg[1]).unwrap_or_else( ||
+        match_reg(reg[2]).expect(format!("Invalid right register: {}", reg[2]).as_str())
+    );
     (left_reg, right_reg)
 }
 
@@ -234,55 +234,88 @@ pub struct RegData {
 }
 impl RegData {
     pub fn new(val: Mfp) -> Self {
-        Self { init_val: val, witness: vec![] }
+        Self {
+            init_val: val,
+            witness: vec![],
+        }
     }
     fn get_final(&mut self) -> Option<Mfp> {
         self.witness.pop()
     }
 }
 
+struct GateSide {
+    index: usize,
+    constan: Option<u64>,
+    register: u8,
+}
+
 pub fn parse_from_lines(line_file: BufReader<File>, opcodes_file: &PathBuf) -> Result<Vec<Gate>> {
     let mut gates = Vec::new();
-
+    let (mut inx_left, mut inx_right) = (0, 0);
     for (index, line) in line_file.lines().enumerate() {
         let line_num = line
-            .context(format!("Error reading line {}: unable to parse line number", index + 1))?
+            .context(format!(
+                "Error reading line {}: unable to parse line number",
+                index + 1
+            ))?
             .trim()
             .parse::<usize>()
             .context(format!("Error parsing line number from line {}", index + 1))?;
 
         let gates_file = open_file(opcodes_file).context("Failed to open opcodes file")?;
-        let line = gates_file
-            .lines()
-            .nth(line_num - 1)
-            .ok_or_else(|| anyhow!("Line number {} is out of bounds in opcodes file", line_num))??;
+        let line = gates_file.lines().nth(line_num - 1).ok_or_else(|| {
+            anyhow!("Line number {} is out of bounds in opcodes file", line_num)
+        })??;
 
         let (operation, operands) = parse_line(&line, line_num)
             .context(format!("Error parsing line {}: {}", line_num, line))?;
-        
+
         let gate_type = gate_type(operation);
         if let Err(ref e) = gate_type {
             // Return Err
             eprintln!("Error determining gate type for line {}: {}", line_num, e);
             continue;
         }
+        let gate_type = gate_type.unwrap();
 
-        let constant_right = operands.get(2)
+        let constant_right = operands
+            .get(2)
             .ok_or_else(|| anyhow!("Missing operand at index 2 for line {}", line_num))?
             .parse::<u64>()
             .ok();
-
-        let constant_left = operands.get(1)
+        let constant_left = operands
+            .get(1)
             .ok_or_else(|| anyhow!("Missing operand at index 1 for line {}", line_num))?
             .parse::<u64>()
             .ok();
 
+        if gate_type != GateType::Ld {
+            inx_right += 1;
+            inx_left += 1;
+        }
+            
+        if constant_right.is_some() && gate_type != GateType::Ld {
+            inx_right = 0;
+        }
+        if constant_left.is_some() && gate_type != GateType::Ld {
+            inx_left = 0;
+        }
+
         let reg_data = register_parser(operands.clone());
 
-        let gate = Gate::new(line_num, 0, constant_left, constant_right, reg_data.0, reg_data.1, gate_type.unwrap());
+        let gate = Gate::new(
+            inx_left,
+            inx_right,
+            constant_left,
+            constant_right,
+            reg_data.0,
+            reg_data.1,
+            gate_type,
+        );
 
         println!("gate ==> {:?}", gate);
-        
+
         gates.push(gate);
     }
 
@@ -299,9 +332,9 @@ pub fn parse_from_lines(line_file: BufReader<File>, opcodes_file: &PathBuf) -> R
 /// - `Err(anyhow::Error)`: An error if the operation is not supported.
 ///
 /// # Description
-/// The `gate_type` function matches the input operation string to predefined gate types. 
-/// If the operation is recognized (e.g., `"mul"` or `"addi"`), the corresponding `GateType` 
-/// is returned. If the operation is unrecognized, the function returns an error indicating 
+/// The `gate_type` function matches the input operation string to predefined gate types.
+/// If the operation is recognized (e.g., `"mul"` or `"addi"`), the corresponding `GateType`
+/// is returned. If the operation is unrecognized, the function returns an error indicating
 /// that the operation is not supported.
 fn gate_type(op: &str) -> Result<GateType> {
     match op {
@@ -313,7 +346,6 @@ fn gate_type(op: &str) -> Result<GateType> {
         _ => Err(anyhow!("operation is not support: {}", op)),
     }
 }
-
 
 #[cfg(test)]
 mod parser_test {
@@ -334,6 +366,6 @@ mod parser_test {
         assert_eq!(parse1, ("mul", ["a1", "s0", "5"].to_vec()));
         assert_eq!(parse2, ("add", ["a1", "s0", "5"].to_vec()));
         assert_eq!(parse3, ("mul", ["a1", "s0", "5"].to_vec()));
-        assert_eq!(parse4, ("ld",  ["a1", "a1", "4"].to_vec()));
+        assert_eq!(parse4, ("ld", ["a1", "a1", "4"].to_vec()));
     }
 }
