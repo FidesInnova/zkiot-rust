@@ -446,7 +446,7 @@ impl ProofGeneration {
         ];
 
         // TODO: All random (1..P)
-        let eta_values = vec![
+        let eta_values = [
             Mfp::from(1),  // eta_w
             Mfp::from(4),  // eta_z_a
             Mfp::from(10), // eta_z_b

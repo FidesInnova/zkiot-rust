@@ -18,11 +18,11 @@ use crate::{dsp_poly, field, to_bint, utils::add_random_points};
 // pub const P: u64 = 18446744069414584321;
 // pub const P: u64 = 2013265921;
 
-pub const P: u64 = 5107;
-pub const GENERATOR: u64 = 2;
+// pub const P: u64 = 5107;
+// pub const GENERATOR: u64 = 2;
 
-// pub const P: u64 = 8779;
-// pub const GENERATOR: u64 = 11;
+pub const P: u64 = 39901;
+pub const GENERATOR: u64 = 2;
 
 // pub const P: u64 = 181;
 // pub const GENERATOR: u64 = 2;
@@ -653,13 +653,13 @@ pub mod kzg {
         let mut res_poly = Mfp::ZERO;
 
         if let Degree::Num(deg) = poly_in.degree() {
-            for i in 0..=deg {
+            for (i, ck) in ck.iter().enumerate().take(deg + 1) {
                 match poly_in.term_with_degree(i) {
                     Term::ZeroTerm => {
                         continue;
                     }
                     Term::Term(t, _) => {
-                        let exp = Mfp::from(to_bint!(t) * to_bint!(ck[i]));
+                        let exp = Mfp::from(to_bint!(t) * to_bint!(*ck));
                         res_poly += exp;
                     }
                 }

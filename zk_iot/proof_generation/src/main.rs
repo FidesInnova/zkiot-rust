@@ -48,6 +48,6 @@ fn main() -> Result<()> {
     proof_generation
         .store("zkp_data/proof.json", proof_data)
         .with_context(|| "Error storing proof data")?;
-
+    println!("ProofGeneration file generated successfully");
     Ok(())
 }

@@ -217,7 +217,8 @@ impl CommitmentBuilder {
 
         let mut _index = 0;
         let mut counter = 0;
-        let mat_size = self.commitm.matrices.size;
+        let mut inx_left = 0;
+        let mut inx_right = 0;
 
         for (i, gate) in gates.iter().enumerate() {
             if gate.gate_type == GateType::Ld {
@@ -236,63 +237,151 @@ impl CommitmentBuilder {
                 
                 continue;
             }
+            println!("Gate Loop: {} ------------", counter);
+            println!("Register: l:{}, r:{}", gate.reg_left, gate.reg_right);
 
             // Set index
             _index = 1 + ni + counter;
 
+
+            // regs_data.get(&gate.reg_right).unwrap().witness.len() + ni
+
+            // let size = self.commitm.matrices.z.nrows();
+            
+            // inx_left  = (0..gate.reg_left).fold(0,  |acc, x| acc + regs_data.get(&x).unwrap_or(&RegData::new(Mfp::ZERO)).witness.len()) + _index - 1;
+            // inx_right = (0..gate.reg_right).fold(0, |acc, x| acc + regs_data.get(&x).unwrap_or(&RegData::new(Mfp::ZERO)).witness.len()) + _index - 1;
+
+            // inx_left = if regs_data.get(&gate.reg_left).unwrap().witness.last().cloned() == gate.val_left.map_or(None, |v| Some(Mfp::from(v))) {
+            //     size - counter - 1
+            // } else {
+            //     inx_left + 1
+            // };
+
+            // inx_right = if regs_data.get(&gate.reg_right).unwrap().witness.last().cloned() == gate.val_right.map_or(None, |v| Some(Mfp::from(v))) {
+            //     size - counter - 1
+            // } else {
+            //     inx_right + 1
+            // };
+
+
+            // inx_left = if !gate.val_left.is_some() {
+            //     let inx = (0..=gate.reg_left).fold(0,  |acc, x| acc + regs_data.get(&x).unwrap_or(&RegData::new(Mfp::ZERO)).witness.len()) + ni;
+            //     println!("left:   index = {:<5}", inx);
+            //     inx
+            // } else {
+            //     println!("left: None, index = {}", inx_left + 1);
+            //     inx_left + 1
+            // };
+
+            // inx_right = if !gate.val_right.is_some() {
+            //     let inx = (0..=gate.reg_right).fold(0, |acc, x| acc + regs_data.get(&x).unwrap_or(&RegData::new(Mfp::ZERO)).witness.len()) + ni;
+            //     println!("right:  index = {:<5}", inx);
+            //     inx
+            // } else {
+            //     println!("right: None, index = {}", inx_right + 1);
+            //     inx_right + 1
+            // };
+
+
+            // It works for both test
+            inx_left = if !regs_data.get(&gate.reg_left).unwrap().witness.is_empty() {
+                let inx = (0..=gate.reg_left).fold(0,  |acc, x| acc + regs_data.get(&x).unwrap_or(&RegData::new(Mfp::ZERO)).witness.len()) + ni;
+                println!("left:   index = {:<5}", inx);
+                inx
+            } else {
+                println!("left: None, index = {}", inx_left + 1);
+                inx_left + 1
+            };
+
+            inx_right = if !regs_data.get(&gate.reg_right).unwrap().witness.is_empty() {
+                let inx = (0..=gate.reg_right).fold(0, |acc, x| acc + regs_data.get(&x).unwrap_or(&RegData::new(Mfp::ZERO)).witness.len()) + ni;
+                println!("right:  index = {:<5}", inx);
+                inx
+            } else {
+                println!("right: None, index = {}", inx_right + 1);
+                inx_right + 1
+            };
+
+
             Self::add_val(&mut regs_data, gate, gate.gate_type);
+            Self::gen_z_mat(&mut self.commitm.matrices.z, &regs_data);
+            
 
-            let left_val = gate.val_left.map_or(Mfp::ONE, Mfp::from);
-            let right_val = gate.val_right.map_or(Mfp::ONE, Mfp::from);
+            // inx_left += 1;
+            // inx_right += 1;
 
-            println!("Loop: {} ------------", i);
+            // if gate.val_right == Some(9) {
+            //     inx_left = 35;
+            // }
+
+            let left_val = if let Some(val) = gate.val_left {
+                inx_left = 0;
+                println!("* left:  index = 0    , val = {}", val);
+                Mfp::from(val)
+            } else {
+                println!("* left:  index = {:<5}, val = None = 1", inx_left);
+                Mfp::ONE
+            };
+            let right_val = if let Some(val) = gate.val_right {
+                inx_right = 0;
+                println!("* right: index = 0    , val = {}", val);
+                Mfp::from(val)
+            } else {
+                println!("* right: index = {:<5}, val = None = 1", inx_right);
+                Mfp::ONE
+            };
+
             c_mat[(_index, _index)] = Mfp::ONE;
             println!("C[{}, {}] = 1", _index, _index);
+
             match gate.gate_type {
                 GateType::Add => {
                     println!("Gate: Add");
-                    a_mat[(_index, 0)] = Mfp::ONE;
                     println!("A[{}, 0] = 1", _index);
+                    a_mat[(_index, 0)] = Mfp::ONE;
 
-                    b_mat[(_index, gate.inx_left)] = left_val;
-                    println!("Left:  B[{}, {}] = {}", _index, gate.inx_left, left_val);
+                    println!("Left:  B[{}, {}] = {}", _index, inx_left, left_val);
+                    b_mat[(_index, inx_left)] = left_val;
 
-                    b_mat[(_index, gate.inx_right)] = right_val;
-                    println!("Right: B[{}, {}] = {}", _index, gate.inx_right, gate.inx_right);
+
+                    println!("Right: B[{}, {}] = {}", _index, inx_right, right_val);
+                    b_mat[(_index, inx_right)] = right_val;
                 }
                 GateType::Mul => {
                     println!("Gate: Mul");
-                    a_mat[(_index, gate.inx_left)] = left_val;
-                    println!("Left:  A[{}, {}] = {}", _index, gate.inx_left, left_val);
+                    println!("Left:  A[{}, {}] = {}", _index, inx_left, left_val);
+                    a_mat[(_index, inx_left)] = left_val;
 
-                    b_mat[(_index, gate.inx_right)] = right_val;
-                    println!("Right: B[{}, {}] = {}", _index, gate.inx_right, right_val);
+                    println!("Right: B[{}, {}] = {}", _index, inx_right, right_val);
+                    b_mat[(_index, inx_right)] = right_val;
                 }
                 GateType::Sub => {
                     println!("Gate: Sub");
-                    a_mat[(_index, 0)] = Mfp::ONE;
                     println!("A[{}, 0] = 1", _index);
+                    a_mat[(_index, 0)] = Mfp::ONE;
 
-                    b_mat[(_index, gate.inx_left)] = match to_bint!(left_val) {
+                    print!("Left:  B[{}, {}] = ", _index, inx_left);
+                    b_mat[(_index, inx_left)] = match to_bint!(left_val) {
                         1 => Mfp::ONE,
                         _ => -left_val,
                     };
-                    println!("Left:  B[{}, {}] = {}", _index, gate.inx_left, b_mat[(_index, gate.inx_left)]);
+                    println!("{}", b_mat[(_index, inx_left)]);
 
-                    b_mat[(_index, mat_size - gate.inx_right)] = match to_bint!(right_val) {
+                    print!("Right: B[{}, {}] = ", _index, inx_right);
+                    b_mat[(_index, inx_right)] = match to_bint!(right_val) {
                         1 => Mfp::ONE,
                         _ => -right_val,
                     };
-                    println!("Right: B[{}, {}] = {}", _index, mat_size - gate.inx_right, b_mat[(_index, mat_size - gate.inx_right)]);
+                    println!("{}", b_mat[(_index, inx_right)]);
 
                 }
                 GateType::Div => {
                     println!("Gate: Div");
-                    a_mat[(_index, gate.inx_left)] = invers_val(left_val);
-                    println!("Left:  A[{}, {}] = {}", _index, gate.inx_left, a_mat[(_index, gate.inx_left)]);
+                    println!("Left:  A[{}, {}] = {}", _index, inx_left, invers_val(left_val));
+                    a_mat[(_index, inx_left)] = invers_val(left_val);
 
-                    b_mat[(_index, mat_size - gate.inx_right)] = invers_val(right_val);
-                    println!("Right: B[{}, {}] = {}", _index, mat_size - gate.inx_right, b_mat[(_index, mat_size - gate.inx_right)]);
+                    println!("Right: B[{}, {}] = {}", _index, inx_right, invers_val(right_val));
+                    b_mat[(_index, inx_right)] = invers_val(right_val);
                 }
                 _ => panic!("Invalid gate {:?}", gate.gate_type)
             }
@@ -304,7 +393,6 @@ impl CommitmentBuilder {
         rows_to_zero(&mut self.commitm.matrices.b, self.commitm.numebr_t_zero);
         rows_to_zero(&mut self.commitm.matrices.c, self.commitm.numebr_t_zero);
 
-        Self::gen_z_mat(&mut self.commitm.matrices.z, &regs_data);
 
         println!("Mat A:");
         dsp_mat!(self.commitm.matrices.a);

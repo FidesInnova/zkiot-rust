@@ -38,5 +38,6 @@ fn main() -> Result<()> {
     commitment
         .store("zkp_data/commit.json")
         .with_context(|| "Error storing commitment data")?;
+    println!("Commitment file generated successfully");
     Ok(())
 }

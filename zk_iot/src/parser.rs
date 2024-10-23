@@ -107,8 +107,6 @@ pub enum GateType {
 /// left and right inputs, optional values for these inputs, and the type of gate being used.
 #[derive(Debug)]
 pub struct Gate {
-    pub inx_left: usize,
-    pub inx_right: usize,
     pub val_left: Option<u64>,
     pub val_right: Option<u64>,
     pub reg_left: u8,
@@ -133,8 +131,6 @@ impl Gate {
     /// This constructor method initializes a `Gate` with the provided indices, optional
     /// values, and gate type.
     pub fn new(
-        inx_left: usize,
-        inx_right: usize,
         val_left: Option<u64>,
         val_right: Option<u64>,
         reg_left: u8,
@@ -142,8 +138,6 @@ impl Gate {
         gate_type: GateType,
     ) -> Self {
         Self {
-            inx_left,
-            inx_right,
             val_left,
             val_right,
             reg_left,
@@ -294,6 +288,7 @@ pub fn parse_from_lines(line_file: BufReader<File>, opcodes_file: &PathBuf) -> R
             inx_right += 1;
             inx_left += 1;
         }
+
             
         if constant_right.is_some() && gate_type != GateType::Ld {
             inx_right = 0;
@@ -305,8 +300,6 @@ pub fn parse_from_lines(line_file: BufReader<File>, opcodes_file: &PathBuf) -> R
         let reg_data = register_parser(operands.clone());
 
         let gate = Gate::new(
-            inx_left,
-            inx_right,
             constant_left,
             constant_right,
             reg_data.0,

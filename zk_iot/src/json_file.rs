@@ -1,12 +1,12 @@
 //! Utilities for storing polynomials and sets in JSON files.
 
-use std::{collections::HashMap, fs::{self, File, OpenOptions}, io::{BufReader, Write}, ops::Deref, path::PathBuf};
-use crate::{dsp_poly, dsp_vec, math::{Mfp, Poly}, to_bint};
+use std::{collections::HashMap, fs::{File, OpenOptions}, io::{BufReader, Write}, path::PathBuf};
+use crate::{math::{Mfp, Poly}, to_bint};
 use ark_ff::Field;
 use rustnomial::{Degree, SizedPolynomial};
 use serde::Deserialize;
-use serde_json::{json, Value, Deserializer};
-use anyhow::{anyhow, Context, Result};
+use serde_json::Value;
+use anyhow::{anyhow, Result};
 
 
 // Path to the JSON file used for storing data.
@@ -38,9 +38,9 @@ pub fn write_term(poly: &Poly) -> Vec<u64> {
 
     let mut poly = vec![0; max_deg + 1];
 
-    for i in 0..=max_deg {
+    for (i, poly) in poly.iter_mut().enumerate().take(max_deg + 1) {
         let index = poly_terms.iter().position(|v| v.1 == i).unwrap_or(usize::MAX);
-        poly[i] = to_bint!(poly_terms.get(index).unwrap_or(&(Mfp::ZERO, 0)).0);
+        *poly = to_bint!(poly_terms.get(index).unwrap_or(&(Mfp::ZERO, 0)).0);
     }
 
     poly

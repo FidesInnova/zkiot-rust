@@ -1,14 +1,47 @@
 #!/bin/bash
-
+# read args
 if [ -z "$1" ]; then
-  echo "Usage: sh mysh.sh [file_name]"
+  echo "Usage: sh mysh.sh [file_name] [options]"
   exit 1
 fi
 
-FILENAME="$1"
+# write number in line_num
+input_file="sample.txt"
+output_file="line_num.txt"
+perl -0777 -i -pe 's/\n+$//g' "$input_file"
+line_count=$(wc -l < "$input_file")
+line_count=$((line_count + 1))
+: > "$output_file"
+i=1
+while [ $i -le $line_count ]; do
+    echo "$i" >> "$output_file"
+    i=$((i + 1))
+done
 
-echo "" > "$FILENAME" && \
-cargo run -p setup --release >> "$FILENAME" && \
-cargo run -p commitment --release >> "$FILENAME" && \
-cargo run -p proof_generation --release >> "$FILENAME" && \
-cargo run -p proof_verification --release >> "$FILENAME"
+
+# setup benchmark
+filename="$1"
+: > "$filename"
+: > "report.txt"
+options="$2"
+dir="debug"
+if [ "$options" = "--release" ]; then 
+  dir="release"
+fi
+
+# run
+cargo build -p setup $options >> "$filename" && \
+echo "Setup: =====================================================" >> "report.txt" && \
+/usr/bin/time -v -a -o "report.txt" ./target/$dir/setup >> "$filename" && \
+
+cargo build -p commitment $options >> "$filename" && \
+echo "Commitment: ================================================" >> "report.txt" && \
+/usr/bin/time -v -a -o "report.txt" ./target/$dir/commitment >> "$filename" && \
+
+cargo build -p proof_generation $options >> "$filename" && \
+echo "Proof Generation: ==========================================" >> "report.txt" && \
+/usr/bin/time -v -a -o "report.txt" ./target/$dir/proof_generation >> "$filename" && \
+
+cargo build -p proof_verification $options >> "$filename" && \
+echo "Proof Verification: ========================================" >> "report.txt" && \
+/usr/bin/time -v -a -o "report.txt" ./target/$dir/proof_verification >> "$filename"
