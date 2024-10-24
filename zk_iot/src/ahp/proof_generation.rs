@@ -11,6 +11,7 @@ use crate::json_file::write_set;
 use crate::json_file::write_term;
 use crate::json_file::ClassData;
 use crate::math::*;
+use crate::println_dbg;
 use crate::to_bint;
 use crate::utils::*;
 use anyhow::Result;
@@ -120,7 +121,7 @@ impl ProofGeneration {
 
         // Compute the vanishing polynomial for the subset H[<=∣x∣]
         let van_poly_vh1 = vanishing_poly(set_h_1);
-        println!("van_poly_vh1: ");
+        println_dbg!("van_poly_vh1: ");
         dsp_poly!(van_poly_vh1);
 
         let mut points_w = vec![];
@@ -153,17 +154,17 @@ impl ProofGeneration {
         // ∑ r(alpha_2=10, k) * A^(k,x)
         let r_a_kx = sigma_rkx_mkx(set_h, alpha, &points_px[0], &points_px[1], &points_px[2]);
 
-        println!("Poly ∑ r(alpha_2=10, k) * A^(k,x): A_h");
+        println_dbg!("Poly ∑ r(alpha_2=10, k) * A^(k,x): A_h");
         dsp_poly!(r_a_kx);
 
         // ∑ r(alpha_2=10, k) * B^(k,x)
         let r_b_kx = sigma_rkx_mkx(set_h, alpha, &points_px[3], &points_px[4], &points_px[5]);
-        println!("Poly ∑ r(alpha_2=10, k) * B^(k,x): ");
+        println_dbg!("Poly ∑ r(alpha_2=10, k) * B^(k,x): ");
         dsp_poly!(r_b_kx);
 
         // ∑ r(alpha_2=10, k) * C^(k,x)
         let r_c_kx = sigma_rkx_mkx(set_h, alpha, &points_px[6], &points_px[7], &points_px[8]);
-        println!("Poly ∑ r(alpha_2=10, k) * C^(k,x): ");
+        println_dbg!("Poly ∑ r(alpha_2=10, k) * C^(k,x): ");
         dsp_poly!(r_c_kx);
 
         (r_a_kx, r_b_kx, r_c_kx)
@@ -182,7 +183,7 @@ impl ProofGeneration {
             &points_px[2],
             set_h.len(),
         );
-        println!("Poly ∑ r(alpha_2=10, k) * A^(x,k): ");
+        println_dbg!("Poly ∑ r(alpha_2=10, k) * A^(x,k): ");
         dsp_poly!(r_a_xk);
 
         // ∑ r(alpha_2=10, k) * B^(x,k)
@@ -193,7 +194,7 @@ impl ProofGeneration {
             &points_px[5],
             set_h.len(),
         );
-        println!("Poly ∑ r(alpha_2=10, k) * B^(x,k): ");
+        println_dbg!("Poly ∑ r(alpha_2=10, k) * B^(x,k): ");
         dsp_poly!(r_b_xk);
 
         // ∑ r(alpha_2=10, k) * C^(x,k)
@@ -204,7 +205,7 @@ impl ProofGeneration {
             &points_px[8],
             set_h.len(),
         );
-        println!("Poly ∑ r(alpha_2=10, k) * C^(x,k): ");
+        println_dbg!("Poly ∑ r(alpha_2=10, k) * C^(x,k): ");
         dsp_poly!(r_c_xk);
 
         (r_a_xk, r_b_xk, r_c_xk)
@@ -236,32 +237,32 @@ impl ProofGeneration {
             &mat_to_vec(&commitment.get_matrix_cz()),
             numebr_t_zero,
         );
-        println!("w_hat:"); // Output the interpolated polynomial for wˉ(h)
+        println_dbg!("w_hat:"); // Output the interpolated polynomial for wˉ(h)
         dsp_poly!(poly_w_hat);
 
         // h_zero
         let van_poly_vhx = vanishing_poly(&set_h);
 
-        println!("van_poly_vhx: ");
+        println_dbg!("van_poly_vhx: ");
         dsp_poly!(van_poly_vhx);
 
         let poly_ab_c = &poly_z_hat_a * &poly_z_hat_b - &poly_z_hat_c;
-        println!("{:?} ,,, {:?}", poly_ab_c, van_poly_vhx);
+        println_dbg!("{:?} ,,, {:?}", poly_ab_c, van_poly_vhx);
         let poly_h_0 = div_mod(&poly_ab_c, &van_poly_vhx).0;
-        println!("h0(x):");
+        println_dbg!("h0(x):");
         dsp_poly!(poly_h_0);
 
         
         // Generate a random polynomial
         let poly_sx = Self::generate_random_polynomial(2 * set_h.len() + 2 - 1, (0, P));
-        println!("poly_sx");
+        println_dbg!("poly_sx");
         dsp_poly!(poly_sx);
 
         // Compute sigma by evaluating the polynomial at points in set_h
         let sigma_1 = set_h
             .iter()
             .fold(Mfp::ZERO, |acc, &v| acc + poly_sx.eval(v));
-        println!("sigma_1 :\t{}", sigma_1);
+        println_dbg!("sigma_1 :\t{}", sigma_1);
 
         // TODO:
         // let alpha = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(0))).to_string()));
@@ -283,10 +284,10 @@ impl ProofGeneration {
 
         // Compute polynomial for r(α,x) ∑ ηM(z^M(x))
         let poly_r = func_u(Some(alpha), None, set_h.len());
-        println!("r:");
+        println_dbg!("r:");
         dsp_poly!(poly_r);
 
-        println!("r(alpha_2 , x) ∑_m [η_M z^_M(x)]:");
+        println_dbg!("r(alpha_2 , x) ∑_m [η_M z^_M(x)]:");
         dsp_poly!((&poly_r * &sigma_eta_z_x));
 
         // r(α,x) * ∑_m [η_M ​z^M​(x)]
@@ -294,7 +295,7 @@ impl ProofGeneration {
 
         // Compute polynomial for Z^(x)
         let poly_z_hat_x = &poly_w_hat * &van_poly_vh1 + poly_x_hat;
-        println!("z_hat: ");
+        println_dbg!("z_hat: ");
         dsp_poly!(poly_z_hat_x);
 
         let (r_a_kx, r_b_kx, r_c_kx) = Self::calculate_r_polynomials_with_alpha(
@@ -313,16 +314,16 @@ impl ProofGeneration {
         // s(x) + r(α,x) * ∑_m [η_M ​z^M​(x)] - ∑_m [η_M r_M(α,x)] * z^(x)
         let poly_scp = poly_sx.clone() + sum_1.clone() - &sum_2;
 
-        println!("scp: ");
+        println_dbg!("scp: ");
         dsp_poly!(poly_scp);
 
         let div_res = div_mod(&poly_scp, &van_poly_vhx);
         let h_1x = div_res.0;
-        println!("Poly h_1x: ");
+        println_dbg!("Poly h_1x: ");
         dsp_poly!(h_1x);
 
         let g_1x = div_mod(&div_res.1, &Poly::new(vec![Mfp::ONE, Mfp::ZERO])).0;
-        println!("Poly g_1x:");
+        println_dbg!("Poly g_1x:");
         dsp_poly!(g_1x);
 
         // TODO: Random F - H
@@ -343,7 +344,7 @@ impl ProofGeneration {
         // sigma_2
         let sigma_2 =
             eta_a * r_a_kx.eval(beta_1) + eta_b * r_b_kx.eval(beta_1) + eta_c * r_c_kx.eval(beta_1);
-        println!("sigma_2: {}", sigma_2);
+        println_dbg!("sigma_2: {}", sigma_2);
 
         // r(alpha_2=10, x) ∑_m [​η_M ​M^(x,β1​)]
         let poly_sigma_2 = Poly::new(vec![eta_a]) * r_a_xk
@@ -351,16 +352,16 @@ impl ProofGeneration {
             + Poly::new(vec![eta_c]) * r_c_xk;
         let poly_sigma_2 = &poly_r * poly_sigma_2;
 
-        println!("r(alpha_2=10, x) * ∑_m [η_M M^(x, β1)]: ");
+        println_dbg!("r(alpha_2=10, x) * ∑_m [η_M M^(x, β1)]: ");
         dsp_poly!(poly_sigma_2);
 
         let div_res = div_mod(&poly_sigma_2, &van_poly_vhx);
         let h_2x = div_res.0;
-        println!("Poly h_2x: ");
+        println_dbg!("Poly h_2x: ");
         dsp_poly!(h_2x);
 
         let g_2x = div_mod(&div_res.1, &Poly::new(vec![Mfp::ONE, Mfp::ZERO])).0;
-        println!("Poly g_2x:");
+        println_dbg!("Poly g_2x:");
         dsp_poly!(g_2x);
 
         // sigma_3
@@ -377,18 +378,18 @@ impl ProofGeneration {
             &vec![beta_1, beta_2],
             &set_k,
         );
-        println!("poly_f_3x");
+        println_dbg!("poly_f_3x");
         dsp_poly!(poly_f_3x);
-        println!("sigma_3: {}", sigma_3);
+        println_dbg!("sigma_3: {}", sigma_3);
 
         let (pi_a, pi_b, pi_c) = Self::compute_polys_pi(beta_1, beta_2, &polys_px);
         let polys_pi = vec![&pi_a, &pi_b, &pi_c];
 
-        println!("poly_pi_a");
+        println_dbg!("poly_pi_a");
         dsp_poly!(polys_pi[0]);
-        println!("poly_pi_b");
+        println_dbg!("poly_pi_b");
         dsp_poly!(polys_pi[1]);
-        println!("poly_pi_c");
+        println_dbg!("poly_pi_c");
         dsp_poly!(polys_pi[2]);
 
         // a(x)
@@ -399,35 +400,35 @@ impl ProofGeneration {
             vec![eta_a, eta_b, eta_c],
             &polys_pi,
         );
-        println!("poly_a_x: {}", poly_a_x.eval(Mfp::from(5)));
+        println_dbg!("poly_a_x: {}", poly_a_x.eval(Mfp::from(5)));
         dsp_poly!(poly_a_x);
 
         // b(x)
         let poly_b_x = polys_pi[0] * polys_pi[1] * polys_pi[2];
-        println!("poly_b_x: {}", poly_b_x.eval(Mfp::from(5)));
+        println_dbg!("poly_b_x: {}", poly_b_x.eval(Mfp::from(5)));
         dsp_poly!(poly_b_x);
 
         let van_poly_vkx = vanishing_poly(&set_k);
-        println!("van_poly_vkx");
+        println_dbg!("van_poly_vkx");
         dsp_poly!(van_poly_vkx);
 
         let sigma_3_set_k = div_mod_val(Mfp::from(sigma_3), Mfp::from(set_k.len() as u64));
-        println!("sigma_3_set_k {}", sigma_3_set_k);
+        println_dbg!("sigma_3_set_k {}", sigma_3_set_k);
 
         let poly_f_3x = poly_f_3x - Poly::from(vec![sigma_3_set_k]);
 
-        println!("poly_f_3x");
+        println_dbg!("poly_f_3x");
         dsp_poly!(poly_f_3x);
 
         let g_3x = div_mod(&poly_f_3x, &Poly::from(vec![Mfp::ONE, Mfp::ZERO])).0;
-        println!("g_3x");
+        println_dbg!("g_3x");
         dsp_poly!(g_3x);
 
         let h_3x = (poly_a_x.clone()
             - (&poly_b_x * (poly_f_3x.clone() + Poly::from(vec![sigma_3_set_k]))))
         .div_mod(&van_poly_vkx)
         .0;
-        println!("h_3x");
+        println_dbg!("h_3x");
         dsp_poly!(h_3x);
 
         let polys_proof = [
@@ -467,30 +468,30 @@ impl ProofGeneration {
             .map(|(i, &eta)| Poly::from(vec![eta]) * polys_proof[i].clone())
             .fold(Poly::zero(), |acc, poly| acc + poly);
 
-        println!("poly_px:");
+        println_dbg!("poly_px:");
         dsp_poly!(poly_px);
 
         // TODO:
         // hash(poly_sx(22));
         let z = Mfp::from(2);
         let val_y_p = poly_px.eval(z);
-        println!("val_y_p {}", val_y_p);
+        println_dbg!("val_y_p {}", val_y_p);
 
         let mut poly_px_add = poly_px;
         poly_px_add.add_term(-val_y_p, 0);
         let poly_x_z = Poly::from(vec![Mfp::ONE, Mfp::from(-z)]);
 
         let poly_qx = div_mod(&poly_px_add, &poly_x_z).0;
-        println!("poly_qx");
+        println_dbg!("poly_qx");
         dsp_poly!(poly_qx);
 
         let val_commit_poly_qx = kzg::commit(&poly_qx, commitment_key);
-        println!("val_commit_qx: {}", val_commit_poly_qx);
+        println_dbg!("val_commit_qx: {}", val_commit_poly_qx);
 
         let sigma = [sigma_1, sigma_2, sigma_3];
 
         let commit_x = compute_all_commitment(&polys_proof, commitment_key, GENERATOR);
-        println!("commit_x: {}", dsp_vec!(commit_x));
+        println_dbg!("commit_x: {}", dsp_vec!(commit_x));
 
         Self::create_proof(&polys_proof, &sigma, &commit_x, val_y_p, val_commit_poly_qx, &x_vec.to_vec())
     }
@@ -627,11 +628,11 @@ impl ProofGeneration {
         let poly_sig_b = Poly::from(vec![eta[1] * beta_mul]) * &polys_px[5];
         let poly_sig_c = Poly::from(vec![eta[2] * beta_mul]) * &polys_px[8];
 
-        println!("poly_sig_a");
+        println_dbg!("poly_sig_a");
         dsp_poly!(poly_sig_a);
-        println!("poly_sig_b");
+        println_dbg!("poly_sig_b");
         dsp_poly!(poly_sig_b);
-        println!("poly_sig_c");
+        println_dbg!("poly_sig_c");
         dsp_poly!(poly_sig_c);
 
         poly_sig_a * (poly_pi[1] * poly_pi[2])

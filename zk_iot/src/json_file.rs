@@ -9,10 +9,6 @@ use serde_json::Value;
 use anyhow::{anyhow, Result};
 
 
-// Path to the JSON file used for storing data.
-pub const JSON_COMMIT_PATH: &str = "commit.json";
-pub const JSON_PROOF_PATH: &str  = "proof.json";
-
 /// Converts a polynomial to a vector representation of its coefficients.
 /// 
 /// # Parameters
@@ -76,7 +72,6 @@ pub fn store_in_json_file(value: Value, path: &str) -> Result<()> {
 pub fn write_set(set: &Vec<Mfp>) -> Vec<u64> {
     set.iter().map(|v| to_bint!(*v) as u64).collect::<Vec<u64>>()
 }
-
 
 
 pub fn read_term(poly: &[Value]) -> Poly {

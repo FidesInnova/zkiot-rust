@@ -6,12 +6,7 @@ use std::{
 };
 
 use crate::{
-    dsp_mat, dsp_poly, dsp_vec,
-    json_file::{open_file, read_term, store_in_json_file, write_set, write_term, ClassData},
-    math::*,
-    parser::{Gate, GateType, RegData},
-    to_bint,
-    utils::*,
+    dsp_mat, dsp_poly, dsp_vec, json_file::{open_file, read_term, store_in_json_file, write_set, write_term, ClassData}, math::*, parser::{Gate, GateType, RegData}, print_dbg, println_dbg, to_bint, utils::*
 };
 use anyhow::Result;
 use ark_ff::{Field, PrimeField};
@@ -64,10 +59,10 @@ impl Commitment {
         commitment_key: &Vec<Mfp>,
     ) -> Vec<Mfp> {
         // let o_ahp = concat_polys(&polys_pxs);
-        // println!("o_ahp: {}", dsp_vec!(o_ahp));
+        // println_dbg!("o_ahp: {}", dsp_vec!(o_ahp));
 
         let commitment = compute_all_commitment(&self.polys_px, commitment_key, generator);
-        println!("com_ahp: {}", dsp_vec!(commitment));
+        println_dbg!("com_ahp: {}", dsp_vec!(commitment));
 
         commitment
     }
@@ -227,7 +222,7 @@ impl CommitmentBuilder {
                     true => panic!("The register has been loaded again!"),
                     false => regs_data.insert(gate.reg_right, RegData::new(right_val)),
                 };
-                println!("Ld: {}", right_val);
+                println_dbg!("Ld: {}", right_val);
                 // FIXME: are we need left val for ld?
                 // let left_val = gate.val_left.map_or(Mfp::ZERO, Mfp::from);
                 // match regs_data.contains_key(&gate.reg_left) {
@@ -237,8 +232,8 @@ impl CommitmentBuilder {
                 
                 continue;
             }
-            println!("Gate Loop: {} ------------", counter);
-            println!("Register: l:{}, r:{}", gate.reg_left, gate.reg_right);
+            println_dbg!("Gate Loop: {} ------------", counter);
+            println_dbg!("Register: l:{}, r:{}", gate.reg_left, gate.reg_right);
 
             // Set index
             _index = 1 + ni + counter;
@@ -265,20 +260,20 @@ impl CommitmentBuilder {
 
 
             // inx_left = if !gate.val_left.is_some() {
-            //     let inx = (0..=gate.reg_left).fold(0,  |acc, x| acc + regs_data.get(&x).unwrap_or(&RegData::new(Mfp::ZERO)).witness.len()) + ni;
-            //     println!("left:   index = {:<5}", inx);
+            //     let inx = (0..=gate.reg_left).fold(0,  |acc, x| acc + regs_data.get(&x).unwrap_or(&RegData::new(Mfp::ZERO)).witness.len()) + counter + 1;
+            //     println_dbg!("left:   index = {:<5}", inx);
             //     inx
             // } else {
-            //     println!("left: None, index = {}", inx_left + 1);
+            //     println_dbg!("left: None, index = {}", inx_left + 1);
             //     inx_left + 1
             // };
 
             // inx_right = if !gate.val_right.is_some() {
-            //     let inx = (0..=gate.reg_right).fold(0, |acc, x| acc + regs_data.get(&x).unwrap_or(&RegData::new(Mfp::ZERO)).witness.len()) + ni;
-            //     println!("right:  index = {:<5}", inx);
+            //     let inx = (0..=gate.reg_right).fold(0, |acc, x| acc + regs_data.get(&x).unwrap_or(&RegData::new(Mfp::ZERO)).witness.len()) + counter + 1;
+            //     println_dbg!("right:  index = {:<5}", inx);
             //     inx
             // } else {
-            //     println!("right: None, index = {}", inx_right + 1);
+            //     println_dbg!("right: None, index = {}", inx_right + 1);
             //     inx_right + 1
             // };
 
@@ -286,19 +281,19 @@ impl CommitmentBuilder {
             // It works for both test
             inx_left = if !regs_data.get(&gate.reg_left).unwrap().witness.is_empty() {
                 let inx = (0..=gate.reg_left).fold(0,  |acc, x| acc + regs_data.get(&x).unwrap_or(&RegData::new(Mfp::ZERO)).witness.len()) + ni;
-                println!("left:   index = {:<5}", inx);
+                println_dbg!("left:   index = {:<5}", inx);
                 inx
             } else {
-                println!("left: None, index = {}", inx_left + 1);
+                println_dbg!("left: None, index = {}", inx_left + 1);
                 inx_left + 1
             };
 
             inx_right = if !regs_data.get(&gate.reg_right).unwrap().witness.is_empty() {
                 let inx = (0..=gate.reg_right).fold(0, |acc, x| acc + regs_data.get(&x).unwrap_or(&RegData::new(Mfp::ZERO)).witness.len()) + ni;
-                println!("right:  index = {:<5}", inx);
+                println_dbg!("right:  index = {:<5}", inx);
                 inx
             } else {
-                println!("right: None, index = {}", inx_right + 1);
+                println_dbg!("right: None, index = {}", inx_right + 1);
                 inx_right + 1
             };
 
@@ -316,71 +311,71 @@ impl CommitmentBuilder {
 
             let left_val = if let Some(val) = gate.val_left {
                 inx_left = 0;
-                println!("* left:  index = 0    , val = {}", val);
+                println_dbg!("* left:  index = 0    , val = {}", val);
                 Mfp::from(val)
             } else {
-                println!("* left:  index = {:<5}, val = None = 1", inx_left);
+                println_dbg!("* left:  index = {:<5}, val = None = 1", inx_left);
                 Mfp::ONE
             };
             let right_val = if let Some(val) = gate.val_right {
                 inx_right = 0;
-                println!("* right: index = 0    , val = {}", val);
+                println_dbg!("* right: index = 0    , val = {}", val);
                 Mfp::from(val)
             } else {
-                println!("* right: index = {:<5}, val = None = 1", inx_right);
+                println_dbg!("* right: index = {:<5}, val = None = 1", inx_right);
                 Mfp::ONE
             };
 
             c_mat[(_index, _index)] = Mfp::ONE;
-            println!("C[{}, {}] = 1", _index, _index);
+            println_dbg!("C[{}, {}] = 1", _index, _index);
 
             match gate.gate_type {
                 GateType::Add => {
-                    println!("Gate: Add");
-                    println!("A[{}, 0] = 1", _index);
+                    println_dbg!("Gate: Add");
+                    println_dbg!("A[{}, 0] = 1", _index);
                     a_mat[(_index, 0)] = Mfp::ONE;
 
-                    println!("Left:  B[{}, {}] = {}", _index, inx_left, left_val);
+                    println_dbg!("Left:  B[{}, {}] = {}", _index, inx_left, left_val);
                     b_mat[(_index, inx_left)] = left_val;
 
 
-                    println!("Right: B[{}, {}] = {}", _index, inx_right, right_val);
+                    println_dbg!("Right: B[{}, {}] = {}", _index, inx_right, right_val);
                     b_mat[(_index, inx_right)] = right_val;
                 }
                 GateType::Mul => {
-                    println!("Gate: Mul");
-                    println!("Left:  A[{}, {}] = {}", _index, inx_left, left_val);
+                    println_dbg!("Gate: Mul");
+                    println_dbg!("Left:  A[{}, {}] = {}", _index, inx_left, left_val);
                     a_mat[(_index, inx_left)] = left_val;
 
-                    println!("Right: B[{}, {}] = {}", _index, inx_right, right_val);
+                    println_dbg!("Right: B[{}, {}] = {}", _index, inx_right, right_val);
                     b_mat[(_index, inx_right)] = right_val;
                 }
                 GateType::Sub => {
-                    println!("Gate: Sub");
-                    println!("A[{}, 0] = 1", _index);
+                    println_dbg!("Gate: Sub");
+                    println_dbg!("A[{}, 0] = 1", _index);
                     a_mat[(_index, 0)] = Mfp::ONE;
 
-                    print!("Left:  B[{}, {}] = ", _index, inx_left);
+                    print_dbg!("Left:  B[{}, {}] = ", _index, inx_left);
                     b_mat[(_index, inx_left)] = match to_bint!(left_val) {
                         1 => Mfp::ONE,
                         _ => -left_val,
                     };
-                    println!("{}", b_mat[(_index, inx_left)]);
+                    println_dbg!("{}", b_mat[(_index, inx_left)]);
 
-                    print!("Right: B[{}, {}] = ", _index, inx_right);
+                    print_dbg!("Right: B[{}, {}] = ", _index, inx_right);
                     b_mat[(_index, inx_right)] = match to_bint!(right_val) {
                         1 => Mfp::ONE,
                         _ => -right_val,
                     };
-                    println!("{}", b_mat[(_index, inx_right)]);
+                    println_dbg!("{}", b_mat[(_index, inx_right)]);
 
                 }
                 GateType::Div => {
-                    println!("Gate: Div");
-                    println!("Left:  A[{}, {}] = {}", _index, inx_left, invers_val(left_val));
+                    println_dbg!("Gate: Div");
+                    println_dbg!("Left:  A[{}, {}] = {}", _index, inx_left, invers_val(left_val));
                     a_mat[(_index, inx_left)] = invers_val(left_val);
 
-                    println!("Right: B[{}, {}] = {}", _index, inx_right, invers_val(right_val));
+                    println_dbg!("Right: B[{}, {}] = {}", _index, inx_right, invers_val(right_val));
                     b_mat[(_index, inx_right)] = invers_val(right_val);
                 }
                 _ => panic!("Invalid gate {:?}", gate.gate_type)
@@ -394,13 +389,13 @@ impl CommitmentBuilder {
         rows_to_zero(&mut self.commitm.matrices.c, self.commitm.numebr_t_zero);
 
 
-        println!("Mat A:");
+        println_dbg!("Mat A:");
         dsp_mat!(self.commitm.matrices.a);
-        println!("Mat B:");
+        println_dbg!("Mat B:");
         dsp_mat!(self.commitm.matrices.b);
-        println!("Mat C:");
+        println_dbg!("Mat C:");
         dsp_mat!(self.commitm.matrices.c);
-        println!("Mat Z:");
+        println_dbg!("Mat Z:");
         dsp_mat!(self.commitm.matrices.z);
 
         self.clone()
@@ -447,7 +442,7 @@ impl CommitmentBuilder {
         for reg in 0..32 {
             if regs_data.contains_key(&reg) {
                 let data = regs_data.get(&reg).unwrap();
-                // println!("data here ==> {:?}", data);
+                // println_dbg!("data here ==> {:?}", data);
                 z_vec[(z_vec_counter, 0)] = data.init_val;
                 z_vec_counter += 1;
                 let mut witness = data.witness.clone();
@@ -460,9 +455,9 @@ impl CommitmentBuilder {
             }
         }
 
-        // println!("inits {:?}", mat_to_vec(z_vec));
-        // println!("witness {:?}", witnesses);
-        // println!("z_v_c {:?}", z_vec_counter);
+        // println_dbg!("inits {:?}", mat_to_vec(z_vec));
+        // println_dbg!("witness {:?}", witnesses);
+        // println_dbg!("z_v_c {:?}", z_vec_counter);
 
         for w in witnesses {
             z_vec[(z_vec_counter, 0)] = w;
@@ -584,33 +579,33 @@ impl CommitmentBuilder {
         );
 
         let a_row_px = sigma_yi_li(&points_row_p_a, &self.commitm.set_k);
-        println!("a_row_px: ");
+        println_dbg!("a_row_px: ");
         dsp_poly!(a_row_px);
         let a_col_px = sigma_yi_li(&points_col_p_a, &self.commitm.set_k);
-        println!("a_col_px: ");
+        println_dbg!("a_col_px: ");
         dsp_poly!(a_col_px);
         let a_val_px = sigma_yi_li(&points_val_p_a, &self.commitm.set_k);
-        println!("a_val_px: ");
+        println_dbg!("a_val_px: ");
         dsp_poly!(a_val_px);
 
         let b_row_px = sigma_yi_li(&points_row_p_b, &self.commitm.set_k);
-        println!("b_row_px: ");
+        println_dbg!("b_row_px: ");
         dsp_poly!(b_row_px);
         let b_col_px = sigma_yi_li(&points_col_p_b, &self.commitm.set_k);
-        println!("b_col_px: ");
+        println_dbg!("b_col_px: ");
         dsp_poly!(b_col_px);
         let b_val_px = sigma_yi_li(&points_val_p_b, &self.commitm.set_k);
-        println!("b_val_px: ");
+        println_dbg!("b_val_px: ");
         dsp_poly!(b_val_px);
 
         let c_row_px = sigma_yi_li(&points_row_p_c, &self.commitm.set_k);
-        println!("c_row_px: ");
+        println_dbg!("c_row_px: ");
         dsp_poly!(c_row_px);
         let c_col_px = sigma_yi_li(&points_col_p_c, &self.commitm.set_k);
-        println!("c_col_px: ");
+        println_dbg!("c_col_px: ");
         dsp_poly!(c_col_px);
         let c_val_px = sigma_yi_li(&points_val_p_c, &self.commitm.set_k);
-        println!("c_val_px: ");
+        println_dbg!("c_val_px: ");
         dsp_poly!(c_val_px);
 
         let polys_pxs = vec![

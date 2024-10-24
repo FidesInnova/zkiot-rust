@@ -14,7 +14,7 @@
 43ddda37:       02f407b3                ld     a3, a3 ,0
 41246574:       02f407b3                ld     a4, a4 ,0
 4e4adcd1:       02f407b3                ld     a5, a5 ,0
-4e248348:       02f407b3                ld     a6, a6 ,4
+4e248348:       02f407b3                ld     a6, a6 ,0
 4364e641:       02f407b3                ld     a7, a7 ,0
 42f7db1c:       02f407b3                ld     s2, s2 ,0
 486beaca:       02f407b3                ld     s3, s3 ,0

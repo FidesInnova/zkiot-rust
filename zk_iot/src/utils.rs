@@ -16,6 +16,7 @@ use rand::Rng;
 
 
 use crate::define_get_points_fn;
+use crate::println_dbg;
 use crate::get_val;
 
 use crate::math::newton_interpolate;
@@ -241,16 +242,16 @@ pub fn add_random_points(
 
     Ok(())
 }
-
 pub fn print_hashmap(points: &HashMap<Mfp, Mfp>, set_k: &[Mfp]) {
     for k in set_k.iter() {
         if let Some(val) = points.get(k) {
-            println!("{} = {}", k, val);
+            println_dbg!("{} = {}", k, val);
         } else {
-            println!("{} = None", k);
+            println_dbg!("{} = None", k);
         }
     }
 }
+
 
 /// Encodes a matrix into three polynomials: row, column, and value polynomials.
 ///
@@ -275,11 +276,11 @@ pub fn encode_matrix_m(matrix: &DMatrix<Mfp>, set_h: &[Mfp], set_k: &[Mfp]) -> V
     let points  = get_points_val(matrix, set_h, set_k);
     let val     = newton_interpolate(&points);
 
-    // println!("lag row:");
+    // println_dbg!("lag row:");
     // dsp_poly!(row);
-    // println!("lag col:");
+    // println_dbg!("lag col:");
     // dsp_poly!(col);
-    // println!("lag val:");
+    // println_dbg!("lag val:");
     // dsp_poly!(val);
     
     vec![row, col, val]
@@ -433,7 +434,7 @@ macro_rules! dsp_mat {
         for i in 0..$mat.nrows() {
             for j in 0..$mat.ncols() {
                 let derr = $mat[(i, j)];
-                print!(
+                crate::print_dbg!(
                     "{:<10}",
                     if derr == Mfp::ZERO {
                         "0".to_owned()
@@ -442,9 +443,9 @@ macro_rules! dsp_mat {
                     }
                 );
             }
-            println!();
+            crate::println_dbg!();
         }
-        println!();
+        crate::println_dbg!();
     };
 }
 
@@ -517,7 +518,7 @@ macro_rules! dsp_poly {
             } 
         }
         
-        println!("{result}\n");
+        crate::println_dbg!("{result}\n");
     }};
 }
 
@@ -540,4 +541,25 @@ pub fn concat_polys(polys: &[&Poly]) -> Vec<Mfp> {
     }
 
     result
+}
+
+
+#[macro_export]
+macro_rules! print_dbg {
+    ($fmt:expr $(, $arg:expr)*) => {
+        #[cfg(debug_assertions)]
+        print!("{}", format_args!($fmt $(, $arg)*));
+    }
+}
+
+#[macro_export]
+macro_rules! println_dbg {
+    () => {
+        #[cfg(debug_assertions)]
+        println!()
+    };
+    ($fmt:expr $(, $arg:expr)*) => {
+        #[cfg(debug_assertions)]
+        println!("{}", format_args!($fmt $(, $arg)*));
+    }
 }

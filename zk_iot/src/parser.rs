@@ -5,7 +5,7 @@ use ark_ff::Field;
 use std::io::{BufRead, BufReader};
 use std::{fs::File, path::PathBuf};
 
-use crate::json_file::*;
+use crate::{json_file::*, println_dbg};
 use crate::math::Mfp;
 
 #[derive(Debug)]
@@ -214,7 +214,7 @@ fn match_reg(reg: &str) -> Option<u8> {
 
 fn register_parser(reg: Vec<&str>) -> (u8, u8) {
     let left_reg = match_reg(reg[0]).expect(format!("Invalid left register: {}", reg[0]).as_str());
-    println!("reg --> {:?}, {:?}", reg[1], reg[2]);
+    println_dbg!("reg --> {:?}, {:?}", reg[1], reg[2]);
     let right_reg = match_reg(reg[1]).unwrap_or_else( ||
         match_reg(reg[2]).expect(format!("Invalid right register: {}", reg[2]).as_str())
     );
@@ -307,7 +307,7 @@ pub fn parse_from_lines(line_file: BufReader<File>, opcodes_file: &PathBuf) -> R
             gate_type,
         );
 
-        println!("gate ==> {:?}", gate);
+        println_dbg!("gate ==> {:?}", gate);
 
         gates.push(gate);
     }

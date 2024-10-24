@@ -10,7 +10,7 @@ use ark_ff::Zero;
 
 use rayon::prelude::*; // For parallel iteration
 
-use crate::{dsp_poly, field, to_bint, utils::add_random_points};
+use crate::{dsp_poly, field, println_dbg, to_bint, utils::add_random_points};
 
 /// Define the constant modulus for field operations.
 
@@ -605,10 +605,10 @@ pub fn sigma_yi_li(points: &HashMap<Mfp, Mfp>, set_k: &Vec<Mfp>) -> Poly {
 
 
 pub fn e_func(a: Mfp, b: Mfp, g: Mfp) -> Mfp {
-    println!("a: {a}, b: {b}");
+    println_dbg!("a: {a}, b: {b}");
     let a_r = Mfp::from(div_mod_val(a, g));
     let b_r = Mfp::from(div_mod_val(b, g));
-    println!("a_r: {a_r}, b_r: {b_r}");
+    println_dbg!("a_r: {a_r}, b_r: {b_r}");
     let exp = a_r * b_r;
     Mfp::from(3) * exp 
 }

@@ -2,13 +2,10 @@ use ark_ff::Field;
 use rustnomial::{Evaluable, FreeSizePolynomial, SizedPolynomial};
 
 use crate::{
-    json_file::ClassData,
-    math::{
+    json_file::ClassData, math::{
         div_mod, div_mod_val, e_func, exp_mod, func_u, generate_set, kzg, newton_interpolate,
         vanishing_poly, Mfp, Poly, GENERATOR, P,
-    },
-    to_bint,
-    utils::{get_points_set, mat_to_vec},
+    }, println_dbg, to_bint, utils::{get_points_set, mat_to_vec}
 };
 
 use super::{commitment::Commitment, proof_generation::{AHPData, Polys, ProofGeneration, ProofGenerationJson}};
@@ -212,8 +209,8 @@ impl Verification {
         sigma_3: &Mfp,
         set_k_len: usize,
     ) -> bool {
-        println!("eq11: {}", h_3x.eval(*beta_3) * van_poly_vkx.eval(*beta_3));
-        println!(
+        println_dbg!("eq11: {}", h_3x.eval(*beta_3) * van_poly_vkx.eval(*beta_3));
+        println_dbg!(
             "eq12: {}",
             ax.eval(*beta_3)
                 - (bx.eval(*beta_3)
@@ -238,8 +235,8 @@ impl Verification {
         sigma_3: &Mfp,
         set_h_len: usize,
     ) -> bool {
-        println!("eq21: {}", poly_r.eval(*beta_2) * sigma_3);
-        println!(
+        println_dbg!("eq21: {}", poly_r.eval(*beta_2) * sigma_3);
+        println_dbg!(
             "eq22: {}",
             h_2x.eval(*beta_2) * van_poly_vhx.eval(*beta_2)
                 + *beta_2 * g_2x.eval(*beta_2)
@@ -265,11 +262,11 @@ impl Verification {
         sigma_2: &Mfp,
         set_h_len: usize,
     ) -> bool {
-        println!(
+        println_dbg!(
             "eq31: {}",
             poly_sx.eval(*beta_1) + sum_1.eval(*beta_1) - *sigma_2 * poly_z_hat_x.eval(*beta_1)
         );
-        println!(
+        println_dbg!(
             "eq32: {}",
             h_1x.eval(*beta_1) * van_poly_vhx.eval(*beta_1)
                 + *beta_1 * g_1x.eval(*beta_1)
@@ -288,8 +285,8 @@ impl Verification {
         van_poly_vhx: &Poly,
         beta_1: &Mfp,
     ) -> bool {
-        println!("eq41: {}", poly_ab_c.eval(*beta_1));
-        println!(
+        println_dbg!("eq41: {}", poly_ab_c.eval(*beta_1));
+        println_dbg!(
             "eq42: {}",
             poly_h_0.eval(*beta_1) * van_poly_vhx.eval(*beta_1)
         );
@@ -304,21 +301,21 @@ impl Verification {
         vk: Mfp,
         z: Mfp,
     ) -> bool {
-        println!("val_commit_px: {val_commit_poly_px}, val_y_p: {val_y_p}, vk: {vk}, val_commit_poly_qx: {val_commit_poly_qx}");
+        println_dbg!("val_commit_px: {val_commit_poly_px}, val_y_p: {val_y_p}, vk: {vk}, val_commit_poly_qx: {val_commit_poly_qx}");
 
         let e_1 = e_func(
             val_commit_poly_px - Mfp::from(to_bint!(g) * to_bint!(val_y_p)),
             g,
             g,
         );
-        println!("eq51: {}", e_1);
+        println_dbg!("eq51: {}", e_1);
 
         let e_2 = e_func(
             val_commit_poly_qx,
             vk - Mfp::from(to_bint!(g) * to_bint!(z)),
             Mfp::from(g),
         );
-        println!("eq52: {}", e_2);
+        println_dbg!("eq52: {}", e_2);
         e_1 == e_2
     }
 
@@ -330,9 +327,9 @@ impl Verification {
         poly_pi: &Vec<&Poly>,
     ) -> Poly {
         let val_vhx_beta_1 = van_poly_vhx.eval(beta[0]);
-        println!("val_vhx_beta_1: {val_vhx_beta_1}");
+        println_dbg!("val_vhx_beta_1: {val_vhx_beta_1}");
         let val_vhx_beta_2 = van_poly_vhx.eval(beta[1]);
-        println!("val_vhx_beta_2: {val_vhx_beta_2}");
+        println_dbg!("val_vhx_beta_2: {val_vhx_beta_2}");
 
         let poly_sig_a = Poly::from(vec![eta[0] * val_vhx_beta_2 * val_vhx_beta_1]) * &polys_px[2];
         let poly_sig_b = Poly::from(vec![eta[1] * val_vhx_beta_2 * val_vhx_beta_1]) * &polys_px[5];
