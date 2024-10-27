@@ -1,3 +1,18 @@
+// Copyright 2024 Fidesinnova, Inc.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
 use std::path::PathBuf;
 
 use ahp::setup::Setup;
@@ -27,11 +42,11 @@ fn main() -> Result<()> {
         .with_context(|| "Error parsing instructions")?;
 
     // Load commitment data from the commitment file
-    let commitment_json = ahp::commitment::Commitment::restore("zkp_data/commit.json")
+    let commitment_json = ahp::commitment_generation::Commitment::restore("zkp_data/commit.json")
         .with_context(|| "Error loading commitment data")?;
 
     // Generate the associated matrices
-    let commitment = ahp::commitment::Commitment::new(class_data)
+    let commitment = ahp::commitment_generation::Commitment::new(class_data)
         .gen_matrices(gates, class_data.n_i.try_into()?)
         .build();
 

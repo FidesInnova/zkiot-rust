@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [workspace]
-members = ["setup", "commitment", "proof_generation", "proof_verification"]
+members = ["setup", "commitment_generation", "proof_generation", "proof_verification"]
 
 [dependencies]
 anyhow = "1.0.86"
@@ -18,3 +18,9 @@ serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0.128"
 sha2 = "0.10.8"
 toml = "0.8.19"
+
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+opt-level = 3

@@ -34,9 +34,9 @@ cargo build -p setup $options >> "$filename" && \
 echo "Setup: =====================================================" >> "report.txt" && \
 /usr/bin/time -v -a -o "report.txt" ./target/$dir/setup >> "$filename" && \
 
-cargo build -p commitment $options >> "$filename" && \
+cargo build -p commitment_generation $options >> "$filename" && \
 echo "Commitment: ================================================" >> "report.txt" && \
-/usr/bin/time -v -a -o "report.txt" ./target/$dir/commitment >> "$filename" && \
+/usr/bin/time -v -a -o "report.txt" ./target/$dir/commitment_generation >> "$filename" && \
 
 cargo build -p proof_generation $options >> "$filename" && \
 echo "Proof Generation: ==========================================" >> "report.txt" && \

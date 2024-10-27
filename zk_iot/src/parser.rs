@@ -1,7 +1,21 @@
+// Copyright 2024 Fidesinnova, Inc.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
 //! Module for parsing gate information from text files into `Gate` objects.
 
 use anyhow::{anyhow, Context, Result};
-use ark_ff::Field;
 use std::io::{BufRead, BufReader};
 use std::{fs::File, path::PathBuf};
 
@@ -224,7 +238,7 @@ fn register_parser(reg: Vec<&str>) -> (u8, u8) {
 #[derive(Debug)]
 pub struct RegData {
     pub init_val: Mfp,
-    pub witness: Vec<Mfp>,
+    pub witness: Vec<(usize, Mfp)>,
 }
 impl RegData {
     pub fn new(val: Mfp) -> Self {
@@ -233,7 +247,7 @@ impl RegData {
             witness: vec![],
         }
     }
-    fn get_final(&mut self) -> Option<Mfp> {
+    fn get_final(&mut self) -> Option<(usize, Mfp)> {
         self.witness.pop()
     }
 }
