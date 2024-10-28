@@ -19,6 +19,9 @@ use ahp::setup::Setup;
 use anyhow::Context;
 use anyhow::Result;
 
+use matrices::matrix_size;
+use matrices::matrix_t_zeros;
+use matrices::Matrices;
 use parser::parse_from_lines;
 use zk_iot::json_file::*;
 use zk_iot::*;
@@ -33,6 +36,10 @@ fn main() -> Result<()> {
     let setup_json =
         Setup::restore("zkp_data/setup.json").with_context(|| "Error retrieving setup data")?;
 
+    // Load commitment data from the commitment file
+    let commitment_json = ahp::commitment_generation::Commitment::restore("zkp_data/commit.json")
+        .with_context(|| "Error loading commitment data")?;
+
     // Open the file containing line numbers for opcode reading
     let line_file = open_file(&PathBuf::from("line_num.txt"))
         .with_context(|| "Error opening line number file")?;
@@ -41,22 +48,16 @@ fn main() -> Result<()> {
     let gates = parse_from_lines(line_file, &PathBuf::from("sample.txt"))
         .with_context(|| "Error parsing instructions")?;
 
-    // Load commitment data from the commitment file
-    let commitment_json = ahp::commitment_generation::Commitment::restore("zkp_data/commit.json")
-        .with_context(|| "Error loading commitment data")?;
-
-    // Generate the associated matrices
-    let commitment = ahp::commitment_generation::Commitment::new(class_data)
-        .gen_matrices(gates, class_data.n_i.try_into()?)
-        .build();
+    let matrices = matrices::Matrices::restore("zkp_data/matrices.json")?;
 
     // .: Proof Generation :.
     let proof_generation = ahp::proof_generation::ProofGeneration::new();
-    let proof_data = proof_generation.get_proof(
+    let proof_data = proof_generation.generate_proof(
         &setup_json.get_commitment_key(),
         class_data,
+        matrices,
         commitment_json,
-        commitment
+        gates,
     );
 
     // Store the generated proof data in a JSON file

@@ -31,6 +31,7 @@ use rand::Rng;
 
 
 use crate::define_get_points_fn;
+use crate::json_file::ClassData;
 use crate::println_dbg;
 use crate::get_val;
 
@@ -250,11 +251,12 @@ pub fn add_random_points(
     for i in c..set_k.len() {
         // TODO: 
         // let rand_h = set_h.choose(&mut rng).ok_or(anyhow!("Failed to choose a random element from set_h"))?;
-        let rand_h = set_h[i % set_h.len()];
-        points.insert(set_k[i], rand_h);
+        let rand_h = &set_h[i % set_h.len()];
+        points.insert(set_k[i], *rand_h);
     }
 
 
+    println!("ttttt: {:?}", points);
     Ok(())
 }
 pub fn print_hashmap(points: &HashMap<Mfp, Mfp>, set_k: &[Mfp]) {
@@ -450,8 +452,8 @@ macro_rules! dsp_mat {
             for j in 0..$mat.ncols() {
                 let derr = $mat[(i, j)];
                 crate::print_dbg!(
-                    "{:<10}",
-                    if derr == Mfp::ZERO {
+                    "{:<3}",
+                    if derr == <crate::math::Mfp as ark_ff::Field>::ZERO {
                         "0".to_owned()
                     } else {
                         format!("{}", derr)

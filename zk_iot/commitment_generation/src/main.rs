@@ -45,14 +45,20 @@ fn main() -> Result<()> {
         .gen_polynomials()
         .build();
 
+
     // Generate polynomial commitments
     let commitment_polys =
         commitment.get_polynomials_commitment(GENERATOR, &setup_json.get_commitment_key());
+
+    // Store the matrices data in a JSON file
+    commitment.matrices.store("zkp_data/matrices.json")?;
 
     // Store the commitment data in a JSON file
     commitment
         .store("zkp_data/commit.json")
         .with_context(|| "Error storing commitment data")?;
     println!("Commitment file generated successfully");
+
+
     Ok(())
 }

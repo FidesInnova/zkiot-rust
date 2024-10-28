@@ -21,7 +21,7 @@ use std::{
 };
 
 use crate::{
-    dsp_mat, dsp_poly, dsp_vec, json_file::{open_file, write_term, ClassData}, math::*, parser::{Gate, GateType, RegData}, print_dbg, println_dbg, to_bint, utils::*
+    dsp_mat, dsp_poly, dsp_vec, json_file::{open_file, write_term, ClassData}, math::*, matrices::{matrix_size, matrix_t_zeros, Matrices}, parser::{Gate, GateType, RegData}, print_dbg, println_dbg, to_bint, utils::*
 };
 use anyhow::Result;
 use ark_ff::Field;
@@ -39,17 +39,17 @@ pub struct Commitment {
 }
 
 impl Commitment {
-    // Constructor method Generate sets and Initilize matrices
+    /// Constructor method Generate sets and Initilize matrices
     pub fn new(class_data: ClassData) -> CommitmentBuilder {
-        let set_h_len: u64 = (class_data.n_g + class_data.n_i + 1).try_into().unwrap();
-        let numebr_t_zero: u64 = (class_data.n_i + 1).try_into().unwrap(); // Number of rows (|x| = self.numebr_t_zero, where self.numebr_t_zero = ni + 1)
+        let set_h_len = class_data.n_g + class_data.n_i + 1;
+        let numebr_t_zero = matrix_t_zeros(&class_data) as u64;
         let set_k_len = ((set_h_len * set_h_len - set_h_len) / 2)
             - ((numebr_t_zero * numebr_t_zero - numebr_t_zero) / 2);
 
         let set_h = generate_set(set_h_len);
         let set_k = generate_set(set_k_len);
 
-        let matrix_size = class_data.n_g + class_data.n_i + 1;
+        let matrix_size = matrix_size(&class_data);
         let matrices = Matrices::new(matrix_size.try_into().unwrap());
 
         CommitmentBuilder {
@@ -88,30 +88,13 @@ impl Commitment {
     pub fn get_matrix_cz(&self) -> DMatrix<Mfp> {
         &self.matrices.c * &self.matrices.z
     }
-
-    /// Retrieves a vector containing the results of multiplying matrices `a`, `b`, and `c` with matrix `z`.
-    /// 
-    /// The returned array contains three vectors:
-    /// - Index 0: Result of `a * z`
-    /// - Index 1: Result of `b * z`
-    /// - Index 2: Result of `c * z`
-    /// 
-    /// # Returns
-    /// An array of vectors, where each vector contains the results of the respective matrix multiplication.
-    pub fn get_matrix_oz_vec(&self) -> [Vec<Mfp>; 3] {
-        [
-            mat_to_vec(&self.get_matrix_az()),
-            mat_to_vec(&self.get_matrix_bz()),
-            mat_to_vec(&self.get_matrix_cz()),
-        ]
-    }
-
+    
     /// Store in Json file
     pub fn store(&self, path: &str) -> Result<()> {
         let file = File::create(path)?;
         let writer = BufWriter::new(file);
 
-        let commitment_json = CommitmentJson::new(&self.points_px, &self.polys_px);
+        let commitment_json = CommitmentJson::new(&self.polys_px);
         serde_json::to_writer(writer, &commitment_json)?;
         Ok(())
     }
@@ -127,25 +110,14 @@ impl Commitment {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 /// A struct representing a commitment in JSON format, containing points and polynomial data.
 pub struct CommitmentJson {
-    points_px: Vec<Vec<(u64, u64)>>,
     polys_px: Vec<Vec<u64>>,
 }
 impl CommitmentJson {
-    pub fn new(points_px: &Vec<HashMap<Mfp, Mfp>>, polys_px: &Vec<Poly>) -> Self {
+    pub fn new(polys_px: &Vec<Poly>) -> Self {
         // Extract values for CommitmentJson from the Commitment struct
         let polys_px_t: Vec<Vec<u64>> = polys_px.iter().map(|p| write_term(p)).collect();
-        let points_px_t: Vec<Vec<(u64, u64)>> = points_px
-            .iter()
-            .map(|points| {
-                points
-                    .iter()
-                    .map(|(&key, &val)| (to_bint!(key), to_bint!(val)))
-                    .collect()
-            })
-            .collect();
 
         Self {
-            points_px: points_px_t,
             polys_px: polys_px_t,
         }
     }
@@ -164,43 +136,6 @@ impl CommitmentJson {
                 poly
             })
             .collect()
-    }
-
-    /// Retrieves the points data as a vector of hash maps.
-    /// 
-    /// # Returns
-    /// A vector of hash maps where each map represents a set of points with `Mfp` keys and values.
-    pub fn get_points_px(&self) -> Vec<HashMap<Mfp, Mfp>> {
-        self.points_px
-            .iter()
-            .map(|points| {
-                points
-                    .iter()
-                    .map(|&p| (Mfp::from(p.0), Mfp::from(p.1)))
-                    .collect()
-            })
-            .collect()
-    }
-}
-
-#[derive(Debug, Clone)]
-/// A struct representing a collection of matrices used in computations.
-pub struct Matrices {
-    pub a: DMatrix<Mfp>,
-    pub b: DMatrix<Mfp>,
-    pub c: DMatrix<Mfp>,
-    pub z: DMatrix<Mfp>,
-    pub size: usize,
-}
-
-impl Matrices {
-    pub fn new(size: usize) -> Self {
-        let a = DMatrix::<Mfp>::zeros(size, size);
-        let b = DMatrix::<Mfp>::zeros(size, size);
-        let c = DMatrix::<Mfp>::zeros(size, size);
-        let z = DMatrix::<Mfp>::zeros(size, 1);
-
-        Self { a, b, c, z, size }
     }
 }
 
@@ -251,7 +186,6 @@ impl CommitmentBuilder {
 
         let mut val_counter: usize = 0;
 
-
         for (_, gate) in gates.iter().enumerate() {
             if gate.gate_type == GateType::Ld {
                 let right_val = gate.val_right.map_or(Mfp::ZERO, Mfp::from);
@@ -264,7 +198,7 @@ impl CommitmentBuilder {
                 continue;
             }
             println_dbg!("Gate Loop: {} ------------", counter);
-            println_dbg!("Register: l:{}, r:{}", gate.reg_left, gate.reg_right);
+            println_dbg!("Register: {}", gate.reg_left);
 
             // Set index
             _index = 1 + ni + counter;
@@ -278,57 +212,26 @@ impl CommitmentBuilder {
                 ri = true;
             }
 
-            // if gate.val_left.is_some() {
-            //     li = true;
-            // } 
-            // if gate.val_right.is_some() {
-            //     ri = true;
-            // }
-
-            // inx_left = if li { 
-            //     let inx = (0..=32).fold(0,  |acc, x| acc + regs_data.get(&x).unwrap_or(&RegData::new(Mfp::ZERO)).witness.len()) + ni;
-            //     println_dbg!("left:   index = {:<5}", inx);
-            //     inx
-            // } else {
-            //     println_dbg!("left: None, index = {}", inx_left + 1);
-            //     inx_left + 1
-            // };
-
-            // inx_right = if ri {
-            //     let inx = (0..=32).fold(0, |acc, x| acc + regs_data.get(&x).unwrap_or(&RegData::new(Mfp::ZERO)).witness.len()) + ni;
-            //     println_dbg!("right:  index = {:<5}", inx);
-            //     inx
-            // } else {
-            //     println_dbg!("right: None, index = {}", inx_right + 1);
-            //     inx_right + 1
-            // };
-
-
             // It works better
             inx_left = if li {
                 let inx = (0..=gate.reg_left).fold(0,  |acc, x| acc + regs_data.get(&x).unwrap_or(&RegData::new(Mfp::ZERO)).witness.len()) + ni;
-                println_dbg!("left:   index = {:<5}", inx);
+                // println_dbg!("left:   index = {:<5}", inx);
                 inx
             } else {
-                println_dbg!("left: None, index = {}", inx_left + 1);
+                // println_dbg!("left: None, index = {}", inx_left + 1);
                 inx_left + 1
             };
 
             inx_right = if ri {
                 let inx = (0..=gate.reg_right).fold(0, |acc, x| acc + regs_data.get(&x).unwrap_or(&RegData::new(Mfp::ZERO)).witness.len()) + ni;
-                println_dbg!("right:  index = {:<5}", inx);
+                // println_dbg!("right:  index = {:<5}", inx);
                 inx
             } else {
-                println_dbg!("right: None, index = {}", inx_right + 1);
+                // println_dbg!("right: None, index = {}", inx_right + 1);
                 inx_right + 1
             };
 
             Self::add_val(&mut regs_data, gate, gate.gate_type, &mut val_counter);
-            
-
-            // inx_left += 1;
-            // inx_right += 1;
-
 
             let left_val = if let Some(val) = gate.val_left {
                 inx_left = 0;
@@ -424,7 +327,7 @@ impl CommitmentBuilder {
         self.clone()
     }
 
-    fn add_val(regs_data: &mut HashMap<u8, RegData>, gate: &Gate, operator: GateType, val_counter: &mut usize) {
+    pub fn add_val(regs_data: &mut HashMap<u8, RegData>, gate: &Gate, operator: GateType, val_counter: &mut usize) {
         if let Some(left_val) = gate.val_left {
             if let Some(reg) = regs_data.get_mut(&gate.reg_right) {
                 let new_value = match reg.witness.last() {

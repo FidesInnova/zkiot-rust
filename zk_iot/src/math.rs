@@ -36,7 +36,7 @@ use crate::{dsp_poly, field, println_dbg, to_bint, utils::add_random_points};
 // pub const P: u64 = 5107;
 // pub const GENERATOR: u64 = 2;
 
-pub const P: u64 = 39901;
+pub const P: u64 = 5107;
 pub const GENERATOR: u64 = 2;
 
 // pub const P: u64 = 181;

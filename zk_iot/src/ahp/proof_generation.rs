@@ -1,17 +1,16 @@
 // Copyright 2024 Fidesinnova, Inc.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 
 use std::collections::HashMap;
 use std::fs::File;
@@ -19,6 +18,8 @@ use std::io::BufWriter;
 use std::iter::repeat_with;
 use std::path::PathBuf;
 
+use crate::ahp::commitment_generation::CommitmentBuilder;
+use crate::dsp_mat;
 use crate::dsp_poly;
 use crate::dsp_vec;
 use crate::json_file::open_file;
@@ -26,11 +27,19 @@ use crate::json_file::write_set;
 use crate::json_file::write_term;
 use crate::json_file::ClassData;
 use crate::math::*;
+use crate::matrices::matrix_size;
+use crate::matrices::matrix_t_zeros;
+use crate::matrices::Matrices;
+use crate::matrices::MatricesJson;
+use crate::parser::Gate;
+use crate::parser::GateType;
+use crate::parser::RegData;
 use crate::println_dbg;
 use crate::to_bint;
 use crate::utils::*;
 use anyhow::Result;
 use ark_ff::Field;
+use nalgebra::DMatrix;
 use rand::Rng;
 use rustnomial::Evaluable;
 use rustnomial::FreeSizePolynomial;
@@ -40,7 +49,6 @@ use serde::Serialize;
 
 use super::commitment_generation::Commitment;
 use super::commitment_generation::CommitmentJson;
-
 
 #[derive(Debug, Clone, Copy)]
 pub enum Polys {
@@ -58,10 +66,9 @@ pub enum Polys {
     H3x,
 }
 
-
 pub enum AhpValue {
     Yp,
-    CommitQx
+    CommitQx,
 }
 
 // Assuming AHPData is defined as follows
@@ -71,7 +78,7 @@ pub enum AHPData {
     Value(u64),
     Sigma(u64),
     Polynomial(Vec<u64>),
-    Array(Vec<u64>)
+    Array(Vec<u64>),
 }
 pub struct ProofGeneration;
 impl ProofGeneration {
@@ -226,30 +233,216 @@ impl ProofGeneration {
         (r_a_xk, r_b_xk, r_c_xk)
     }
 
-    pub fn get_proof(
+    fn get_points_px_vec(
+        set_h: &Vec<Mfp>,
+        set_k: &Vec<Mfp>,
+        matrices: Vec<&DMatrix<Mfp>>,
+    ) -> Vec<HashMap<Mfp, Mfp>> {
+        // Matrix A:
+        let points_row_p_a = get_matrix_point_row(&matrices[0], &set_h, &set_k);
+        let points_col_p_a = get_matrix_point_col(&matrices[0], &set_h, &set_k);
+        let points_val_p_a = get_matrix_point_val(
+            &matrices[0],
+            &set_h,
+            &set_k,
+            &points_row_p_a,
+            &points_col_p_a,
+        );
+
+        // Matrix B:
+        let points_row_p_b = get_matrix_point_row(&matrices[1], &set_h, &set_k);
+        let points_col_p_b = get_matrix_point_col(&matrices[1], &set_h, &set_k);
+        let points_val_p_b = get_matrix_point_val(
+            &matrices[1],
+            &set_h,
+            &set_k,
+            &points_row_p_b,
+            &points_col_p_b,
+        );
+
+        // Matrix C
+        let points_row_p_c = get_matrix_point_row(&matrices[2], &set_h, &set_k);
+        let points_col_p_c = get_matrix_point_col(&matrices[2], &set_h, &set_k);
+        let points_val_p_c = get_matrix_point_val(
+            &matrices[2],
+            &set_h,
+            &set_k,
+            &points_row_p_c,
+            &points_col_p_c,
+        );
+
+        vec![
+            points_val_p_a,
+            points_row_p_a,
+            points_col_p_a,
+            points_val_p_b,
+            points_row_p_b,
+            points_col_p_b,
+            points_val_p_c,
+            points_row_p_c,
+            points_col_p_c,
+        ]
+    }
+
+    fn get_matrices(
+        matrices: &MatricesJson,
+        class_data: &ClassData,
+    ) -> (DMatrix<Mfp>, DMatrix<Mfp>, DMatrix<Mfp>) {
+        let a = matrices.get_matrix_a(matrix_size(&class_data));
+        let b = matrices.get_matrix_b(matrix_size(&class_data));
+        let c = Matrices::generate_matrix_c(matrix_size(&class_data), matrix_t_zeros(&class_data));
+
+        (a, b, c)
+    }
+
+    pub fn generate_mat_z(gates: Vec<Gate>, class_data: &ClassData) -> DMatrix<Mfp> {
+        let size = matrix_size(&class_data);
+        let ni: usize = class_data.n_i as usize;
+
+        let mut regs_data: HashMap<u8, RegData> = HashMap::new();
+
+        let mut _index = 0;
+        let mut counter = 0;
+        let mut inx_left = 0;
+        let mut inx_right = 0;
+
+        let mut val_counter: usize = 0;
+
+        for (_, gate) in gates.iter().enumerate() {
+            if gate.gate_type == GateType::Ld {
+                let right_val = gate.val_right.map_or(Mfp::ZERO, Mfp::from);
+                match regs_data.contains_key(&gate.reg_right) {
+                    true => panic!("The register has been loaded again!"),
+                    false => regs_data.insert(gate.reg_right, RegData::new(right_val)),
+                };
+                continue;
+            }
+
+            // Set index
+            _index = 1 + ni + counter;
+
+            let (mut li, mut ri) = (false, false);
+            if !regs_data.get(&gate.reg_left).unwrap().witness.is_empty() {
+                li = true;
+            }
+            if !regs_data.get(&gate.reg_right).unwrap().witness.is_empty() {
+                ri = true;
+            }
+
+            // It works better
+            inx_left = if li {
+                let inx = (0..=gate.reg_left).fold(0, |acc, x| {
+                    acc + regs_data
+                        .get(&x)
+                        .unwrap_or(&RegData::new(Mfp::ZERO))
+                        .witness
+                        .len()
+                }) + ni;
+                inx
+            } else {
+                inx_left + 1
+            };
+
+            inx_right = if ri {
+                let inx = (0..=gate.reg_right).fold(0, |acc, x| {
+                    acc + regs_data
+                        .get(&x)
+                        .unwrap_or(&RegData::new(Mfp::ZERO))
+                        .witness
+                        .len()
+                }) + ni;
+                inx
+            } else {
+                inx_right + 1
+            };
+
+            CommitmentBuilder::add_val(&mut regs_data, gate, gate.gate_type, &mut val_counter);
+
+            counter += 1;
+        }
+
+        let mut matrix_z = DMatrix::<Mfp>::zeros(size, 1);
+        Self::gen_z_mat(&mut matrix_z, &regs_data);
+
+        println_dbg!("Mat Z Proof:");
+        dsp_mat!(matrix_z);
+
+        matrix_z
+    }
+
+    fn gen_z_mat(z_vec: &mut DMatrix<Mfp>, regs_data: &HashMap<u8, RegData>) {
+        z_vec[(0, 0)] = Mfp::ONE;
+        let mut z_vec_counter: usize = 1;
+
+        let mut witnesses: Vec<(usize, Mfp)> = vec![];
+        let mut final_val = vec![];
+        for reg in 0..32 {
+            if regs_data.contains_key(&reg) {
+                let data = regs_data.get(&reg).unwrap();
+                // println_dbg!("data here ==> {:?}", data);
+                z_vec[(z_vec_counter, 0)] = data.init_val;
+                z_vec_counter += 1;
+                let mut witness = data.witness.clone();
+                if witness.is_empty() {
+                    continue;
+                }
+                let last_val = witness.pop().unwrap();
+                witnesses.extend(witness.iter());
+                final_val.push(last_val.1);
+            }
+        }
+
+        witnesses.sort();
+
+        for w in witnesses {
+            z_vec[(z_vec_counter, 0)] = w.1;
+            // println!("w: {}", w);
+            z_vec_counter += 1;
+        }
+
+        for f in final_val.iter().rev() {
+            z_vec[(z_vec_counter, 0)] = *f;
+            z_vec_counter += 1;
+        }
+    }
+
+    pub fn generate_proof(
         &self,
         commitment_key: &Vec<Mfp>,
         class_data: ClassData,
+        matrices: MatricesJson,
         commitment_json: CommitmentJson,
-        commitment: Commitment
+        gates: Vec<Gate>,
     ) -> Box<[AHPData]> {
         // Generate sets
         let set_h = generate_set(class_data.n);
         let set_k = generate_set(class_data.m);
-        let numebr_t_zero: usize = (class_data.n_i + 1) as usize;
-        let x_vec = &mat_to_vec(&commitment.matrices.z)[..numebr_t_zero];
         
+        let numebr_t_zero = matrix_t_zeros(&class_data);
+        let (mat_a, mat_b, mat_c) = Self::get_matrices(&matrices, &class_data);
+        let mat_z = Self::generate_mat_z(gates, &class_data);
+        let points_px = Self::get_points_px_vec(&set_h, &set_k, vec![&mat_a, &mat_b, &mat_c]);
+        let x_vec = &mat_to_vec(&mat_z)[..numebr_t_zero];
+
         // TODO: Set 'random_b' to a random value in the range 1 to 50
         let random_b = 2;
 
-        // Generate and interpolate points for matrices za, zb, zc
-        let (poly_z_hat_a, poly_z_hat_b, poly_z_hat_c) =
-            Self::generate_z_interpolations(commitment.get_matrix_oz_vec(), random_b, &set_h);
+        // Generate and interpolate points for matrices az, bz, cz
+        let (poly_z_hat_a, poly_z_hat_b, poly_z_hat_c) = Self::generate_z_interpolations(
+            [
+                mat_to_vec(&(&mat_a * &mat_z)),
+                mat_to_vec(&(&mat_b * &mat_z)),
+                mat_to_vec(&(&mat_c * &mat_z)),
+            ],
+            random_b,
+            &set_h,
+        );
+
         let (poly_x_hat, poly_w_hat, van_poly_vh1) = Self::compute_x_w_vanishing_interpolation(
             random_b,
             &set_h,
             &x_vec.to_vec(),
-            &mat_to_vec(&commitment.get_matrix_cz()),
+            &mat_to_vec(&(&mat_c * &mat_z)),
             numebr_t_zero,
         );
         println_dbg!("w_hat:"); // Output the interpolated polynomial for wˉ(h)
@@ -267,7 +460,6 @@ impl ProofGeneration {
         println_dbg!("h0(x):");
         dsp_poly!(poly_h_0);
 
-        
         // Generate a random polynomial
         let poly_sx = Self::generate_random_polynomial(2 * set_h.len() + 2 - 1, (0, P));
         println_dbg!("poly_sx");
@@ -313,11 +505,8 @@ impl ProofGeneration {
         println_dbg!("z_hat: ");
         dsp_poly!(poly_z_hat_x);
 
-        let (r_a_kx, r_b_kx, r_c_kx) = Self::calculate_r_polynomials_with_alpha(
-            &commitment_json.get_points_px(),
-            alpha,
-            &set_h,
-        );
+        let (r_a_kx, r_b_kx, r_c_kx) =
+            Self::calculate_r_polynomials_with_alpha(&points_px, alpha, &set_h);
 
         // ∑_m [η_M r_M(α,x)] * z^(x)
         let sum_2 = Poly::new(vec![eta_a]) * &r_a_kx
@@ -350,11 +539,8 @@ impl ProofGeneration {
         let beta_2 = Mfp::from(80);
         let beta_3 = Mfp::from(5);
 
-        let (r_a_xk, r_b_xk, r_c_xk) = Self::calculate_r_polynomials_with_beta(
-            &commitment_json.get_points_px(),
-            beta_1,
-            &set_h,
-        );
+        let (r_a_xk, r_b_xk, r_c_xk) =
+            Self::calculate_r_polynomials_with_beta(&points_px, beta_1, &set_h);
 
         // sigma_2
         let sigma_2 =
@@ -508,7 +694,14 @@ impl ProofGeneration {
         let commit_x = compute_all_commitment(&polys_proof, commitment_key, GENERATOR);
         println_dbg!("commit_x: {}", dsp_vec!(commit_x));
 
-        Self::create_proof(&polys_proof, &sigma, &commit_x, val_y_p, val_commit_poly_qx, &x_vec.to_vec())
+        Self::create_proof(
+            &polys_proof,
+            &sigma,
+            &commit_x,
+            val_y_p,
+            val_commit_poly_qx,
+            &x_vec.to_vec(),
+        )
     }
 
     pub fn compute_polys_pi(beta_1: Mfp, beta_2: Mfp, polys_px: &[Poly]) -> (Poly, Poly, Poly) {
@@ -551,36 +744,36 @@ impl ProofGeneration {
         x_vec: &Vec<Mfp>,
     ) -> Box<[AHPData]> {
         let pi_ahp = [
-            AHPData::Array(write_set(x_vec)),                   // COM1AHP
-            AHPData::Commit(to_bint!(commit_x[0])),             // [0]: COM2AHP
-            AHPData::Commit(to_bint!(commit_x[1])),             // [1]: COM3AHP
-            AHPData::Commit(to_bint!(commit_x[2])),             // [2]: COM4AHP
-            AHPData::Commit(to_bint!(commit_x[3])),             // [3]: COM5AHP
-            AHPData::Commit(to_bint!(commit_x[4])),             // [4]: COM6AHP
-            AHPData::Commit(to_bint!(commit_x[5])),             // [5]: COM7AHP
-            AHPData::Commit(to_bint!(commit_x[6])),             // [6]: COM8AHP
-            AHPData::Commit(to_bint!(commit_x[7])),             // [7]: COM9AHP
-            AHPData::Commit(to_bint!(commit_x[8])),             // [8]: COM10AHP
-            AHPData::Commit(to_bint!(commit_x[9])),             // [9]: COM11AHP
-            AHPData::Commit(to_bint!(commit_x[10])),            // [10]: COM12AHP
-            AHPData::Commit(to_bint!(commit_x[11])),            // [11]: COM13AHP
-            AHPData::Sigma(to_bint!(sigma[0])),                 // [12]: P1AHP: sigma_1
-            AHPData::Sigma(to_bint!(sigma[1])),                 // [21]: P10AHP: sigma_2
-            AHPData::Sigma(to_bint!(sigma[2])),                 // [24]: P13AHP: sigma_3
-            AHPData::Value(to_bint!(val_y_p)),                  // [27]: P16AHP: y'
-            AHPData::Value(to_bint!(val_commit_poly_qx)),       // [28]: P17AHP: val_com_qx
-            AHPData::Polynomial(write_term(&polys_proof[0])),   // [13]: P2AHP: w^x
-            AHPData::Polynomial(write_term(&polys_proof[1])),   // [14]: P3AHP: z^a
-            AHPData::Polynomial(write_term(&polys_proof[2])),   // [15]: P4AHP: z^b
-            AHPData::Polynomial(write_term(&polys_proof[3])),   // [16]: P5AHP: z^c
-            AHPData::Polynomial(write_term(&polys_proof[4])),   // [17]: P6AHP: h_0
-            AHPData::Polynomial(write_term(&polys_proof[5])),   // [18]: P7AHP: sx
-            AHPData::Polynomial(write_term(&polys_proof[6])),   // [19]: P8AHP: g_1
-            AHPData::Polynomial(write_term(&polys_proof[7])),   // [20]: P9AHP: h_1
-            AHPData::Polynomial(write_term(&polys_proof[8])),   // [22]: P11AHP: g_2
-            AHPData::Polynomial(write_term(&polys_proof[9])),   // [23]: P12AHP: h_2
-            AHPData::Polynomial(write_term(&polys_proof[10])),  // [25]: P14AHP: g_3
-            AHPData::Polynomial(write_term(&polys_proof[11])),  // [26]: P15AHP: h_3
+            AHPData::Array(write_set(x_vec)),                  // COM1AHP
+            AHPData::Commit(to_bint!(commit_x[0])),            // [0]: COM2AHP
+            AHPData::Commit(to_bint!(commit_x[1])),            // [1]: COM3AHP
+            AHPData::Commit(to_bint!(commit_x[2])),            // [2]: COM4AHP
+            AHPData::Commit(to_bint!(commit_x[3])),            // [3]: COM5AHP
+            AHPData::Commit(to_bint!(commit_x[4])),            // [4]: COM6AHP
+            AHPData::Commit(to_bint!(commit_x[5])),            // [5]: COM7AHP
+            AHPData::Commit(to_bint!(commit_x[6])),            // [6]: COM8AHP
+            AHPData::Commit(to_bint!(commit_x[7])),            // [7]: COM9AHP
+            AHPData::Commit(to_bint!(commit_x[8])),            // [8]: COM10AHP
+            AHPData::Commit(to_bint!(commit_x[9])),            // [9]: COM11AHP
+            AHPData::Commit(to_bint!(commit_x[10])),           // [10]: COM12AHP
+            AHPData::Commit(to_bint!(commit_x[11])),           // [11]: COM13AHP
+            AHPData::Sigma(to_bint!(sigma[0])),                // [12]: P1AHP: sigma_1
+            AHPData::Sigma(to_bint!(sigma[1])),                // [21]: P10AHP: sigma_2
+            AHPData::Sigma(to_bint!(sigma[2])),                // [24]: P13AHP: sigma_3
+            AHPData::Value(to_bint!(val_y_p)),                 // [27]: P16AHP: y'
+            AHPData::Value(to_bint!(val_commit_poly_qx)),      // [28]: P17AHP: val_com_qx
+            AHPData::Polynomial(write_term(&polys_proof[0])),  // [13]: P2AHP: w^x
+            AHPData::Polynomial(write_term(&polys_proof[1])),  // [14]: P3AHP: z^a
+            AHPData::Polynomial(write_term(&polys_proof[2])),  // [15]: P4AHP: z^b
+            AHPData::Polynomial(write_term(&polys_proof[3])),  // [16]: P5AHP: z^c
+            AHPData::Polynomial(write_term(&polys_proof[4])),  // [17]: P6AHP: h_0
+            AHPData::Polynomial(write_term(&polys_proof[5])),  // [18]: P7AHP: sx
+            AHPData::Polynomial(write_term(&polys_proof[6])),  // [19]: P8AHP: g_1
+            AHPData::Polynomial(write_term(&polys_proof[7])),  // [20]: P9AHP: h_1
+            AHPData::Polynomial(write_term(&polys_proof[8])),  // [22]: P11AHP: g_2
+            AHPData::Polynomial(write_term(&polys_proof[9])),  // [23]: P12AHP: h_2
+            AHPData::Polynomial(write_term(&polys_proof[10])), // [25]: P14AHP: g_3
+            AHPData::Polynomial(write_term(&polys_proof[11])), // [26]: P15AHP: h_3
         ];
 
         Box::new(pi_ahp)
@@ -677,7 +870,7 @@ pub struct ProofGenerationJson {
     polys: Vec<Vec<u64>>,
     sigma: Vec<u64>,
     values: Vec<u64>,
-    x_vec: Vec<u64>
+    x_vec: Vec<u64>,
 }
 
 impl ProofGenerationJson {
@@ -703,7 +896,7 @@ impl ProofGenerationJson {
             polys,
             sigma,
             values,
-            x_vec
+            x_vec,
         }
     }
 
@@ -712,12 +905,16 @@ impl ProofGenerationJson {
     }
 
     pub fn get_poly(&self, poly: usize) -> Poly {
-        let poly_vec = self.polys[poly].iter().rev().map(|&v| Mfp::from(v)).collect::<Vec<Mfp>>();
+        let poly_vec = self.polys[poly]
+            .iter()
+            .rev()
+            .map(|&v| Mfp::from(v))
+            .collect::<Vec<Mfp>>();
         let mut poly = Poly::from(poly_vec);
         poly.trim();
         poly
     }
-    
+
     pub fn get_sigma(&self, num: usize) -> Mfp {
         Mfp::from(self.sigma[num - 1])
     }
