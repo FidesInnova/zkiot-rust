@@ -18,6 +18,16 @@ use std::io::BufWriter;
 use std::iter::repeat_with;
 use std::path::PathBuf;
 
+use anyhow::Result;
+use ark_ff::Field;
+use nalgebra::DMatrix;
+use rand::Rng;
+use rustnomial::Evaluable;
+use rustnomial::FreeSizePolynomial;
+use rustnomial::SizedPolynomial;
+use serde::Deserialize;
+use serde::Serialize;
+
 use crate::ahp::commitment_generation::CommitmentBuilder;
 use crate::dsp_mat;
 use crate::dsp_poly;
@@ -26,6 +36,7 @@ use crate::json_file::open_file;
 use crate::json_file::write_set;
 use crate::json_file::write_term;
 use crate::json_file::ClassData;
+use crate::kzg;
 use crate::math::*;
 use crate::matrices::matrix_size;
 use crate::matrices::matrix_t_zeros;
@@ -37,17 +48,7 @@ use crate::parser::RegData;
 use crate::println_dbg;
 use crate::to_bint;
 use crate::utils::*;
-use anyhow::Result;
-use ark_ff::Field;
-use nalgebra::DMatrix;
-use rand::Rng;
-use rustnomial::Evaluable;
-use rustnomial::FreeSizePolynomial;
-use rustnomial::SizedPolynomial;
-use serde::Deserialize;
-use serde::Serialize;
 
-use super::commitment_generation::Commitment;
 use super::commitment_generation::CommitmentJson;
 
 #[derive(Debug, Clone, Copy)]
@@ -64,11 +65,6 @@ pub enum Polys {
     H2x,
     G3x,
     H3x,
-}
-
-pub enum AhpValue {
-    Yp,
-    CommitQx,
 }
 
 // Assuming AHPData is defined as follows
@@ -114,9 +110,9 @@ impl ProofGeneration {
         // points_zc.push((Mfp::from(150), Mfp::from(1)));
         // points_zc.push((Mfp::from(80), Mfp::from(100)));
 
-        let poly_z_hat_a = newton_interpolate(&points_za);
-        let poly_z_hat_b = newton_interpolate(&points_zb);
-        let poly_z_hat_c = newton_interpolate(&points_zc);
+        let poly_z_hat_a = interpolate(&points_za);
+        let poly_z_hat_b = interpolate(&points_zb);
+        let poly_z_hat_c = interpolate(&points_zc);
 
         (poly_z_hat_a, poly_z_hat_b, poly_z_hat_c)
     }
@@ -135,11 +131,11 @@ impl ProofGeneration {
 
         // Interpolate polynomial for x^(h) over the subset H[>∣x∣]
         let points = get_points_set(&x_vec[0..numebr_t_zero], set_h_1);
-        let poly_x_hat = newton_interpolate(&points);
+        let poly_x_hat = interpolate(&points);
         // Interpolate polynomial w(h) over the subset H[<=∣x∣]
         // FIXME:
         let points = get_points_set(&cz_mat_vec[numebr_t_zero..], set_h_2);
-        let w_hat = newton_interpolate(&points);
+        let w_hat = interpolate(&points);
 
         // Compute the vanishing polynomial for the subset H[<=∣x∣]
         let van_poly_vh1 = vanishing_poly(set_h_1);
@@ -163,7 +159,7 @@ impl ProofGeneration {
         // points_w.push((Mfp::from(80), Mfp::from(180)));
 
         // Interpolate polynomial for wˉ(h) based on the points_w
-        let poly_w_hat = newton_interpolate(&points_w);
+        let poly_w_hat = interpolate(&points_w);
 
         (poly_x_hat, poly_w_hat, van_poly_vh1)
     }
@@ -174,18 +170,39 @@ impl ProofGeneration {
         set_h: &Vec<Mfp>,
     ) -> (Poly, Poly, Poly) {
         // ∑ r(alpha_2=10, k) * A^(k,x)
-        let r_a_kx = sigma_rkx_mkx(set_h, alpha, &points_px[0], &points_px[1], &points_px[2]);
+        let r_a_kx = sigma_rk_mk(
+            set_h,
+            alpha,
+            &points_px[0],
+            &points_px[1],
+            &points_px[2],
+            &EvalOrder::KX,
+        );
 
         println_dbg!("Poly ∑ r(alpha_2=10, k) * A^(k,x): A_h");
         dsp_poly!(r_a_kx);
 
         // ∑ r(alpha_2=10, k) * B^(k,x)
-        let r_b_kx = sigma_rkx_mkx(set_h, alpha, &points_px[3], &points_px[4], &points_px[5]);
+        let r_b_kx = sigma_rk_mk(
+            set_h,
+            alpha,
+            &points_px[3],
+            &points_px[4],
+            &points_px[5],
+            &EvalOrder::KX,
+        );
         println_dbg!("Poly ∑ r(alpha_2=10, k) * B^(k,x): ");
         dsp_poly!(r_b_kx);
 
         // ∑ r(alpha_2=10, k) * C^(k,x)
-        let r_c_kx = sigma_rkx_mkx(set_h, alpha, &points_px[6], &points_px[7], &points_px[8]);
+        let r_c_kx = sigma_rk_mk(
+            set_h,
+            alpha,
+            &points_px[6],
+            &points_px[7],
+            &points_px[8],
+            &EvalOrder::KX,
+        );
         println_dbg!("Poly ∑ r(alpha_2=10, k) * C^(k,x): ");
         dsp_poly!(r_c_kx);
 
@@ -198,34 +215,37 @@ impl ProofGeneration {
         set_h: &Vec<Mfp>,
     ) -> (Poly, Poly, Poly) {
         // ∑ r(alpha_2=10, k) * A^(x,k)
-        let r_a_xk = m_xk(
+        let r_a_xk = m_k(
             &beta_1,
             &points_px[0],
             &points_px[1],
             &points_px[2],
             set_h.len(),
+            &EvalOrder::XK,
         );
         println_dbg!("Poly ∑ r(alpha_2=10, k) * A^(x,k): ");
         dsp_poly!(r_a_xk);
 
         // ∑ r(alpha_2=10, k) * B^(x,k)
-        let r_b_xk = m_xk(
+        let r_b_xk = m_k(
             &beta_1,
             &points_px[3],
             &points_px[4],
             &points_px[5],
             set_h.len(),
+            &EvalOrder::XK,
         );
         println_dbg!("Poly ∑ r(alpha_2=10, k) * B^(x,k): ");
         dsp_poly!(r_b_xk);
 
         // ∑ r(alpha_2=10, k) * C^(x,k)
-        let r_c_xk = m_xk(
+        let r_c_xk = m_k(
             &beta_1,
             &points_px[6],
             &points_px[7],
             &points_px[8],
             set_h.len(),
+            &EvalOrder::XK,
         );
         println_dbg!("Poly ∑ r(alpha_2=10, k) * C^(x,k): ");
         dsp_poly!(r_c_xk);
@@ -284,11 +304,19 @@ impl ProofGeneration {
         ]
     }
 
+    /// Retrieves matrices A, B, and C based on the provided matrices JSON and class data.
+    ///
+    /// # Parameters
+    /// - `matrices`: A reference to a `MatricesJson` object containing matrix data.
+    /// - `class_data`: A reference to a `ClassData` object used to determine the size of the matrices.
+    ///
+    /// # Returns
+    /// A tuple containing three dense matrices: (A, B, C).
     fn get_matrices(
         matrices: &MatricesJson,
         class_data: &ClassData,
     ) -> (DMatrix<Mfp>, DMatrix<Mfp>, DMatrix<Mfp>) {
-        let a = matrices.get_matrix_a(matrix_size(&class_data));
+        let a = matrices.get_matrix_a(matrix_size(&class_data), matrix_t_zeros(&class_data));
         let b = matrices.get_matrix_b(matrix_size(&class_data));
         let c = Matrices::generate_matrix_c(matrix_size(&class_data), matrix_t_zeros(&class_data));
 
@@ -417,7 +445,7 @@ impl ProofGeneration {
         // Generate sets
         let set_h = generate_set(class_data.n);
         let set_k = generate_set(class_data.m);
-        
+
         let numebr_t_zero = matrix_t_zeros(&class_data);
         let (mat_a, mat_b, mat_c) = Self::get_matrices(&matrices, &class_data);
         let mat_z = Self::generate_mat_z(gates, &class_data);
@@ -691,7 +719,7 @@ impl ProofGeneration {
 
         let sigma = [sigma_1, sigma_2, sigma_3];
 
-        let commit_x = compute_all_commitment(&polys_proof, commitment_key, GENERATOR);
+        let commit_x = compute_all_commitment(&polys_proof, commitment_key);
         println_dbg!("commit_x: {}", dsp_vec!(commit_x));
 
         Self::create_proof(
@@ -818,7 +846,7 @@ impl ProofGeneration {
             *sigma_3 += sum;
             points_f_3.push((*k, sum));
         }
-        newton_interpolate(&points_f_3)
+        interpolate(&points_f_3)
     }
 
     fn gen_poly_ax(

@@ -1,37 +1,44 @@
 // Copyright 2024 Fidesinnova, Inc.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 //! Utilities for storing polynomials and sets in JSON files.
-
-use std::{collections::HashMap, fs::{File, OpenOptions}, io::{BufReader, Write}, path::PathBuf};
-use crate::{math::{Mfp, Poly}, to_bint};
+use anyhow::anyhow;
+use anyhow::Result;
 use ark_ff::Field;
-use rustnomial::{Degree, SizedPolynomial};
+use rustnomial::Degree;
+use rustnomial::SizedPolynomial;
 use serde::Deserialize;
 use serde_json::Value;
-use anyhow::{anyhow, Result};
+use std::collections::HashMap;
+use std::fs::File;
+use std::fs::OpenOptions;
+use std::io::BufReader;
+use std::io::Write;
+use std::path::PathBuf;
 
+use crate::math::Mfp;
+use crate::math::Poly;
+use crate::to_bint;
 
 /// Converts a polynomial to a vector representation of its coefficients.
-/// 
+///
 /// # Parameters
 /// - `poly`: A reference to a `Poly` object whose terms are to be converted to a vector of coefficients.
 /// - `max_deg`: The maximum degree of the polynomial, which determines the size of the returned vector.
 ///
 /// # Returns
-/// Returns a `Vec<u64>` containing the coefficients of the polynomial, where the index represents the exponent 
+/// Returns a `Vec<u64>` containing the coefficients of the polynomial, where the index represents the exponent
 /// of each term. If a term does not exist for a particular exponent, the coefficient at that index will be `0`.
 pub fn write_term(poly: &Poly) -> Vec<u64> {
     let mut poly = poly.clone();
@@ -50,7 +57,10 @@ pub fn write_term(poly: &Poly) -> Vec<u64> {
     let mut poly = vec![0; max_deg + 1];
 
     for (i, poly) in poly.iter_mut().enumerate().take(max_deg + 1) {
-        let index = poly_terms.iter().position(|v| v.1 == i).unwrap_or(usize::MAX);
+        let index = poly_terms
+            .iter()
+            .position(|v| v.1 == i)
+            .unwrap_or(usize::MAX);
         *poly = to_bint!(poly_terms.get(index).unwrap_or(&(Mfp::ZERO, 0)).0);
     }
 
@@ -71,7 +81,11 @@ pub fn write_term(poly: &Poly) -> Vec<u64> {
 /// - The updated data is then written back to the file in a compact format.
 pub fn store_in_json_file(value: Value, path: &str) -> Result<()> {
     let json_string = serde_json::to_string(&value)?;
-    let mut file = OpenOptions::new().write(true).create(true).truncate(true).open(path)?;
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(path)?;
     file.write_all(json_string.as_bytes())?;
     Ok(())
 }
@@ -82,20 +96,25 @@ pub fn store_in_json_file(value: Value, path: &str) -> Result<()> {
 /// - `set`: A reference to a vector containing `Mfp` objects to be converted.
 ///
 /// # Returns
-/// Returns a `Vec<u64>` containing the converted values, where each `Mfp` object 
+/// Returns a `Vec<u64>` containing the converted values, where each `Mfp` object
 /// is transformed into a `u64` representation using the `to_bint!` macro.
 pub fn write_set(set: &Vec<Mfp>) -> Vec<u64> {
-    set.iter().map(|v| to_bint!(*v) as u64).collect::<Vec<u64>>()
+    set.iter()
+        .map(|v| to_bint!(*v) as u64)
+        .collect::<Vec<u64>>()
 }
 
-
 pub fn read_term(poly: &[Value]) -> Poly {
-    let poly_vec = poly.to_vec().iter().rev().map(|v| Mfp::from(v.as_u64().unwrap())).collect::<Vec<Mfp>>();
+    let poly_vec = poly
+        .to_vec()
+        .iter()
+        .rev()
+        .map(|v| Mfp::from(v.as_u64().unwrap()))
+        .collect::<Vec<Mfp>>();
     let mut poly = Poly::from(poly_vec);
     poly.trim();
     poly
 }
-
 
 /// Opens a file and returns a buffered reader.
 ///

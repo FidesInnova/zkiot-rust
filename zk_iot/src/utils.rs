@@ -19,7 +19,7 @@ use rand::prelude::SliceRandom;
 use rustnomial::SizedPolynomial;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use nalgebra::DMatrix;
 use rand::thread_rng;
 use ark_ff::Field;
@@ -31,11 +31,10 @@ use rand::Rng;
 
 
 use crate::define_get_points_fn;
-use crate::json_file::ClassData;
 use crate::println_dbg;
 use crate::get_val;
 
-use crate::math::newton_interpolate;
+use crate::math::interpolate;
 use crate::math::Point;
 use crate::math::Poly;
 use crate::math::Mfp;
@@ -255,10 +254,10 @@ pub fn add_random_points(
         points.insert(set_k[i], *rand_h);
     }
 
-
-    println!("ttttt: {:?}", points);
     Ok(())
 }
+
+
 pub fn print_hashmap(points: &HashMap<Mfp, Mfp>, set_k: &[Mfp]) {
     for k in set_k.iter() {
         if let Some(val) = points.get(k) {
@@ -287,11 +286,11 @@ pub fn print_hashmap(points: &HashMap<Mfp, Mfp>, set_k: &[Mfp]) {
 /// 3. The value polynomial is obtained by performing Lagrange interpolation on the points corresponding to the non-zero values in the matrix.
 pub fn encode_matrix_m(matrix: &DMatrix<Mfp>, set_h: &[Mfp], set_k: &[Mfp]) -> Vec<Poly> {
     let points  = get_points_row(matrix, set_h, set_k);   
-    let row     = newton_interpolate(&points);                                        
+    let row     = interpolate(&points);                                        
     let points  = get_points_col(matrix, set_h, set_k);  
-    let col     = newton_interpolate(&points);                 
+    let col     = interpolate(&points);                 
     let points  = get_points_val(matrix, set_h, set_k);
-    let val     = newton_interpolate(&points);
+    let val     = interpolate(&points);
 
     // println_dbg!("lag row:");
     // dsp_poly!(row);
@@ -540,6 +539,13 @@ macro_rules! dsp_poly {
     }};
 }
 
+/// Computes the SHA-256 hash of the given input string and returns the result as a `u64`.
+///
+/// # Parameters
+/// - `input`: A string slice representing the input to be hashed.
+///
+/// # Returns
+/// A `u64` value representing the lower 64 bits of the SHA-256 hash.
 pub fn sha2_hash(input: &str) -> u64 {
     let mut hasher = sha2::Sha256::new();
     hasher.update(input);
@@ -550,7 +556,13 @@ pub fn sha2_hash(input: &str) -> u64 {
     ])
 }
 
-
+/// Concatenates the terms of multiple polynomials into a single vector of `Mfp` values.
+///
+/// # Parameters
+/// - `polys`: A slice of references to `Poly` objects to be concatenated.
+///
+/// # Returns
+/// A vector of `Mfp` values containing all terms from the input polynomials.
 pub fn concat_polys(polys: &[&Poly]) -> Vec<Mfp> {
     let mut result = vec![];
 

@@ -14,19 +14,17 @@
 
 
 use std::fs::File;
+use anyhow::Result;
+use serde::Serialize;
 use std::io::BufWriter;
 use std::path::PathBuf;
-
-use anyhow::Result;
 use serde::Deserialize;
-use serde::Serialize;
 
-
-use crate::json_file::open_file;
-use crate::json_file::write_set;
-use crate::math::kzg;
+use crate::kzg;
 use crate::math::Mfp;
 use crate::math::GENERATOR;
+use crate::json_file::open_file;
+use crate::json_file::write_set;
 
 #[derive(Debug)]
 pub struct Setup {

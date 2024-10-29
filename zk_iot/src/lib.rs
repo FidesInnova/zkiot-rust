@@ -19,3 +19,4 @@ pub mod math;
 pub mod json_file;
 pub mod matrices;
 pub mod ahp;
+pub mod kzg;

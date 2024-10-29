@@ -1,36 +1,48 @@
 // Copyright 2024 Fidesinnova, Inc.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use ark_ff::Field;
-use rustnomial::{Evaluable, FreeSizePolynomial, SizedPolynomial};
+use rustnomial::Evaluable;
+use rustnomial::FreeSizePolynomial;
+use rustnomial::SizedPolynomial;
 
-use crate::{
-    json_file::ClassData, math::{
-        div_mod, div_mod_val, e_func, exp_mod, func_u, generate_set, kzg, newton_interpolate,
-        vanishing_poly, Mfp, Poly, GENERATOR, P,
-    }, println_dbg, to_bint, utils::{get_points_set, mat_to_vec}
-};
+use crate::json_file::ClassData;
+use crate::kzg;
+use crate::math::div_mod;
+use crate::math::div_mod_val;
+use crate::math::e_func;
+use crate::math::func_u;
+use crate::math::generate_set;
+use crate::math::interpolate;
+use crate::math::vanishing_poly;
+use crate::math::Mfp;
+use crate::math::Poly;
+use crate::math::GENERATOR;
+use crate::println_dbg;
+use crate::to_bint;
+use crate::utils::get_points_set;
 
-use super::{commitment_generation::Commitment, proof_generation::{AHPData, Polys, ProofGeneration, ProofGenerationJson}};
+use super::proof_generation::Polys;
+use super::proof_generation::ProofGeneration;
+use super::proof_generation::ProofGenerationJson;
 
 pub struct Verification {
     pub data: ProofGenerationJson,
 }
 
 impl Verification {
-    pub fn new(data: &ProofGenerationJson ) -> Self {
+    pub fn new(data: &ProofGenerationJson) -> Self {
         Self { data: data.clone() }
     }
 
@@ -85,7 +97,6 @@ impl Verification {
         let (pi_a, pi_b, pi_c) = ProofGeneration::compute_polys_pi(beta[0], beta[1], &polys_px);
         let polys_pi = vec![&pi_a, &pi_b, &pi_c];
 
-
         let poly_a_x = Self::gen_poly_ax(polys_px, beta, &van_poly_vhx, eta, &polys_pi);
         let poly_b_x = polys_pi[0] * polys_pi[1] * polys_pi[2];
 
@@ -100,7 +111,7 @@ impl Verification {
             set_k_len,
         )
     }
-    
+
     fn check_2(&self, beta: &[Mfp], alpha: Mfp, set_h_len: usize) -> bool {
         let van_poly_vhx = Self::vanishing_poly(set_h_len);
         let poly_r = func_u(Some(alpha), None, set_h_len);
@@ -126,16 +137,15 @@ impl Verification {
         set_h: &Vec<Mfp>,
         t_zero: usize,
     ) -> bool {
-
         let van_poly_vhx = Self::vanishing_poly(set_h.len());
         let poly_r = func_u(Some(alpha), None, set_h.len());
         let sum_1 = self.gen_poly_sigma(&eta, &poly_r);
         let set_h_1 = &set_h[0..t_zero].to_vec(); // H[>∣x∣]
                                                   // let z_vec = &mat_to_vec(&commitment.matrices.z);
-        // FIXME:
-        // let points = get_points_set(&x, set_h_1);
+                                                  // FIXME:
+                                                  // let points = get_points_set(&x, set_h_1);
         let points = get_points_set(&x, set_h_1);
-        let poly_x_hat = newton_interpolate(&points);
+        let poly_x_hat = interpolate(&points);
         // Interpolate polynomial w(h) over the subset H[<=∣x∣]
         // Compute the vanishing polynomial for the subset H[<=∣x∣]
         let van_poly_vh1 = vanishing_poly(set_h_1);
@@ -157,7 +167,8 @@ impl Verification {
 
     fn check_4(&self, beta: &[Mfp], set_h_len: usize) -> bool {
         let van_poly_vhx = Self::vanishing_poly(set_h_len);
-        let poly_ab_c = &self.data.get_poly(Polys::ZHatA as usize) * &self.data.get_poly(Polys::ZHatB as usize)
+        let poly_ab_c = &self.data.get_poly(Polys::ZHatA as usize)
+            * &self.data.get_poly(Polys::ZHatB as usize)
             - &self.data.get_poly(Polys::ZHatC as usize);
         let poly_h_0 = div_mod(&poly_ab_c, &van_poly_vhx).0;
         Self::check_equation_4(&poly_ab_c, &poly_h_0, &van_poly_vhx, &beta[0])
@@ -180,7 +191,6 @@ impl Verification {
             Mfp::from(63), // eta_h3
         ];
 
-        
         let poly_px = eta_values
             .iter()
             .enumerate()
@@ -197,7 +207,6 @@ impl Verification {
         Self::check_equation_5(val_commit_poly_px, g, val_y_p, val_commit_poly_qx, vk, z)
     }
 
-    
     #[inline]
     fn gen_poly_sigma(&self, eta: &[Mfp], poly_r: &Poly) -> Poly {
         let sigma_eta_z_x = Poly::new(vec![eta[0]]) * &self.data.get_poly(Polys::ZHatA as usize)

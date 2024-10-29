@@ -1,32 +1,43 @@
 // Copyright 2024 Fidesinnova, Inc.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-use std::{
-    collections::HashMap,
-    fs::File,
-    io::{BufWriter, Read},
-    path::PathBuf,
-};
-
-use crate::{
-    dsp_mat, dsp_poly, dsp_vec, json_file::{open_file, write_term, ClassData}, math::*, matrices::{matrix_size, matrix_t_zeros, Matrices}, parser::{Gate, GateType, RegData}, print_dbg, println_dbg, to_bint, utils::*
-};
 use anyhow::Result;
 use ark_ff::Field;
-use nalgebra::DMatrix;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::BufWriter;
+use std::path::PathBuf;
+
+use crate::dsp_mat;
+use crate::dsp_poly;
+use crate::dsp_vec;
+use crate::json_file::open_file;
+use crate::json_file::write_term;
+use crate::json_file::ClassData;
+use crate::math::*;
+use crate::matrices::matrix_size;
+use crate::matrices::matrix_t_zeros;
+use crate::matrices::Matrices;
+use crate::parser::Gate;
+use crate::parser::GateType;
+use crate::parser::RegData;
+use crate::print_dbg;
+use crate::println_dbg;
+use crate::to_bint;
+use crate::utils::*;
 
 #[derive(Debug, Clone)]
 pub struct Commitment {
@@ -35,7 +46,6 @@ pub struct Commitment {
     pub numebr_t_zero: usize,
     pub matrices: Matrices,
     pub polys_px: Vec<Poly>,
-    pub points_px: Vec<HashMap<Mfp, Mfp>>,
 }
 
 impl Commitment {
@@ -59,7 +69,6 @@ impl Commitment {
                 numebr_t_zero: numebr_t_zero.try_into().unwrap(),
                 matrices,
                 polys_px: vec![],
-                points_px: vec![],
             },
         }
     }
@@ -67,28 +76,12 @@ impl Commitment {
     /// Generates a commitment based on the AHP commitment generation process.
     /// For more details, see:
     /// [AHP Commitment Generation Documentation](https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/2-commitment-phase#id-2-3-ahp-commitment)
-    pub fn get_polynomials_commitment(
-        &self,
-        generator: u64,
-        commitment_key: &Vec<Mfp>,
-    ) -> Vec<Mfp> {
-        let commitment = compute_all_commitment(&self.polys_px, commitment_key, generator);
+    pub fn get_polynomials_commitment(&self, commitment_key: &Vec<Mfp>) -> Vec<Mfp> {
+        let commitment = compute_all_commitment(&self.polys_px, commitment_key);
         println_dbg!("com_ahp: {}", dsp_vec!(commitment));
         commitment
     }
 
-    pub fn get_matrix_az(&self) -> DMatrix<Mfp> {
-        &self.matrices.a * &self.matrices.z
-    }
-
-    pub fn get_matrix_bz(&self) -> DMatrix<Mfp> {
-        &self.matrices.b * &self.matrices.z
-    }
-
-    pub fn get_matrix_cz(&self) -> DMatrix<Mfp> {
-        &self.matrices.c * &self.matrices.z
-    }
-    
     /// Store in Json file
     pub fn store(&self, path: &str) -> Result<()> {
         let file = File::create(path)?;
@@ -123,7 +116,7 @@ impl CommitmentJson {
     }
 
     /// Retrieves the polynomial data as a vector of `Poly` instances.
-    /// 
+    ///
     /// # Returns
     /// A vector of `Poly` objects constructed from the polynomial coefficients stored in `polys_px`.
     pub fn get_polys_px(&self) -> Vec<Poly> {
@@ -141,7 +134,7 @@ impl CommitmentJson {
 
 #[derive(Debug, Clone)]
 /// A struct for building a `Commitment`.
-/// 
+///
 /// This struct encapsulates a `Commitment` instance, providing methods to construct
 /// and manipulate commitments in a structured manner.
 pub struct CommitmentBuilder {
@@ -171,7 +164,7 @@ impl CommitmentBuilder {
     /// For further details, please refer to the documentation:
     /// [Documentation Link](https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/2-commitment-phase)
     pub fn gen_matrices(&mut self, gates: Vec<Gate>, number_inputs: usize) -> Self {
-        // Initialize matrices A, B, C and z based on parsed gates
+        // Initialize matrices A, B, C based on parsed gates
         let ni = number_inputs;
         let a_mat = &mut self.commitm.matrices.a;
         let b_mat = &mut self.commitm.matrices.b;
@@ -197,12 +190,12 @@ impl CommitmentBuilder {
                 // TODO: Determine if left_val is necessary for ld operation.
                 continue;
             }
+
             println_dbg!("Gate Loop: {} ------------", counter);
             println_dbg!("Register: {}", gate.reg_left);
 
             // Set index
             _index = 1 + ni + counter;
-
 
             let (mut li, mut ri) = (false, false);
             if !regs_data.get(&gate.reg_left).unwrap().witness.is_empty() {
@@ -214,7 +207,13 @@ impl CommitmentBuilder {
 
             // It works better
             inx_left = if li {
-                let inx = (0..=gate.reg_left).fold(0,  |acc, x| acc + regs_data.get(&x).unwrap_or(&RegData::new(Mfp::ZERO)).witness.len()) + ni;
+                let inx = (0..=gate.reg_left).fold(0, |acc, x| {
+                    acc + regs_data
+                        .get(&x)
+                        .unwrap_or(&RegData::new(Mfp::ZERO))
+                        .witness
+                        .len()
+                }) + ni;
                 // println_dbg!("left:   index = {:<5}", inx);
                 inx
             } else {
@@ -223,7 +222,13 @@ impl CommitmentBuilder {
             };
 
             inx_right = if ri {
-                let inx = (0..=gate.reg_right).fold(0, |acc, x| acc + regs_data.get(&x).unwrap_or(&RegData::new(Mfp::ZERO)).witness.len()) + ni;
+                let inx = (0..=gate.reg_right).fold(0, |acc, x| {
+                    acc + regs_data
+                        .get(&x)
+                        .unwrap_or(&RegData::new(Mfp::ZERO))
+                        .witness
+                        .len()
+                }) + ni;
                 // println_dbg!("right:  index = {:<5}", inx);
                 inx
             } else {
@@ -262,7 +267,6 @@ impl CommitmentBuilder {
                     println_dbg!("Left:  B[{}, {}] = {}", _index, inx_left, left_val);
                     b_mat[(_index, inx_left)] = left_val;
 
-
                     println_dbg!("Right: B[{}, {}] = {}", _index, inx_right, right_val);
                     b_mat[(_index, inx_right)] = right_val;
                 }
@@ -292,17 +296,26 @@ impl CommitmentBuilder {
                         _ => -right_val,
                     };
                     println_dbg!("{}", b_mat[(_index, inx_right)]);
-
                 }
                 GateType::Div => {
                     println_dbg!("Gate: Div");
-                    println_dbg!("Left:  A[{}, {}] = {}", _index, inx_left, invers_val(left_val));
+                    println_dbg!(
+                        "Left:  A[{}, {}] = {}",
+                        _index,
+                        inx_left,
+                        invers_val(left_val)
+                    );
                     a_mat[(_index, inx_left)] = invers_val(left_val);
 
-                    println_dbg!("Right: B[{}, {}] = {}", _index, inx_right, invers_val(right_val));
+                    println_dbg!(
+                        "Right: B[{}, {}] = {}",
+                        _index,
+                        inx_right,
+                        invers_val(right_val)
+                    );
                     b_mat[(_index, inx_right)] = invers_val(right_val);
                 }
-                _ => panic!("Invalid gate {:?}", gate.gate_type)
+                _ => panic!("Invalid gate {:?}", gate.gate_type),
             }
             counter += 1;
         }
@@ -312,27 +325,27 @@ impl CommitmentBuilder {
         rows_to_zero(&mut self.commitm.matrices.b, self.commitm.numebr_t_zero);
         rows_to_zero(&mut self.commitm.matrices.c, self.commitm.numebr_t_zero);
 
-
-        Self::gen_z_mat(&mut self.commitm.matrices.z, &regs_data);
-
         println_dbg!("Mat A:");
         dsp_mat!(self.commitm.matrices.a);
         println_dbg!("Mat B:");
         dsp_mat!(self.commitm.matrices.b);
         println_dbg!("Mat C:");
         dsp_mat!(self.commitm.matrices.c);
-        println_dbg!("Mat Z:");
-        dsp_mat!(self.commitm.matrices.z);
 
         self.clone()
     }
 
-    pub fn add_val(regs_data: &mut HashMap<u8, RegData>, gate: &Gate, operator: GateType, val_counter: &mut usize) {
+    pub fn add_val(
+        regs_data: &mut HashMap<u8, RegData>,
+        gate: &Gate,
+        operator: GateType,
+        val_counter: &mut usize,
+    ) {
         if let Some(left_val) = gate.val_left {
             if let Some(reg) = regs_data.get_mut(&gate.reg_right) {
                 let new_value = match reg.witness.last() {
                     // FIXME: Correct left and right position
-                    Some(&(_,val)) => Self::apply_operator(val, Mfp::from(left_val), operator),
+                    Some(&(_, val)) => Self::apply_operator(val, Mfp::from(left_val), operator),
                     None => Self::apply_operator(reg.init_val, Mfp::from(left_val), operator),
                 };
                 reg.witness.push((*val_counter, new_value));
@@ -343,7 +356,7 @@ impl CommitmentBuilder {
         if let Some(right_val) = gate.val_right {
             if let Some(reg) = regs_data.get_mut(&gate.reg_right) {
                 let new_value = match reg.witness.last() {
-                    Some(&(_,val)) => Self::apply_operator(val, Mfp::from(right_val), operator),
+                    Some(&(_, val)) => Self::apply_operator(val, Mfp::from(right_val), operator),
                     None => Self::apply_operator(reg.init_val, Mfp::from(right_val), operator),
                 };
                 reg.witness.push((*val_counter, new_value));
@@ -360,44 +373,6 @@ impl CommitmentBuilder {
             GateType::Mul => l * r,
             GateType::Div => div_mod_val(l, r),
             GateType::Ld => panic!("Invalid operation for Ld gate type"),
-        }
-    }
-
-    fn gen_z_mat(z_vec: &mut DMatrix<Mfp>, regs_data: &HashMap<u8, RegData>) {
-        z_vec[(0, 0)] = Mfp::ONE;
-        let mut z_vec_counter: usize = 1;
-
-        let mut witnesses: Vec<(usize, Mfp)> = vec![];
-        let mut final_val = vec![];
-        for reg in 0..32 {
-            if regs_data.contains_key(&reg) {
-                let data = regs_data.get(&reg).unwrap();
-                // println_dbg!("data here ==> {:?}", data);
-                z_vec[(z_vec_counter, 0)] = data.init_val;
-                z_vec_counter += 1;
-                let mut witness = data.witness.clone();
-                if witness.is_empty() {
-                    continue;
-                }
-                let last_val = witness.pop().unwrap();
-                witnesses.extend(witness.iter());
-                final_val.push(last_val.1);
-            }
-        }
-
-        witnesses.sort();
-
-        for w in witnesses {
-            z_vec[(z_vec_counter, 0)] = w.1;
-            // println!("w: {}", w);
-            z_vec_counter += 1;
-        }
-        
-
-
-        for f in final_val.iter().rev() {
-            z_vec[(z_vec_counter, 0)] = *f;
-            z_vec_counter += 1;
         }
     }
 
@@ -544,19 +519,6 @@ impl CommitmentBuilder {
             c_val_px,
         ];
 
-        let points_vector = vec![
-            points_val_p_a,
-            points_row_p_a,
-            points_col_p_a,
-            points_val_p_b,
-            points_row_p_b,
-            points_col_p_b,
-            points_val_p_c,
-            points_row_p_c,
-            points_col_p_c,
-        ];
-
-        self.commitm.points_px = points_vector;
         self.commitm.polys_px = polys_pxs;
 
         self.clone()

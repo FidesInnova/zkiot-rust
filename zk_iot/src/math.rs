@@ -1,46 +1,38 @@
 // Copyright 2024 Fidesinnova, Inc.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 //! Module for mathematical functions and utilities for finite field operations using the `Mfp` type and polynomials.
 
-use ark_ff::{Field, PrimeField};
-use nalgebra::{Complex, DMatrix};
-use rand::{seq::SliceRandom, thread_rng};
+use ark_ff::Field;
+use ark_ff::Zero;
+use nalgebra::DMatrix;
+use rand::seq::SliceRandom;
+use rand::thread_rng;
 use rustnomial::*;
 use std::collections::HashMap;
 use std::ops::Neg;
-use ark_ff::Zero;
 
-use rayon::prelude::*; // For parallel iteration
-
-use crate::{dsp_poly, field, println_dbg, to_bint, utils::add_random_points};
+use crate::dsp_poly;
+use crate::field;
+use crate::kzg;
+use crate::println_dbg;
+use crate::to_bint;
+use crate::utils::add_random_points;
 
 /// Define the constant modulus for field operations.
-
-// 2013265921
-// pub const P: u64 = 18446744069414584321;
-// pub const P: u64 = 2013265921;
-
-// pub const P: u64 = 5107;
-// pub const GENERATOR: u64 = 2;
-
 pub const P: u64 = 5107;
 pub const GENERATOR: u64 = 2;
-
-// pub const P: u64 = 181;
-// pub const GENERATOR: u64 = 2;
 
 field!(Mfp, P);
 
@@ -49,7 +41,6 @@ pub type Poly = Polynomial<Mfp>;
 
 /// Type alias for a 2D point in the `Mfp` field.
 pub type Point = (Mfp, Mfp);
-
 
 /// Computes the modular exponentiation of `a` raised to the power `b`
 /// and returns the result as an element of the finite field `Mfp`.
@@ -111,12 +102,26 @@ pub fn func_u(x: Option<Mfp>, y: Option<Mfp>, degree: usize) -> Poly {
         denominator.add_term(Mfp::ONE, 1);
     }
     if numerator.degree() == denominator.degree() && denominator.degree() == Degree::Num(0) {
-        let div_res = div_mod_val(numerator.terms_as_vec().get(0).unwrap().0, denominator.terms_as_vec().get(0).unwrap().0);
+        let div_res = div_mod_val(
+            numerator.terms_as_vec().get(0).unwrap().0,
+            denominator.terms_as_vec().get(0).unwrap().0,
+        );
         return Poly::from(vec![div_res]);
     }
     div_mod(&numerator, &denominator).0
 }
 
+/// Divides one polynomial by another and returns the quotient and remainder.
+///
+/// # Parameters
+/// - `a`: A reference to the dividend polynomial.
+/// - `rhs`: A reference to the divisor polynomial.
+///
+/// # Returns
+/// A tuple containing the quotient polynomial and the remainder polynomial.
+///
+/// # Panics
+/// This function will panic if attempting to divide by a zero polynomial.
 pub fn div_mod(a: &Poly, rhs: &Poly) -> (Poly, Poly) {
     let zero = Mfp::ZERO;
 
@@ -158,6 +163,14 @@ pub fn div_mod(a: &Poly, rhs: &Poly) -> (Poly, Poly) {
     (Poly::new(div), Poly::new(remainder))
 }
 
+/// Subtracts a scaled version of the right-hand side polynomial from the left-hand side polynomial.
+///
+/// # Parameters
+/// - `lhs`: A mutable slice representing the coefficients of the left-hand side polynomial.
+/// - `lhs_degree`: The degree of the left-hand side polynomial.
+/// - `rhs`: A slice representing the coefficients of the right-hand side polynomial.
+/// - `rhs_deg`: The degree of the right-hand side polynomial.
+/// - `rhs_scale`: The scaling factor to apply to the right-hand side polynomial.
 fn vec_sub_w_scale(
     lhs: &mut [Mfp],
     lhs_degree: usize,
@@ -174,6 +187,13 @@ fn vec_sub_w_scale(
     }
 }
 
+/// Finds the first non-zero term in a polynomial represented as a vector of coefficients.
+///
+/// # Parameters
+/// - `poly_vec`: A slice of coefficients representing the polynomial.
+///
+/// # Returns
+/// A `Term` representing the first non-zero term found, or `Term::ZeroTerm` if all coefficients are zero.
 fn first_term(poly_vec: &[Mfp]) -> Term<Mfp> {
     for (degree, chunk) in poly_vec.chunks_exact(4).enumerate() {
         for (index, &value) in chunk.iter().enumerate() {
@@ -194,8 +214,14 @@ fn first_term(poly_vec: &[Mfp]) -> Term<Mfp> {
     Term::ZeroTerm
 }
 
-
-pub fn newton_interpolate(points: &[Point]) -> Poly {
+/// Interpolates a polynomial that passes through a given set of points using the Newton interpolation algorithm.
+///
+/// # Parameters
+/// - `points`: A slice of `Point` tuples, where each tuple contains an x-coordinate and a corresponding y-coordinate.
+///
+/// # Returns
+/// A `Poly` representing the interpolating polynomial that passes through the provided points.
+pub fn interpolate(points: &[Point]) -> Poly {
     let n = points.len();
     let mut divided_differences = vec![vec![Mfp::ZERO; n]; n];
 
@@ -248,7 +274,6 @@ pub fn generate_set(len: u64) -> Vec<Mfp> {
     let g = to_bint!(exp_mod(GENERATOR, (P - 1) / len)); // Compute the generator for set H
     (0..len).map(|i| exp_mod(g, i)).collect()
 }
-
 
 /// Computes the vanishing polynomial for a given set of field elements.
 ///
@@ -395,7 +420,21 @@ pub fn get_matrix_point_col(mat: &DMatrix<Mfp>, set_h: &[Mfp], set_k: &[Mfp]) ->
     res
 }
 
-/// Computes a polynomial `m_xk` based on the provided `points_val`, `points_row`, and `points_col`.
+/// Represents the order of evaluation for polynomial computations.
+///
+/// The `EvalOrder` enum has two variants:
+/// - `XK`: Indicates that the polynomial should be evaluated in the XK order.
+/// - `KX`: Indicates that the polynomial should be evaluated in the KX order.
+pub enum EvalOrder {
+    XK,
+    KX,
+}
+
+/// Computes a polynomial `m_k` based on the provided `points_val`, `points_row`, and `points_col`.
+///
+/// This function combines the functionality of the previous `m_xk` and `m_kx` functions into a single
+/// function that computes a polynomial based on the specified evaluation order. The evaluation order
+/// determines whether the polynomial is evaluated in the `XK` or `KX` manner.
 ///
 /// # Parameters
 /// - `num`: A reference to an `Mfp` element, used to evaluate the resulting polynomial.
@@ -403,6 +442,7 @@ pub fn get_matrix_point_col(mat: &DMatrix<Mfp>, set_h: &[Mfp], set_k: &[Mfp]) ->
 /// - `points_row`: A `HashMap` mapping points to their corresponding row values in the matrix.
 /// - `points_col`: A `HashMap` mapping points to their corresponding column values in the matrix.
 /// - `set_h_len`: The length of the set `H`, which determines the degree of the polynomial.
+/// - `eval_order`: An `EvalOrder` enum value that specifies the order of evaluation (either `XK` or `KX`).
 ///
 /// # Returns
 /// Returns a `Poly` representing the result of summing up the products of the evaluated polynomials.
@@ -411,22 +451,19 @@ pub fn get_matrix_point_col(mat: &DMatrix<Mfp>, set_h: &[Mfp], set_k: &[Mfp]) ->
 /// This function iterates over each key-value pair `(k, val)` in `points_val`, and for each pair:
 /// 1. Constructs a polynomial `poly_val` from the value `val`.
 /// 2. Constructs two polynomials `poly_x` and `poly_y` using the `func_u` function, with `points_row[k]` and `points_col[k]` as inputs, respectively.
-/// 3. Evaluates `poly_y` at `num` to get `res_poly_y`, then multiplies it by `poly_val` and `poly_x`.
-/// 4. Sums up these products to obtain the final polynomial `poly_res`.
-///
-/// The function `m_kx` follows a similar process, but evaluates `poly_x` at `num` instead of `poly_y`.
+/// 3. Depending on the specified `eval_order`, it evaluates either `poly_y` at `num` (for `XK`) or `poly_x` at `num` (for `KX`).
+/// 4. Multiplies the evaluated polynomial with `poly_val` and the other polynomial, then sums these products to obtain the final polynomial `poly_res`.
 ///
 /// # Notes
-/// - `m_xk`: The final polynomial depends on `poly_x` and the evaluation of `poly_y` at `num`.
-/// - `m_kx`: The final polynomial depends on `poly_y` and the evaluation of `poly_x` at `num`.
-///
-/// These two functions are used to compute different aspects of the overall polynomial interaction.
-pub fn m_xk(
+/// - The final polynomial depends on the evaluation order specified by `eval_order`.
+/// - This function provides a unified way to compute the polynomial interactions based on the evaluation context.
+pub fn m_k(
     num: &Mfp,
     points_val: &HashMap<Mfp, Mfp>,
     points_row: &HashMap<Mfp, Mfp>,
     points_col: &HashMap<Mfp, Mfp>,
     set_h_len: usize,
+    eval_order: &EvalOrder,
 ) -> Poly {
     let mut poly_res = Poly::from(vec![Mfp::ZERO]);
 
@@ -434,54 +471,17 @@ pub fn m_xk(
         let poly_val = Poly::from(vec![*val]);
         let poly_x = func_u(None, Some(points_row[k]), set_h_len);
         let poly_y = func_u(None, Some(points_col[k]), set_h_len);
-        let res_poly_y = poly_y.eval(*num);
-        poly_res += poly_val * res_poly_y * poly_x;
-    }
 
-    poly_res
-}
-
-/// Computes a polynomial `m_kx` based on the provided `points_val`, `points_row`, and `points_col`.
-///
-/// # Parameters
-/// - `num`: A reference to an `Mfp` element, used to evaluate the resulting polynomial.
-/// - `points_val`: A `HashMap` mapping points to their corresponding `Mfp` values.
-/// - `points_row`: A `HashMap` mapping points to their corresponding row values in the matrix.
-/// - `points_col`: A `HashMap` mapping points to their corresponding column values in the matrix.
-/// - `set_h_len`: The length of the set `H`, which determines the degree of the polynomial.
-///
-/// # Returns
-/// Returns a `Poly` representing the result of summing up the products of the evaluated polynomials.
-///
-/// # Description
-/// This function iterates over each key-value pair `(k, val)` in `points_val`, and for each pair:
-/// 1. Constructs a polynomial `poly_val` from the value `val`.
-/// 2. Constructs two polynomials `poly_y` and `poly_y` using the `func_u` function, with `points_row[k]` and `points_col[k]` as inputs, respectively.
-/// 3. Evaluates `poly_y` at `num` to get `res_poly_y`, then multiplies it by `poly_val` and `poly_y`.
-/// 4. Sums up these products to obtain the final polynomial `poly_res`.
-///
-/// The function `m_kx` follows a similar process, but evaluates `poly_y` at `num` instead of `poly_y`.
-///
-/// # Notes
-/// - `m_xk`: The final polynomial depends on `poly_y` and the evaluation of `poly_y` at `num`.
-/// - `m_kx`: The final polynomial depends on `poly_y` and the evaluation of `poly_y` at `num`.
-///
-/// These two functions are used to compute different aspects of the overall polynomial interaction.
-pub fn m_kx(
-    num: &Mfp,
-    points_val: &HashMap<Mfp, Mfp>,
-    points_row: &HashMap<Mfp, Mfp>,
-    points_col: &HashMap<Mfp, Mfp>,
-    set_h_len: usize,
-) -> Poly {
-    let mut poly_res = Poly::from(vec![Mfp::ZERO]);
-
-    for (k, val) in points_val {
-        let poly_val = Poly::from(vec![*val]);
-        let poly_x = func_u(None, Some(points_row[k]), set_h_len);
-        let poly_y = func_u(None, Some(points_col[k]), set_h_len);
-        let res_poly_x = poly_x.eval(*num);
-        poly_res += poly_val * res_poly_x * poly_y;
+        match eval_order {
+            EvalOrder::XK => {
+                let res_poly_y = poly_y.eval(*num);
+                poly_res += poly_val * res_poly_y * poly_x;
+            }
+            EvalOrder::KX => {
+                let res_poly_x = poly_x.eval(*num);
+                poly_res += poly_val * res_poly_x * poly_y;
+            }
+        }
     }
 
     poly_res
@@ -495,6 +495,7 @@ pub fn m_kx(
 /// - `points_val`: A `HashMap` mapping points to their corresponding `Mfp` values.
 /// - `points_row`: A `HashMap` mapping points to their corresponding row values in the matrix.
 /// - `points_col`: A `HashMap` mapping points to their corresponding column values in the matrix.
+/// - `eval_order`: A reference to an `EvalOrder` enum value that specifies the order of evaluation.
 ///
 /// # Returns
 /// Returns a `Poly` representing the sum of the products of polynomials.
@@ -502,64 +503,34 @@ pub fn m_kx(
 /// # Description
 /// This function iterates over each element `h` in `set_h`, and for each `h`:
 /// 1. Constructs a polynomial `p_r_alphak` using `func_u`, which depends on `alpha` and `h`.
-/// 2. Constructs a polynomial `p_m_kx` using the `m_kx` function.
+/// 2. Constructs a polynomial `p_m_kx` using the `m_k` function.
 /// 3. Trims the polynomials to remove leading zeros.
 /// 4. Multiplies `p_r_alphak` and `p_m_kx` and sums the result into `res`.
 ///
 /// This function is used to compute the final polynomial based on the interaction between `alpha` and `h`.
-pub fn sigma_rkx_mkx(
+pub fn sigma_rk_mk(
     set_h: &Vec<Mfp>,
     alpha: Mfp,
     points_val: &HashMap<Mfp, Mfp>,
     points_row: &HashMap<Mfp, Mfp>,
     points_col: &HashMap<Mfp, Mfp>,
+    eval_order: &EvalOrder,
 ) -> Poly {
     let mut res = Poly::from(vec![Mfp::ZERO]);
     for h in set_h {
         let mut p_r_alphak = func_u(Some(alpha), Some(*h), set_h.len());
-        let mut p_m_kx = m_kx(h, points_val, points_row, points_col, set_h.len());
+        let mut p_m_kx = m_k(
+            h,
+            points_val,
+            points_row,
+            points_col,
+            set_h.len(),
+            eval_order,
+        );
         p_r_alphak.trim();
         p_m_kx.trim();
         let mul_poly = p_r_alphak * p_m_kx;
         res += mul_poly;
-    }
-    res
-}
-
-/// Computes the polynomial sum for `sigma_rxk_mxk` based on the provided set `H`, `alpha`, and points.
-///
-/// # Parameters
-/// - `set_h`: A reference to a vector of `Mfp` elements representing the set `H`.
-/// - `alpha`: An `Mfp` element used in the polynomial computation.
-/// - `points_val`: A `HashMap` mapping points to their corresponding `Mfp` values.
-/// - `points_row`: A `HashMap` mapping points to their corresponding row values in the matrix.
-/// - `points_col`: A `HashMap` mapping points to their corresponding column values in the matrix.
-///
-/// # Returns
-/// Returns a `Poly` representing the sum of the products of polynomials.
-///
-/// # Description
-/// This function iterates over each element `h` in `set_h`, and for each `h`:
-/// 1. Constructs a polynomial `p_r_alphak` using `func_u`, which depends on `alpha` and `h`.
-/// 2. Constructs a polynomial `p_m_xk` using the `m_xk` function.
-/// 3. Trims the polynomials to remove leading zeros.
-/// 4. Multiplies `p_r_alphak` and `p_m_xk` and sums the result into `res`.
-///
-/// This function is used to compute the final polynomial based on the interaction between `alpha` and `h`.
-pub fn sigma_rxk_mxk(
-    set_h: &Vec<Mfp>,
-    alpha: Mfp,
-    points_val: &HashMap<Mfp, Mfp>,
-    points_row: &HashMap<Mfp, Mfp>,
-    points_col: &HashMap<Mfp, Mfp>,
-) -> Poly {
-    let mut res = Poly::from(vec![Mfp::ZERO]);
-    for h in set_h {
-        let mut p_r_alphak = func_u(Some(alpha), Some(*h), set_h.len());
-        let mut p_m_xk = m_xk(h, points_val, points_row, points_col, set_h.len());
-        p_r_alphak.trim();
-        p_m_xk.trim();
-        res += p_r_alphak * p_m_xk;
     }
     res
 }
@@ -615,30 +586,74 @@ pub fn sigma_yi_li(points: &HashMap<Mfp, Mfp>, set_k: &Vec<Mfp>) -> Poly {
         let val = points.get(k).unwrap_or(&Mfp::ZERO);
         points_li.push((*k, *val));
     }
-    newton_interpolate(&points_li)
+    interpolate(&points_li)
 }
 
-
+/// Computes a pairing function based on the inputs `a`, `b`, and `g`.
+///
+/// This function calculates a modified pairing value by reducing `a` and `b`
+/// modulo `g`, multiplying the results, and then scaling the product by a factor of 3.
+///
+/// # Parameters
+/// - `a`: An `Mfp` value representing the first input to the pairing function.
+/// - `b`: An `Mfp` value representing the second input to the pairing function.
+/// - `g`: An `Mfp` value used as the modulus for reducing `a` and `b`.
+///
+/// # Returns
+/// An `Mfp` value representing the result of the pairing computation.
 pub fn e_func(a: Mfp, b: Mfp, g: Mfp) -> Mfp {
     println_dbg!("a: {a}, b: {b}");
     let a_r = Mfp::from(div_mod_val(a, g));
     let b_r = Mfp::from(div_mod_val(b, g));
     println_dbg!("a_r: {a_r}, b_r: {b_r}");
     let exp = a_r * b_r;
-    Mfp::from(3) * exp 
+    Mfp::from(3) * exp
 }
 
+/// Computes the modular inverse of a given value `a` using Fermat's Little Theorem.
+///
+/// This function calculates the modular inverse of `a` modulo a prime `P`
+/// by raising `a` to the power of `P - 2`. This is valid because if `P` is prime,
+/// then the modular inverse of `a` can be computed as `a^(P-2) mod P`.
+///
+/// # Parameters
+/// - `a`: An `Mfp` value for which the modular inverse is to be computed.
+///
+/// # Returns
+/// An `Mfp` value representing the modular inverse of `a` modulo `P`.
 pub fn invers_val(a: Mfp) -> Mfp {
     exp_mod(to_bint!(a), P - 2)
 }
 
+/// Performs modular division of two values `a` and `b` in the finite field defined by `Mfp`.
+///
+/// This function computes the result of `a / b` modulo a prime `P` by multiplying `a`
+/// with the modular inverse of `b`. The modular inverse is calculated using the `invers_val` function.
+///
+/// # Parameters
+/// - `a`: An `Mfp` value representing the numerator in the division.
+/// - `b`: An `Mfp` value representing the denominator in the division.
+///
+/// # Returns
+/// An `Mfp` value representing the result of the modular division `a / b` modulo `P`.
 pub fn div_mod_val(a: Mfp, b: Mfp) -> Mfp {
     let numerator = a;
     let denominator = invers_val(b);
     numerator * denominator
 }
 
-pub fn compute_all_commitment(polys: &[Poly], ck: &Vec<Mfp>, g: u64) -> Vec<Mfp> {
+/// Computes commitments for a list of polynomials using a given commitment key.
+///
+/// This function iterates over a slice of polynomials and computes a commitment for each polynomial
+/// using the KZG commitment scheme. The results are collected in a vector and returned.
+///
+/// # Parameters
+/// - `polys`: A slice of `Poly` representing the polynomials for which commitments are to be computed.
+/// - `ck`: A reference to a vector of `Mfp` values representing the commitment key used in the KZG scheme.
+///
+/// # Returns
+/// A vector of `Mfp` values, where each value represents the commitment for the corresponding polynomial.
+pub fn compute_all_commitment(polys: &[Poly], ck: &Vec<Mfp>) -> Vec<Mfp> {
     let mut res = vec![];
 
     for poly in polys.iter() {
@@ -647,42 +662,6 @@ pub fn compute_all_commitment(polys: &[Poly], ck: &Vec<Mfp>, g: u64) -> Vec<Mfp>
     }
 
     res
-}
-
-pub mod kzg {
-    use super::*;
-    pub fn setup(max: u64, tau: u64, g: u64) -> Vec<Mfp> {
-        let mut res = vec![];
-        let mut tmp = Mfp::from(g);
-        let tau = tau % (P - 1);
-
-        for _ in 0..max {
-            res.push(tmp);
-            tmp = Mfp::from(to_bint!(tmp) * tau);
-        }
-
-        res
-    }
-
-    pub fn commit(poly_in: &Poly, ck: &[Mfp]) -> Mfp {
-        let mut res_poly = Mfp::ZERO;
-
-        if let Degree::Num(deg) = poly_in.degree() {
-            for (i, ck) in ck.iter().enumerate().take(deg + 1) {
-                match poly_in.term_with_degree(i) {
-                    Term::ZeroTerm => {
-                        continue;
-                    }
-                    Term::Term(t, _) => {
-                        let exp = Mfp::from(to_bint!(t) * to_bint!(*ck));
-                        res_poly += exp;
-                    }
-                }
-            }
-        }
-
-        res_poly
-    }
 }
 
 /// Computes the logarithm of `b` in base `a` using a modified approach based on the
@@ -720,19 +699,22 @@ pub fn log_mod(a: Mfp, b: Mfp) -> Mfp {
 #[cfg(test)]
 mod math_test {
     use super::*;
-    use ark_ff::UniformRand;
     use rand::Rng;
 
     #[test]
     fn test_div_val() {
         // Test cases
         let test_cases = vec![
-            (Mfp::from(10), Mfp::from(2), Some(Mfp::from(5))), 
-            (Mfp::from(7), Mfp::from(1), Some(Mfp::from(7))), 
-            (Mfp::from(0), Mfp::from(5), Some(Mfp::from(0))), 
-            (Mfp::from(5), Mfp::from(0), Some(Mfp::from(0))), 
+            (Mfp::from(10), Mfp::from(2), Some(Mfp::from(5))),
+            (Mfp::from(7), Mfp::from(1), Some(Mfp::from(7))),
+            (Mfp::from(0), Mfp::from(5), Some(Mfp::from(0))),
+            (Mfp::from(5), Mfp::from(0), Some(Mfp::from(0))),
             (Mfp::from(-10), Mfp::from(-2), Some(Mfp::from(5))),
-            (Mfp::from(1_000_000_000), Mfp::from(1_000_000_000), Some(Mfp::from(1))), 
+            (
+                Mfp::from(1_000_000_000),
+                Mfp::from(1_000_000_000),
+                Some(Mfp::from(1)),
+            ),
         ];
 
         for (a, b, expected) in test_cases {
@@ -859,7 +841,7 @@ mod math_test {
             Mfp::from(0),
         ]);
 
-        assert_eq!(polynomial_points1, newton_interpolate(&points1));
-        assert_eq!(polynomial_points2, newton_interpolate(&points2));
+        assert_eq!(polynomial_points1, interpolate(&points1));
+        assert_eq!(polynomial_points2, interpolate(&points2));
     }
 }
