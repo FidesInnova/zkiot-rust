@@ -60,6 +60,5 @@ fn main() -> Result<()> {
         .with_context(|| "Error storing commitment data")?;
     println!("Commitment file generated successfully");
 
-
     Ok(())
 }
