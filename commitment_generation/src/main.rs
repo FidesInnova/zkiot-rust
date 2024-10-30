@@ -12,16 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use ahp::setup::Setup;
 use anyhow::Context;
 use anyhow::Result;
 use std::env;
 use std::path::PathBuf;
+use utils::read_json_file;
 
 use parser::*;
 use zk_iot::json_file::*;
-use zk_iot::math::*;
 use zk_iot::*;
 fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
@@ -34,16 +33,16 @@ fn main() -> Result<()> {
     let class_data =
         get_class_data("class_table.json", "test").with_context(|| "Error loading class table")?;
 
-    // Restore setup data from the specified JSON file
-    let setup_json =
-        Setup::restore(setup_path).with_context(|| "Error retrieving setup data")?;
+    let device_config: DeviceConfigJson = read_json_file(device_config_path)?;
 
-    // Open the file containing line numbers for opcode reading
-    let line_file = open_file(&PathBuf::from("line_num.txt"))
-        .with_context(|| "Error opening line number file")?;
+    // Restore setup data from the specified JSON file
+    let setup_json = Setup::restore(setup_path).with_context(|| "Error retrieving setup data")?;
+    
+    // Convert line ranges to individual line numbers.
+    let lines = convert_lines(device_config.lines);
 
     // Parse opcodes based on the specified line numbers
-    let gates = parse_from_lines(line_file, &PathBuf::from(program_path))
+    let gates = parse_from_lines(lines, &PathBuf::from(program_path))
         .with_context(|| "Error parsing instructions")?;
 
     // .: Commitment :.
@@ -52,13 +51,13 @@ fn main() -> Result<()> {
         .gen_polynomials()
         .build();
 
-
     // Generate polynomial commitments
-    let commitment_polys =
-        commitment.get_polynomials_commitment(&setup_json.get_commitment_key());
+    let commitment_polys = commitment.get_polynomials_commitment(&setup_json.get_commitment_key());
 
     // Store the matrices data in a JSON file
-    commitment.matrices.store("zkp_data/program_params.json", &class_data)?;
+    commitment
+        .matrices
+        .store("zkp_data/program_params.json", &class_data)?;
 
     // Store the commitment data in a JSON file
     commitment
