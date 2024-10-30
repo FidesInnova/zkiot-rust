@@ -3,6 +3,7 @@ use std::{fs::File, io::BufWriter, path::PathBuf};
 use anyhow::Result;
 use ark_ff::Field;
 use nalgebra::DMatrix;
+use rand::{thread_rng, Rng};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{
@@ -57,16 +58,19 @@ impl Matrices {
 
         let mat_size = matrix.ncols();
 
-        let mut sp_mat = vec![0; matrix.ncols() - number_t_zeros];
+        let mut sp_mat = vec![];
 
         for i in 0..mat_size {
             for j in 0..mat_size {
                 assert!(matrix[(i, j)] == Mfp::ZERO || matrix[(i, j)] == Mfp::ONE);
                 if matrix[(i, j)] == Mfp::ONE {
-                    sp_mat.insert(i - number_t_zeros, (j + 1).try_into().unwrap());
+                    // FIXME: use insert or push?
+                    // sp_mat.insert(i - number_t_zeros, (j + 1).try_into().unwrap());
+                    sp_mat.push((j + 1).try_into().unwrap());
                 }
             }
         }
+
 
         sp_mat
     }

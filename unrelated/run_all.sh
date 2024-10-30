@@ -6,7 +6,7 @@ if [ -z "$1" ]; then
 fi
 
 # write number in line_num
-input_file="sample.txt"
+input_file="program.s"
 output_file="line_num.txt"
 perl -0777 -i -pe 's/\n+$//g' "$input_file"
 line_count=$(wc -l < "$input_file")
@@ -36,7 +36,7 @@ echo "Setup: =====================================================" >> "report.t
 
 cargo build -p commitment_generation $options >> "$filename" && \
 echo "Commitment: ================================================" >> "report.txt" && \
-/usr/bin/time -v -a -o "report.txt" ./target/$dir/commitment_generation >> "$filename" && \
+/usr/bin/time -v -a -o "report.txt" ./target/$dir/commitment_generation program.s device_config.json zkp_data/setup.json >> "$filename" && \
 
 cargo build -p proof_generation $options >> "$filename" && \
 echo "Proof Generation: ==========================================" >> "report.txt" && \
@@ -44,4 +44,4 @@ echo "Proof Generation: ==========================================" >> "report.t
 
 cargo build -p proof_verification $options >> "$filename" && \
 echo "Proof Verification: ========================================" >> "report.txt" && \
-/usr/bin/time -v -a -o "report.txt" ./target/$dir/proof_verification >> "$filename"
+/usr/bin/time -v -a -o "report.txt" ./target/$dir/proof_verification zkp_data/program_commitment.json zkp_data/proof.json >> "$filename"

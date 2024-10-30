@@ -13,6 +13,8 @@
 // limitations under the License.
 
 
+use std::env;
+
 use anyhow::Context;
 use anyhow::Result;
 use zk_iot::ahp::commitment_generation;
@@ -25,6 +27,12 @@ use zk_iot::{
 };
 
 fn main() -> Result<()> {
+    let args: Vec<String> = env::args().collect();
+
+    let program_path = &args[1];
+    let proof_path = &args[2];
+
+
     // Load class data from the JSON file
     let class_data = get_class_data("class_table.json", "test")
         .with_context(|| "Error loading class data")?;
@@ -34,11 +42,11 @@ fn main() -> Result<()> {
         Setup::restore("zkp_data/setup.json").with_context(|| "Error retrieving setup data")?;
         
     // Load commitment data from the commitment file
-    let commitment_json = Commitment::restore("zkp_data/program_commitment.json")
+    let commitment_json = Commitment::restore(program_path)
         .with_context(|| "Error loading commitment data")?;
     
     // Load proof generation data from the proof file
-    let proof_generation = ProofGeneration::restore("zkp_data/proof.json")
+    let proof_generation = ProofGeneration::restore(proof_path)
         .with_context(|| "Error loading proof data")?;
 
     // .: Verification :.

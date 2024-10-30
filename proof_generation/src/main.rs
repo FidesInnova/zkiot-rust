@@ -45,7 +45,7 @@ fn main() -> Result<()> {
         .with_context(|| "Error opening line number file")?;
 
     // Parse opcodes based on the specified line numbers
-    let gates = parse_from_lines(line_file, &PathBuf::from("sample.txt"))
+    let gates = parse_from_lines(line_file, &PathBuf::from("program.s"))
         .with_context(|| "Error parsing instructions")?;
 
     let matrices = matrices::Matrices::restore("zkp_data/program_params.json")?;

@@ -119,7 +119,7 @@ def update_rust_constants(p, g, file_path='src/math.rs'):
 
 
 # Specify the path to your file
-file_path = 'sample.txt'
+file_path = 'program.s'
 
 # Count the instructions
 n_i, n_g = count_instructions(file_path)
