@@ -37,7 +37,7 @@ fn main() -> Result<()> {
         Setup::restore("zkp_data/setup.json").with_context(|| "Error retrieving setup data")?;
 
     // Load commitment data from the commitment file
-    let commitment_json = ahp::commitment_generation::Commitment::restore("zkp_data/commit.json")
+    let commitment_json = ahp::commitment_generation::Commitment::restore("zkp_data/program_commitment.json")
         .with_context(|| "Error loading commitment data")?;
 
     // Open the file containing line numbers for opcode reading
