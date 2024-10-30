@@ -54,7 +54,7 @@ impl Setup {
         let file = File::create(path)?;
         let writer = BufWriter::new(file);
 
-        let setup_json = SetupJson::new(&self.ck);
+        let setup_json = SetupJson::new(&self.ck, 4);
         serde_json::to_writer(writer, &setup_json)?;
         Ok(())
     }
@@ -68,13 +68,18 @@ impl Setup {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SetupJson {
+    class: u8,
     ck: Vec<u64>,
+    vk: u64,
 }
 
 impl SetupJson {
-    pub fn new(ck: &Vec<Mfp>) -> Self {
+    pub fn new(ck: &Vec<Mfp>, class: u8) -> Self {
+        let ck = write_set(ck);
         Self {
-            ck: write_set(ck),
+            class,
+            ck: ck.clone(),
+            vk: ck[1] 
         }
     }
 
@@ -83,6 +88,6 @@ impl SetupJson {
     }
 
     pub fn get_verifying_key(&self) -> Mfp {
-        Mfp::from(self.ck[1])
+        Mfp::from(self.vk)
     }
 }

@@ -83,8 +83,8 @@ def update_test_values(n_g, n_i, m, n, filename = "class_table.json"):
 
 def find_largest_prime_and_generator(largest_prime):
     if largest_prime:
-        print(f"Largest prime number found: {largest_prime}")
-        
+        print(f"Prime number: {largest_prime}")
+
         # Set p to the largest prime found
         p = largest_prime
         g = 2
@@ -92,7 +92,7 @@ def find_largest_prime_and_generator(largest_prime):
         # Loop to find the smallest primitive root
         while g < p:
             if is_primitive_root(g, p):
-                print(f"The smallest generator is: {g}")
+                print(f"Generator: {g}")
                 return (p, g)  # Return the tuple (p, g)
             g += 1
     else:
@@ -127,16 +127,16 @@ n_i, n_g = count_instructions(file_path)
 t = n_i + 1
 n = n_i + n_g + 1
 m = ((n**2 - n ) / 2) - ((t**2 - t ) / 2)
+# m = 2 * n_g
 
 print(f"n_g: {n_g}\nn_i: {n_i}")
 print(f"n: {n}\nm: {int(m)}")
 
-# Find the largest prime number
-# largest_prime = find_largest_prime(n, m)
-largest_prime = find_small_prime(n, m)
+# prime = find_large_prime(n, m)
+prime = find_small_prime(n, m)
+# prime = 4767673
 
-
-(p, g) = find_largest_prime_and_generator(largest_prime)
+(p, g) = find_largest_prime_and_generator(prime)
 
 
 update_test_values(n_g, n_i, int(m), n)

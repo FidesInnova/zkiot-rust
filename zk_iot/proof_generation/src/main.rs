@@ -48,7 +48,7 @@ fn main() -> Result<()> {
     let gates = parse_from_lines(line_file, &PathBuf::from("sample.txt"))
         .with_context(|| "Error parsing instructions")?;
 
-    let matrices = matrices::Matrices::restore("zkp_data/matrices.json")?;
+    let matrices = matrices::Matrices::restore("zkp_data/program_params.json")?;
 
     // .: Proof Generation :.
     let proof_generation = ahp::proof_generation::ProofGeneration::new();

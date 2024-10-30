@@ -142,7 +142,7 @@ pub struct CommitmentBuilder {
 }
 
 impl CommitmentBuilder {
-    /// Initializes matrices A, B, C, Z  based on gate definitions.
+    /// Initializes matrices A, B, C  based on gate definitions.
     ///
     /// # Parameters
     /// - `gates`: A vector of `Gate` structs containing gate definitions.
@@ -150,7 +150,6 @@ impl CommitmentBuilder {
     /// - `a_mat`: Mutable reference to matrix A to be updated.
     /// - `b_mat`: Mutable reference to matrix B to be updated.
     /// - `c_mat`: Mutable reference to matrix C to be updated.
-    /// - `z_mat`: Mutable reference to matrix Z to be updated.
     ///
     /// # Description
     /// This function iterates through the provided `gates` vector and updates the matrices

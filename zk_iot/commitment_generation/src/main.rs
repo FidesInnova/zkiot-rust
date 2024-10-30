@@ -31,6 +31,7 @@ fn main() -> Result<()> {
     let setup_json =
         Setup::restore("zkp_data/setup.json").with_context(|| "Error retrieving setup data")?;
 
+
     // Open the file containing line numbers for opcode reading
     let line_file = open_file(&PathBuf::from("line_num.txt"))
         .with_context(|| "Error opening line number file")?;
@@ -51,11 +52,11 @@ fn main() -> Result<()> {
         commitment.get_polynomials_commitment(&setup_json.get_commitment_key());
 
     // Store the matrices data in a JSON file
-    commitment.matrices.store("zkp_data/matrices.json", &class_data)?;
+    commitment.matrices.store("zkp_data/program_params.json", &class_data)?;
 
     // Store the commitment data in a JSON file
     commitment
-        .store("zkp_data/commit.json")
+        .store("zkp_data/program_commitment.json")
         .with_context(|| "Error storing commitment data")?;
     println!("Commitment file generated successfully");
 
