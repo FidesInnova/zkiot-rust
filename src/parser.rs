@@ -16,11 +16,46 @@
 //! Module for parsing gate information from text files into `Gate` objects.
 
 use anyhow::{anyhow, Context, Result};
+use serde::{Deserialize, Serialize};
 use std::io::{BufRead, BufReader};
 use std::{fs::File, path::PathBuf};
-
 use crate::{json_file::*, println_dbg};
 use crate::math::Mfp;
+
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum LineValue {
+    Single(usize),
+    Range((usize, usize))
+}
+
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct DeviceConfigJson {
+    #[serde(rename = "class")]
+    pub class: u8,
+    #[serde(rename = "iot_manufacturer_name")]
+    pub manufacturer_name: String,
+    #[serde(rename = "iot_device_name")]
+    pub device_name: String,
+    #[serde(rename = "device_hardware_version")]
+    pub device_hardware_version: String,
+    #[serde(rename = "firmware_version")]
+    pub firmware_version: String,
+    pub lines: Vec<LineValue>,
+}
+
+pub fn convert_lines(lines: Vec<LineValue>) -> Vec<usize> {
+    lines
+        .into_iter() 
+        .flat_map(|line| match line {
+            LineValue::Single(n) => vec![n],
+            LineValue::Range(range) => (range.0..=range.1).collect(),
+        })
+        .collect()
+}
+
 
 #[derive(Debug)]
 enum ZKPRegister {
@@ -258,19 +293,11 @@ struct GateSide {
     register: u8,
 }
 
-pub fn parse_from_lines(line_file: BufReader<File>, opcodes_file: &PathBuf) -> Result<Vec<Gate>> {
+pub fn parse_from_lines(line_file: Vec<usize>, opcodes_file: &PathBuf) -> Result<Vec<Gate>> {
     let mut gates = Vec::new();
     let (mut inx_left, mut inx_right) = (0, 0);
-    for (index, line) in line_file.lines().enumerate() {
-        let line_num = line
-            .context(format!(
-                "Error reading line {}: unable to parse line number",
-                index + 1
-            ))?
-            .trim()
-            .parse::<usize>()
-            .context(format!("Error parsing line number from line {}", index + 1))?;
-
+    
+    for line_num in line_file {
         let gates_file = open_file(opcodes_file).context("Failed to open opcodes file")?;
         let line = gates_file.lines().nth(line_num - 1).ok_or_else(|| {
             anyhow!("Line number {} is out of bounds in opcodes file", line_num)
