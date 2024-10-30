@@ -18,9 +18,12 @@ use zk_iot::ahp::setup::Setup;
 
 fn main() -> Result<()> {
     let mut setup = Setup::new();
+
+    let b = 2; // Random number 
+    let d_ahp = 10_000;
     
     // Generate cryptographic keys for the setup
-    setup.key_generate(50_000);
+    setup.key_generate(d_ahp);
 
     // Store the generated setup data in a JSON file
     setup
