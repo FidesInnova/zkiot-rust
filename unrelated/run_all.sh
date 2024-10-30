@@ -5,19 +5,6 @@ if [ -z "$1" ]; then
   exit 1
 fi
 
-# write number in line_num
-input_file="program.s"
-output_file="line_num.txt"
-perl -0777 -i -pe 's/\n+$//g' "$input_file"
-line_count=$(wc -l < "$input_file")
-line_count=$((line_count + 1))
-: > "$output_file"
-i=1
-while [ $i -le $line_count ]; do
-    echo "$i" >> "$output_file"
-    i=$((i + 1))
-done
-
 
 # setup benchmark
 filename="$1"
@@ -36,11 +23,11 @@ echo "Setup: =====================================================" >> "report.t
 
 cargo build -p commitment_generation $options >> "$filename" && \
 echo "Commitment: ================================================" >> "report.txt" && \
-/usr/bin/time -v -a -o "report.txt" ./target/$dir/commitment_generation program.s device_config.json zkp_data/setup.json >> "$filename" && \
+/usr/bin/time -v -a -o "report.txt" ./target/$dir/commitment_generation program.s zkp_data/device_config.json zkp_data/setup.json >> "$filename" && \
 
 cargo build -p proof_generation $options >> "$filename" && \
 echo "Proof Generation: ==========================================" >> "report.txt" && \
-/usr/bin/time -v -a -o "report.txt" ./target/$dir/proof_generation >> "$filename" && \
+/usr/bin/time -v -a -o "report.txt" ./target/$dir/proof_generation zkp_data/setup.json zkp_data/program_commitment.json zkp_data/program_params.json zkp_data/device_config.json >> "$filename" && \
 
 cargo build -p proof_verification $options >> "$filename" && \
 echo "Proof Verification: ========================================" >> "report.txt" && \

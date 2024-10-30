@@ -325,17 +325,9 @@ impl ProofGeneration {
 
     pub fn generate_mat_z(gates: Vec<Gate>, class_data: &ClassData) -> DMatrix<Mfp> {
         let size = matrix_size(&class_data);
-        let ni: usize = class_data.n_i as usize;
-
         let mut regs_data: HashMap<u8, RegData> = HashMap::new();
-
         let mut _index = 0;
-        let mut counter = 0;
-        let mut inx_left = 0;
-        let mut inx_right = 0;
-
         let mut val_counter: usize = 0;
-
         for (_, gate) in gates.iter().enumerate() {
             if gate.gate_type == GateType::Ld {
                 let right_val = gate.val_right.map_or(Mfp::ZERO, Mfp::from);
@@ -345,50 +337,8 @@ impl ProofGeneration {
                 };
                 continue;
             }
-
-            // Set index
-            _index = 1 + ni + counter;
-
-            let (mut li, mut ri) = (false, false);
-            if !regs_data.get(&gate.reg_left).unwrap().witness.is_empty() {
-                li = true;
-            }
-            if !regs_data.get(&gate.reg_right).unwrap().witness.is_empty() {
-                ri = true;
-            }
-
-            // It works better
-            inx_left = if li {
-                let inx = (0..=gate.reg_left).fold(0, |acc, x| {
-                    acc + regs_data
-                        .get(&x)
-                        .unwrap_or(&RegData::new(Mfp::ZERO))
-                        .witness
-                        .len()
-                }) + ni;
-                inx
-            } else {
-                inx_left + 1
-            };
-
-            inx_right = if ri {
-                let inx = (0..=gate.reg_right).fold(0, |acc, x| {
-                    acc + regs_data
-                        .get(&x)
-                        .unwrap_or(&RegData::new(Mfp::ZERO))
-                        .witness
-                        .len()
-                }) + ni;
-                inx
-            } else {
-                inx_right + 1
-            };
-
             CommitmentBuilder::add_val(&mut regs_data, gate, gate.gate_type, &mut val_counter);
-
-            counter += 1;
         }
-
         let mut matrix_z = DMatrix::<Mfp>::zeros(size, 1);
         Self::gen_z_mat(&mut matrix_z, &regs_data);
 

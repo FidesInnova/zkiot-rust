@@ -13,42 +13,42 @@
 // limitations under the License.
 
 
-use std::path::PathBuf;
+use std::env;
 
 use ahp::setup::Setup;
 use anyhow::Context;
 use anyhow::Result;
 
-use matrices::matrix_size;
-use matrices::matrix_t_zeros;
-use matrices::Matrices;
-use parser::parse_from_lines;
+use parser::*;
+use parser::GateType::*;
 use zk_iot::json_file::*;
 use zk_iot::*;
 
 fn main() -> Result<()> {
+    let args: Vec<String> = env::args().collect();
+
+    let setup_path = &args[1];
+    let program_commitment_path = &args[2];
+    let program_params_path = &args[3];
+
     // Load files
     // Load class data from the JSON file
     let class_data =
         get_class_data("class_table.json", "test").with_context(|| "Error loading class data")?;
 
-    // Restore setup data from the specified JSON file
+    // Restore setup data from the JSON file
     let setup_json =
-        Setup::restore("zkp_data/setup.json").with_context(|| "Error retrieving setup data")?;
+        Setup::restore(setup_path).with_context(|| "Error retrieving setup data")?;
 
     // Load commitment data from the commitment file
-    let commitment_json = ahp::commitment_generation::Commitment::restore("zkp_data/program_commitment.json")
+    let commitment_json = ahp::commitment_generation::Commitment::restore(program_commitment_path)
         .with_context(|| "Error loading commitment data")?;
 
-    // Open the file containing line numbers for opcode reading
-    let line_file = open_file(&PathBuf::from("line_num.txt"))
-        .with_context(|| "Error opening line number file")?;
+    // Hardcoded gates
+    let gates = include!("gates.rs");
 
-    // Parse opcodes based on the specified line numbers
-    let gates = parse_from_lines(line_file, &PathBuf::from("program.s"))
-        .with_context(|| "Error parsing instructions")?;
-
-    let matrices = matrices::Matrices::restore("zkp_data/program_params.json")?;
+    // Load matrices 
+    let matrices = matrices::Matrices::restore(program_params_path)?;
 
     // .: Proof Generation :.
     let proof_generation = ahp::proof_generation::ProofGeneration::new();

@@ -175,19 +175,11 @@ impl CommitmentBuilder {
         let mut counter = 0;
         let mut inx_left = 0;
         let mut inx_right = 0;
-
         let mut val_counter: usize = 0;
 
         for (_, gate) in gates.iter().enumerate() {
-            if gate.gate_type == GateType::Ld {
-                let right_val = gate.val_right.map_or(Mfp::ZERO, Mfp::from);
-                match regs_data.contains_key(&gate.reg_right) {
-                    true => panic!("The register has been loaded again!"),
-                    false => regs_data.insert(gate.reg_right, RegData::new(right_val)),
-                };
-                println_dbg!("Ld: {}", right_val);
-                // TODO: Determine if left_val is necessary for ld operation.
-                continue;
+            if !regs_data.contains_key(&gate.reg_right) {
+                regs_data.insert(gate.reg_right, RegData::new(Mfp::ONE));
             }
 
             println_dbg!("Gate Loop: {} ------------", counter);
@@ -196,16 +188,7 @@ impl CommitmentBuilder {
             // Set index
             _index = 1 + ni + counter;
 
-            let (mut li, mut ri) = (false, false);
-            if !regs_data.get(&gate.reg_left).unwrap().witness.is_empty() {
-                li = true;
-            }
-            if !regs_data.get(&gate.reg_right).unwrap().witness.is_empty() {
-                ri = true;
-            }
-
-            // It works better
-            inx_left = if li {
+            inx_left = if !regs_data.get(&gate.reg_left).unwrap().witness.is_empty() {
                 let inx = (0..=gate.reg_left).fold(0, |acc, x| {
                     acc + regs_data
                         .get(&x)
@@ -213,14 +196,12 @@ impl CommitmentBuilder {
                         .witness
                         .len()
                 }) + ni;
-                // println_dbg!("left:   index = {:<5}", inx);
                 inx
             } else {
-                // println_dbg!("left: None, index = {}", inx_left + 1);
                 inx_left + 1
             };
 
-            inx_right = if ri {
+            inx_right = if !regs_data.get(&gate.reg_right).unwrap().witness.is_empty() {
                 let inx = (0..=gate.reg_right).fold(0, |acc, x| {
                     acc + regs_data
                         .get(&x)
@@ -228,10 +209,8 @@ impl CommitmentBuilder {
                         .witness
                         .len()
                 }) + ni;
-                // println_dbg!("right:  index = {:<5}", inx);
                 inx
             } else {
-                // println_dbg!("right: None, index = {}", inx_right + 1);
                 inx_right + 1
             };
 
@@ -297,6 +276,7 @@ impl CommitmentBuilder {
                     println_dbg!("{}", b_mat[(_index, inx_right)]);
                 }
                 GateType::Div => {
+                    // FIXME: This instruction has mathematical flaws and should not be used
                     println_dbg!("Gate: Div");
                     println_dbg!(
                         "Left:  A[{}, {}] = {}",

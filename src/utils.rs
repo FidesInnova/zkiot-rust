@@ -574,6 +574,13 @@ pub fn concat_polys(polys: &[&Poly]) -> Vec<Mfp> {
 }
 
 
+pub fn read_json_file<T: serde::de::DeserializeOwned>(path: &str) -> Result<T> {
+    let reader = crate::json_file::open_file(&std::path::PathBuf::from(path))?;
+    let setup_json: T = serde_json::from_reader(reader)?;
+    Ok(setup_json)
+}
+
+
 #[macro_export]
 macro_rules! print_dbg {
     ($fmt:expr $(, $arg:expr)*) => {
