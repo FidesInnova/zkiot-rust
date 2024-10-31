@@ -16,7 +16,6 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufWriter;
 use std::iter::repeat_with;
-use std::path::PathBuf;
 
 use anyhow::Result;
 use ark_ff::Field;
@@ -32,7 +31,6 @@ use crate::ahp::commitment_generation::CommitmentBuilder;
 use crate::dsp_mat;
 use crate::dsp_poly;
 use crate::dsp_vec;
-use crate::json_file::open_file;
 use crate::json_file::write_set;
 use crate::json_file::write_term;
 use crate::json_file::ClassData;
@@ -97,18 +95,6 @@ impl ProofGeneration {
         // push_random_points(&mut points_za, random_b, &vec_to_set(set_h));
         // push_random_points(&mut points_zb, random_b, &vec_to_set(set_h));
         // push_random_points(&mut points_zc, random_b, &vec_to_set(set_h));
-
-        // TODO:
-        // insert 'b' random poinsts
-        // Random inertation for za:
-        // points_za.push((Mfp::from(150), Mfp::from(5)));
-        // points_za.push((Mfp::from(80), Mfp::from(47)));
-        // // Random inertation for zb:
-        // points_zb.push((Mfp::from(150), Mfp::from(15)));
-        // points_zb.push((Mfp::from(80), Mfp::from(170)));
-        // // Random inertation for zc:
-        // points_zc.push((Mfp::from(150), Mfp::from(1)));
-        // points_zc.push((Mfp::from(80), Mfp::from(100)));
 
         let poly_z_hat_a = interpolate(&points_za);
         let poly_z_hat_b = interpolate(&points_zb);
@@ -549,7 +535,7 @@ impl ProofGeneration {
         let polys_px = commitment_json.get_polys_px();
 
         // f_3x
-        let poly_f_3x = Self::gen_poly_fx(
+        let poly_f_3x = Self::generate_poly_fx(
             &mut sigma_3,
             &polys_px,
             &van_poly_vhx,
@@ -572,7 +558,7 @@ impl ProofGeneration {
         dsp_poly!(polys_pi[2]);
 
         // a(x)
-        let poly_a_x = Self::gen_poly_ax(
+        let poly_a_x = Self::generate_poly_ax(
             &polys_px,
             vec![beta_1, beta_2],
             &van_poly_vhx,
@@ -757,7 +743,7 @@ impl ProofGeneration {
         Box::new(pi_ahp)
     }
 
-    fn gen_poly_fx(
+    fn generate_poly_fx(
         sigma_3: &mut Mfp,
         polys_px: &Vec<Poly>,
         van_poly_vhx: &Poly,
@@ -799,7 +785,7 @@ impl ProofGeneration {
         interpolate(&points_f_3)
     }
 
-    fn gen_poly_ax(
+    fn generate_poly_ax(
         polys_px: &Vec<Poly>,
         beta: Vec<Mfp>,
         van_poly_vhx: &Poly,
@@ -826,6 +812,7 @@ impl ProofGeneration {
             + poly_sig_c * (poly_pi[0] * poly_pi[1])
     }
 
+    /// Store in Json file
     pub fn store(&self, path: &str, proof_data: Box<[AHPData]>) -> Result<()> {
         let file = File::create(path)?;
         let writer = BufWriter::new(file);
@@ -835,10 +822,9 @@ impl ProofGeneration {
         Ok(())
     }
 
+    /// Restore Commitment from Json file
     pub fn restore(path: &str) -> Result<ProofGenerationJson> {
-        let reader = open_file(&PathBuf::from(path))?;
-        let proof_data: ProofGenerationJson = serde_json::from_reader(reader)?;
-        Ok(proof_data)
+        read_json_file(path)
     }
 }
 

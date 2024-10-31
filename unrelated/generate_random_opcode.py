@@ -38,7 +38,6 @@ register_mapping = [
     ("t6", "x31"),  # Temporary register
 ]
 
-
 def generate_random_opcode(num_opcodes, file_path):
     # Define possible opcodes
     opcodes = ['mul', 'add', 'sub', 'div']  # Only include 'mul' and 'addi' for subsequent lines

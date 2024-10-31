@@ -37,15 +37,28 @@ use super::proof_generation::Polys;
 use super::proof_generation::ProofGeneration;
 use super::proof_generation::ProofGenerationJson;
 
+/// Struct for verification data
 pub struct Verification {
-    pub data: ProofGenerationJson,
+    pub data: ProofGenerationJson, // Proof generation data
 }
 
 impl Verification {
+    /// Creates a new `Verification` instance from proof generation data
     pub fn new(data: &ProofGenerationJson) -> Self {
         Self { data: data.clone() }
     }
 
+    /// Verifies the proof using commitment and verifying keys
+    ///
+    /// # Parameters
+    /// - `ck`: Commitment keys
+    /// - `vk`: Verifying key
+    /// - `class_data`: Class data for verification
+    /// - `polys_px`: Polynomials for verification
+    /// - `x_vec`: Vector of Mfp values
+    ///
+    /// # Returns
+    /// Returns true if verification is successful, false otherwise
     pub fn verify(
         &self,
         (ck, vk): (&[Mfp], Mfp),
@@ -76,13 +89,28 @@ impl Verification {
         let set_h = generate_set(set_h_len as u64);
         let set_k_len = class_data.m as usize;
 
-        self.check_1(&polys_px, &beta, &eta, set_h_len, set_k_len)
-            && self.check_2(&beta, alpha, set_h_len)
-            && self.check_3(x_vec, alpha, &beta, &eta, &set_h, t)
-            && self.check_4(&beta, set_h_len)
-            && self.check_5((ck, vk), z, Mfp::from(GENERATOR))
+        // https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/4-proof-verification-phase#id-4-2-ahp-verify
+        // All functions need to be executed for debugging purposes, hence they are written this way
+        let mut res = true;
+        res &= self.check_1(&polys_px, &beta, &eta, set_h_len, set_k_len);
+        res &= self.check_2(&beta, alpha, set_h_len);
+        res &= self.check_3(x_vec, alpha, &beta, &eta, &set_h, t);
+        res &= self.check_4(&beta, set_h_len);
+        res &= self.check_5((ck, vk), z, Mfp::from(GENERATOR));
+        res
     }
 
+    /// Checks the first verification equation
+    ///
+    /// # Parameters
+    /// - `polys_px`: Vector of polynomials
+    /// - `beta`: Array of Mfp values
+    /// - `eta`: Array of Mfp values
+    /// - `set_h_len`: Length of the set for h
+    /// - `set_k_len`: Length of the set for k
+    ///
+    /// # Returns
+    /// Returns true if the equation holds, false otherwise
     fn check_1(
         &self,
         polys_px: &Vec<Poly>,
@@ -91,13 +119,14 @@ impl Verification {
         set_h_len: usize,
         set_k_len: usize,
     ) -> bool {
+        // Preparing equation values
         let van_poly_vkx = Self::vanishing_poly(set_k_len);
         let van_poly_vhx = Self::vanishing_poly(set_h_len);
 
         let (pi_a, pi_b, pi_c) = ProofGeneration::compute_polys_pi(beta[0], beta[1], &polys_px);
         let polys_pi = vec![&pi_a, &pi_b, &pi_c];
 
-        let poly_a_x = Self::gen_poly_ax(polys_px, beta, &van_poly_vhx, eta, &polys_pi);
+        let poly_a_x = Self::generate_poly_ax(polys_px, beta, &van_poly_vhx, eta, &polys_pi);
         let poly_b_x = polys_pi[0] * polys_pi[1] * polys_pi[2];
 
         Self::check_equation_1(
@@ -112,10 +141,21 @@ impl Verification {
         )
     }
 
+    /// Checks the second verification equation
+    ///
+    /// # Parameters
+    /// - `beta`: Array of Mfp values
+    /// - `alpha`: Mfp value
+    /// - `set_h_len`: Length of the set for h
+    ///
+    /// # Returns
+    /// Returns true if the equation holds, false otherwise
     fn check_2(&self, beta: &[Mfp], alpha: Mfp, set_h_len: usize) -> bool {
-        let van_poly_vhx = Self::vanishing_poly(set_h_len);
-        let poly_r = func_u(Some(alpha), None, set_h_len);
+        // Preparing equation values
+        let van_poly_vhx = Self::vanishing_poly(set_h_len); // Vanishing polynomial for h
+        let poly_r = func_u(Some(alpha), None, set_h_len); // Compute polynomial r
 
+        // Check the second verification equation
         Self::check_equation_2(
             &poly_r,
             &self.data.get_poly(Polys::H2x as usize),
@@ -128,6 +168,18 @@ impl Verification {
         )
     }
 
+    /// Checks the third verification equation
+    ///
+    /// # Parameters
+    /// - `x`: Vector of Mfp values
+    /// - `alpha`: Mfp value
+    /// - `beta`: Array of Mfp values
+    /// - `eta`: Array of Mfp values
+    /// - `set_h`: Vector of Mfp values
+    /// - `t_zero`: Index for the subset of H
+    ///
+    /// # Returns
+    /// Returns true if the equation holds, false otherwise
     fn check_3(
         &self,
         x: Vec<Mfp>,
@@ -137,20 +189,21 @@ impl Verification {
         set_h: &Vec<Mfp>,
         t_zero: usize,
     ) -> bool {
-        let van_poly_vhx = Self::vanishing_poly(set_h.len());
-        let poly_r = func_u(Some(alpha), None, set_h.len());
-        let sum_1 = self.gen_poly_sigma(&eta, &poly_r);
-        let set_h_1 = &set_h[0..t_zero].to_vec(); // H[>∣x∣]
-                                                  // let z_vec = &mat_to_vec(&commitment.matrices.z);
-                                                  // FIXME:
-                                                  // let points = get_points_set(&x, set_h_1);
-        let points = get_points_set(&x, set_h_1);
-        let poly_x_hat = interpolate(&points);
-        // Interpolate polynomial w(h) over the subset H[<=∣x∣]
-        // Compute the vanishing polynomial for the subset H[<=∣x∣]
-        let van_poly_vh1 = vanishing_poly(set_h_1);
-        let poly_z_hat_x = &self.data.get_poly(Polys::WHat as usize) * &van_poly_vh1 + poly_x_hat;
+        // Preparing equation values
 
+        let van_poly_vhx = Self::vanishing_poly(set_h.len()); // Vanishing polynomial for h
+        let poly_r = func_u(Some(alpha), None, set_h.len()); // Compute polynomial r
+        let sum_1 = self.gen_poly_sigma(&eta, &poly_r); // Generate sigma polynomial
+        let set_h_1 = &set_h[0..t_zero].to_vec(); // Subset of H
+
+        let points = get_points_set(&x, set_h_1); // Get points for interpolation
+        let poly_x_hat = interpolate(&points); // Interpolate polynomial
+
+        // Compute the vanishing polynomial for the subset H
+        let van_poly_vh1 = vanishing_poly(set_h_1);
+        let poly_z_hat_x = &self.data.get_poly(Polys::WHat as usize) * &van_poly_vh1 + poly_x_hat; // Combine polynomials
+
+        // Check the third verification equation
         Self::check_equation_3(
             &self.data.get_poly(Polys::Sx as usize),
             &sum_1,
@@ -165,17 +218,39 @@ impl Verification {
         )
     }
 
+    /// Checks the fourth verification equation
+    ///
+    /// # Parameters
+    /// - `beta`: Array of Mfp values
+    /// - `set_h_len`: Length of the set for h
+    ///
+    /// # Returns
+    /// Returns true if the equation holds, false otherwise
     fn check_4(&self, beta: &[Mfp], set_h_len: usize) -> bool {
-        let van_poly_vhx = Self::vanishing_poly(set_h_len);
+        // Preparing equation values
+        let van_poly_vhx = Self::vanishing_poly(set_h_len); // Vanishing polynomial for h
         let poly_ab_c = &self.data.get_poly(Polys::ZHatA as usize)
             * &self.data.get_poly(Polys::ZHatB as usize)
-            - &self.data.get_poly(Polys::ZHatC as usize);
-        let poly_h_0 = div_mod(&poly_ab_c, &van_poly_vhx).0;
+            - &self.data.get_poly(Polys::ZHatC as usize); // Compute polynomial A * B - C
+        let poly_h_0 = div_mod(&poly_ab_c, &van_poly_vhx).0; // Divide and get the result
+
+        // Check the fourth verification equation
         Self::check_equation_4(&poly_ab_c, &poly_h_0, &van_poly_vhx, &beta[0])
     }
 
+    /// Checks the fifth verification equation
+    ///
+    /// # Parameters
+    /// - `ck`: Array of commitment keys
+    /// - `vk`: Verifying key
+    /// - `z`: Mfp value
+    /// - `g`: Mfp value
+    ///
+    /// # Returns
+    /// Returns true if the equation holds, false otherwise
     fn check_5(&self, (ck, vk): (&[Mfp], Mfp), z: Mfp, g: Mfp) -> bool {
-        // TODO: All random (1..P)
+        // Preparing equation values
+        // TODO: Replace with random values in the range (1..P)
         let eta_values = vec![
             Mfp::from(1),  // eta_w
             Mfp::from(4),  // eta_z_a
@@ -191,38 +266,70 @@ impl Verification {
             Mfp::from(63), // eta_h3
         ];
 
+        // Compute polynomial px using eta values
         let poly_px = eta_values
             .iter()
             .enumerate()
             .map(|(i, &eta)| Poly::from(vec![eta]) * &self.data.get_poly(i).clone())
             .fold(Poly::zero(), |acc, poly| acc + poly);
 
-        let val_y_p = poly_px.eval(z);
-        let val_commit_poly_px = kzg::commit(&poly_px, ck);
+        let val_y_p = poly_px.eval(z); // Evaluate polynomial at z
+        let val_commit_poly_px = kzg::commit(&poly_px, ck); // Commit to polynomial px
         let mut poly_px_add = poly_px;
-        poly_px_add.add_term(-val_y_p, 0);
-        let poly_x_z = Poly::from(vec![Mfp::ONE, Mfp::from(-z)]);
-        let poly_qx = div_mod(&poly_px_add, &poly_x_z).0;
-        let val_commit_poly_qx = kzg::commit(&poly_qx, &ck);
+        poly_px_add.add_term(-val_y_p, 0); // Adjust polynomial by subtracting evaluated value
+        let poly_x_z = Poly::from(vec![Mfp::ONE, Mfp::from(-z)]); // Polynomial for division
+        let poly_qx = div_mod(&poly_px_add, &poly_x_z).0; // Divide and get the result
+        let val_commit_poly_qx = kzg::commit(&poly_qx, &ck); // Commit to polynomial qx
+
+        // Check the fifth verification equation
         Self::check_equation_5(val_commit_poly_px, g, val_y_p, val_commit_poly_qx, vk, z)
     }
 
     #[inline]
+    /// Generates the sigma polynomial using eta values and polynomial r
+    ///
+    /// # Parameters
+    /// - `eta`: Array of Mfp values
+    /// - `poly_r`: Polynomial r
+    ///
+    /// # Returns
+    /// Returns the generated sigma polynomial
     fn gen_poly_sigma(&self, eta: &[Mfp], poly_r: &Poly) -> Poly {
+        // Compute sigma polynomial using eta values and ZHat polynomials
         let sigma_eta_z_x = Poly::new(vec![eta[0]]) * &self.data.get_poly(Polys::ZHatA as usize)
             + Poly::new(vec![eta[1]]) * &self.data.get_poly(Polys::ZHatB as usize)
             + Poly::new(vec![eta[2]]) * &self.data.get_poly(Polys::ZHatC as usize);
-        poly_r * sigma_eta_z_x
+        poly_r * sigma_eta_z_x // Multiply polynomial r with sigma polynomial
     }
 
     #[inline]
+    /// Generates a vanishing polynomial of given length
+    ///
+    /// # Parameters
+    /// - `len`: Length of the vanishing polynomial
+    ///
+    /// # Returns
+    /// Returns the generated vanishing polynomial
     fn vanishing_poly(len: usize) -> Poly {
-        let mut van = Poly::new(vec![-Mfp::ONE]);
-        van.add_term(Mfp::ONE, len);
-        van
+        let mut van = Poly::new(vec![-Mfp::ONE]); // Start with -1
+        van.add_term(Mfp::ONE, len); // Add term for x^len
+        van // Return the vanishing polynomial
     }
 
-    // h3​(β3​)vK​(β3​)=a(β3​)−b(β3​)(β3​g3​(β3​)+σ3/|K|​​)
+    /// Checks the first verification equation
+    ///
+    /// # Parameters
+    /// - `h_3x`: Polynomial h3
+    /// - `g_3x`: Polynomial g3
+    /// - `van_poly_vkx`: Vanishing polynomial for vk
+    /// - `ax`: Polynomial a
+    /// - `bx`: Polynomial b
+    /// - `beta_3`: Mfp value for beta3
+    /// - `sigma_3`: Mfp value for sigma3
+    /// - `set_k_len`: Length of the set for k
+    ///
+    /// # Returns
+    /// Returns true if the equation holds, false otherwise
     fn check_equation_1(
         h_3x: &Poly,
         g_3x: &Poly,
@@ -233,22 +340,37 @@ impl Verification {
         sigma_3: &Mfp,
         set_k_len: usize,
     ) -> bool {
-        println_dbg!("eq11: {}", h_3x.eval(*beta_3) * van_poly_vkx.eval(*beta_3));
-        println_dbg!(
-            "eq12: {}",
-            ax.eval(*beta_3)
-                - (bx.eval(*beta_3)
-                    * (*beta_3 * g_3x.eval(*beta_3)
-                        + div_mod_val(*sigma_3, Mfp::from(set_k_len as u64))))
-        );
-        h_3x.eval(*beta_3) * van_poly_vkx.eval(*beta_3)
-            == ax.eval(*beta_3)
-                - (bx.eval(*beta_3)
-                    * (*beta_3 * g_3x.eval(*beta_3)
-                        + div_mod_val(*sigma_3, Mfp::from(set_k_len as u64))))
+        // Evaluate the left-hand side of the equation
+        let eq11 = h_3x.eval(*beta_3) * van_poly_vkx.eval(*beta_3);
+
+        // Evaluate the right-hand side of the equation
+        let eq12 = ax.eval(*beta_3)
+            - (bx.eval(*beta_3)
+                * (*beta_3 * g_3x.eval(*beta_3)
+                    + div_mod_val(*sigma_3, Mfp::from(set_k_len as u64))));
+
+        // Print evaluated values for debugging
+        println_dbg!("eq11: {eq11}");
+        println_dbg!("eq12: {eq12}");
+
+        // Check if both sides of the equation are equal
+        eq11 == eq12
     }
 
-    // r(α,β2​)σ3 ​= h2​(β2​) vH​(β2​) + β2​g2​(β2​) +  σ2​​/∣H∣
+    /// Checks the second verification equation
+    ///
+    /// # Parameters
+    /// - `poly_r`: Polynomial r(α, β2)
+    /// - `h_2x`: Polynomial h2
+    /// - `g_2x`: Polynomial g2
+    /// - `van_poly_vhx`: Vanishing polynomial for vh
+    /// - `beta_2`: Mfp value for beta2
+    /// - `sigma_2`: Mfp value for sigma2
+    /// - `sigma_3`: Mfp value for sigma3
+    /// - `set_h_len`: Length of the set for h
+    ///
+    /// # Returns
+    /// Returns true if the equation holds, false otherwise
     fn check_equation_2(
         poly_r: &Poly,
         h_2x: &Poly,
@@ -259,21 +381,38 @@ impl Verification {
         sigma_3: &Mfp,
         set_h_len: usize,
     ) -> bool {
-        println_dbg!("eq21: {}", poly_r.eval(*beta_2) * sigma_3);
-        println_dbg!(
-            "eq22: {}",
-            h_2x.eval(*beta_2) * van_poly_vhx.eval(*beta_2)
-                + *beta_2 * g_2x.eval(*beta_2)
-                + div_mod_val(*sigma_2, Mfp::from(set_h_len as u64))
-        );
+        // Evaluate the left-hand side of the equation
+        let eq21 = poly_r.eval(*beta_2) * sigma_3;
 
-        poly_r.eval(*beta_2) * sigma_3
-            == h_2x.eval(*beta_2) * van_poly_vhx.eval(*beta_2)
-                + *beta_2 * g_2x.eval(*beta_2)
-                + div_mod_val(*sigma_2, Mfp::from(set_h_len as u64))
+        // Evaluate the right-hand side of the equation
+        let eq22 = h_2x.eval(*beta_2) * van_poly_vhx.eval(*beta_2)
+            + *beta_2 * g_2x.eval(*beta_2)
+            + div_mod_val(*sigma_2, Mfp::from(set_h_len as u64));
+
+        // Print evaluated values for debugging
+        println_dbg!("eq21: {}", eq21);
+        println_dbg!("eq22: {}", eq22);
+
+        // Check if both sides of the equation are equal
+        eq21 == eq22
     }
 
-    // s(β1​)+r(α,β1​)(∑M∈{A,B,C}​ηM​z^M​(β1​))−σ2​z^(β1​) = h1​(β1​)vH​(β1​) + β1​g1​(β1​) + σ1​/∣H∣
+    /// Checks the third verification equation
+    ///
+    /// # Parameters
+    /// - `poly_sx`: Polynomial s(β1)
+    /// - `sum_1`: Polynomial representing the sum of ηM z^M for M in {A, B, C}
+    /// - `poly_z_hat_x`: Polynomial z^(β1)
+    /// - `h_1x`: Polynomial h1
+    /// - `g_1x`: Polynomial g1
+    /// - `van_poly_vhx`: Vanishing polynomial for vh
+    /// - `beta_1`: Mfp value for beta1
+    /// - `sigma_1`: Mfp value for sigma1
+    /// - `sigma_2`: Mfp value for sigma2
+    /// - `set_h_len`: Length of the set for h
+    ///
+    /// # Returns
+    /// Returns true if the equation holds, false otherwise
     fn check_equation_3(
         poly_sx: &Poly,
         sum_1: &Poly,
@@ -286,37 +425,65 @@ impl Verification {
         sigma_2: &Mfp,
         set_h_len: usize,
     ) -> bool {
-        println_dbg!(
-            "eq31: {}",
-            poly_sx.eval(*beta_1) + sum_1.eval(*beta_1) - *sigma_2 * poly_z_hat_x.eval(*beta_1)
-        );
-        println_dbg!(
-            "eq32: {}",
-            h_1x.eval(*beta_1) * van_poly_vhx.eval(*beta_1)
-                + *beta_1 * g_1x.eval(*beta_1)
-                + div_mod_val(*sigma_1, Mfp::from(set_h_len as u64))
-        );
-        poly_sx.eval(*beta_1) + sum_1.eval(*beta_1) - *sigma_2 * poly_z_hat_x.eval(*beta_1)
-            == h_1x.eval(*beta_1) * van_poly_vhx.eval(*beta_1)
-                + *beta_1 * g_1x.eval(*beta_1)
-                + div_mod_val(*sigma_1, Mfp::from(set_h_len as u64))
+        // Evaluate the left-hand side of the equation
+        let eq31 =
+            poly_sx.eval(*beta_1) + sum_1.eval(*beta_1) - *sigma_2 * poly_z_hat_x.eval(*beta_1);
+
+        // Evaluate the right-hand side of the equation
+        let eq32 = h_1x.eval(*beta_1) * van_poly_vhx.eval(*beta_1)
+            + *beta_1 * g_1x.eval(*beta_1)
+            + div_mod_val(*sigma_1, Mfp::from(set_h_len as u64));
+
+        // Print evaluated values for debugging
+        println_dbg!("eq31: {}", eq31);
+        println_dbg!("eq32: {}", eq32);
+
+        // Check if both sides of the equation are equal
+        eq31 == eq32
     }
 
-    // z^A​(β1​)z^B​(β1​)−z^C​(β1​)=h0​(β1​)vH​(β1​)
+    /// Checks the fourth verification equation
+    ///
+    /// # Parameters
+    /// - `poly_ab_c`: Polynomial representing z^A(β1)z^B(β1) - z^C(β1)
+    /// - `poly_h_0`: Polynomial h0
+    /// - `van_poly_vhx`: Vanishing polynomial for vh
+    /// - `beta_1`: Mfp value for beta1
+    ///
+    /// # Returns
+    /// Returns true if the equation holds, false otherwise
     fn check_equation_4(
         poly_ab_c: &Poly,
         poly_h_0: &Poly,
         van_poly_vhx: &Poly,
         beta_1: &Mfp,
     ) -> bool {
-        println_dbg!("eq41: {}", poly_ab_c.eval(*beta_1));
-        println_dbg!(
-            "eq42: {}",
-            poly_h_0.eval(*beta_1) * van_poly_vhx.eval(*beta_1)
-        );
-        poly_ab_c.eval(*beta_1) == poly_h_0.eval(*beta_1) * van_poly_vhx.eval(*beta_1)
+        // Evaluate the left-hand side of the equation
+        let eq41 = poly_ab_c.eval(*beta_1);
+
+        // Evaluate the right-hand side of the equation
+        let eq42 = poly_h_0.eval(*beta_1) * van_poly_vhx.eval(*beta_1);
+
+        // Print evaluated values for debugging
+        println_dbg!("eq41: {}", eq41);
+        println_dbg!("eq42: {}", eq42);
+
+        // Check if both sides of the equation are equal
+        eq41 == eq42
     }
 
+    /// Checks the fifth verification equation
+    ///
+    /// # Parameters
+    /// - `val_commit_poly_px`: Commitment polynomial value for px
+    /// - `g`: Mfp value for g
+    /// - `val_y_p`: Mfp value for y_p
+    /// - `val_commit_poly_qx`: Commitment polynomial value for qx
+    /// - `vk`: Mfp value for vk
+    /// - `z`: Mfp value for z
+    ///
+    /// # Returns
+    /// Returns true if the equation holds, false otherwise
     pub fn check_equation_5(
         val_commit_poly_px: Mfp,
         g: Mfp,
@@ -325,8 +492,10 @@ impl Verification {
         vk: Mfp,
         z: Mfp,
     ) -> bool {
+        // Print input values for debugging
         println_dbg!("val_commit_px: {val_commit_poly_px}, val_y_p: {val_y_p}, vk: {vk}, val_commit_poly_qx: {val_commit_poly_qx}");
 
+        // Evaluate the first equation component
         let e_1 = e_func(
             val_commit_poly_px - Mfp::from(to_bint!(g) * to_bint!(val_y_p)),
             g,
@@ -334,30 +503,49 @@ impl Verification {
         );
         println_dbg!("eq51: {}", e_1);
 
+        // Evaluate the second equation component
         let e_2 = e_func(
             val_commit_poly_qx,
             vk - Mfp::from(to_bint!(g) * to_bint!(z)),
             Mfp::from(g),
         );
         println_dbg!("eq52: {}", e_2);
+
+        // Check if both evaluated components are equal
         e_1 == e_2
     }
 
-    fn gen_poly_ax(
+    /// Generates the polynomial ax based on the provided parameters.
+    ///
+    /// # Parameters
+    /// - `polys_px`: A vector of polynomial objects.
+    /// - `beta`: A slice of Mfp values representing beta values.
+    /// - `van_poly_vhx`: The vanishing polynomial for vh.
+    /// - `eta`: A slice of Mfp values representing eta values.
+    /// - `poly_pi`: A vector of references to polynomial objects.
+    ///
+    /// # Returns
+    /// Returns the generated polynomial ax.
+    fn generate_poly_ax(
         polys_px: &Vec<Poly>,
         beta: &[Mfp],
         van_poly_vhx: &Poly,
         eta: &[Mfp],
         poly_pi: &Vec<&Poly>,
     ) -> Poly {
+        // Evaluate the vanishing polynomial at beta[0] and beta[1]
         let val_vhx_beta_1 = van_poly_vhx.eval(beta[0]);
         println_dbg!("val_vhx_beta_1: {val_vhx_beta_1}");
+
         let val_vhx_beta_2 = van_poly_vhx.eval(beta[1]);
         println_dbg!("val_vhx_beta_2: {val_vhx_beta_2}");
 
+        // Generate polynomial components based on eta and polys_px
         let poly_sig_a = Poly::from(vec![eta[0] * val_vhx_beta_2 * val_vhx_beta_1]) * &polys_px[2];
         let poly_sig_b = Poly::from(vec![eta[1] * val_vhx_beta_2 * val_vhx_beta_1]) * &polys_px[5];
         let poly_sig_c = Poly::from(vec![eta[2] * val_vhx_beta_2 * val_vhx_beta_1]) * &polys_px[8];
+
+        // Combine the polynomial components with poly_pi
         poly_sig_a * (poly_pi[1] * poly_pi[2])
             + poly_sig_b * (poly_pi[0] * poly_pi[2])
             + poly_sig_c * (poly_pi[0] * poly_pi[1])

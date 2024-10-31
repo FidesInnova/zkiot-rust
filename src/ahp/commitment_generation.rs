@@ -94,9 +94,7 @@ impl Commitment {
 
     /// Restore Commitment from Json file
     pub fn restore(path: &str) -> Result<CommitmentJson> {
-        let reader = open_file(&PathBuf::from(path))?;
-        let commitment_json: CommitmentJson = serde_json::from_reader(reader)?;
-        Ok(commitment_json)
+        read_json_file(path)
     }
 }
 
@@ -356,8 +354,6 @@ impl CommitmentBuilder {
     }
 
     pub fn gen_polynomials(&mut self) -> Self {
-        // TODO: Random values were taken from WIKI. After the test is completed, these inserts should be deleted or commented out.
-        // Wiki link: (https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/2-commitment-phase#id-2-5-2-ahp-commitment)
         // Matrix A:
         let mut points_row_p_a = get_matrix_point_row(
             &self.commitm.matrices.a,
@@ -448,12 +444,6 @@ impl CommitmentBuilder {
         );
         // FIXME: Wiki
         // colC' = (48, 125), (73, 59), (62, 1), (132, 1), (65, 42), (80, 59)
-        // points_col_p_c.insert(Mfp::from(48), Mfp::from(125));
-        // points_col_p_c.insert(Mfp::from(73), Mfp::from(59));
-        // points_col_p_c.insert(Mfp::from(62), Mfp::from(1));
-        // points_col_p_c.insert(Mfp::from(132), Mfp::from(1));
-        // points_col_p_c.insert(Mfp::from(65), Mfp::from(42));
-        // points_col_p_c.insert(Mfp::from(80), Mfp::from(59));
 
         let points_val_p_c = get_matrix_point_val(
             &self.commitm.matrices.c,

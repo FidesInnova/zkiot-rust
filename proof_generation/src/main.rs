@@ -53,7 +53,7 @@ fn main() -> Result<()> {
     // .: Proof Generation :.
     let proof_generation = ahp::proof_generation::ProofGeneration::new();
     let proof_data = proof_generation.generate_proof(
-        &setup_json.get_commitment_key(),
+        &setup_json.get_ck(),
         class_data,
         matrices,
         commitment_json,
@@ -62,7 +62,7 @@ fn main() -> Result<()> {
 
     // Store the generated proof data in a JSON file
     proof_generation
-        .store("zkp_data/proof.json", proof_data)
+        .store("data/proof.json", proof_data)
         .with_context(|| "Error storing proof data")?;
     println!("ProofGeneration file generated successfully");
     Ok(())

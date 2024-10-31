@@ -17,77 +17,96 @@ use std::fs::File;
 use anyhow::Result;
 use serde::Serialize;
 use std::io::BufWriter;
-use std::path::PathBuf;
 use serde::Deserialize;
 
 use crate::kzg;
 use crate::math::Mfp;
 use crate::math::GENERATOR;
-use crate::json_file::open_file;
 use crate::json_file::write_set;
+use crate::utils::read_json_file;
 
-#[derive(Debug)]
+/// Struct for setup data with commitment and verifying keys
 pub struct Setup {
-    ck: Vec<Mfp>,
-    vk: Mfp,
+    ck: Vec<Mfp>, // Commitment keys
+    vk: Mfp,      // Verifying key
 }
 
 impl Setup {
-    pub fn new() -> Self {
+    /// Creates a new `Setup` with default keys
+    pub fn default() -> Self {
         Self {
-            ck: vec![],
+            ck: Vec::default(),
             vk: Mfp::default(),
         }
     }
+    
+    /// Generates commitment and verifying keys
+    ///
+    /// # Parameters
+    /// - `num`: Number of keys to generate.
+    pub fn generate_keys(&mut self, num: u64) {
+        // TODO: Replace with a random number in the range
+        let tau = 119;  // Placeholder for a random number
 
-    pub fn key_generate(&mut self, num: u64) {
-        // TODO:
-        // let tau = thread_rng().gen_range(1..P - 1);
-        let tau = 119;
-
+        // Generate commitment keys using KZG.
         let ck = kzg::setup(num, tau, GENERATOR);
-        self.ck = ck;
-        self.vk = self.ck[1];
+
+        self.ck = ck; // Store commitment keys
+        self.vk = self.ck[1]; // Set verifying key
     }
 
+    /// Saves setup data to a JSON file
+    ///
+    /// # Parameters
+    /// - `path`: File path to save the JSON
     pub fn store(&self, path: &str) -> Result<()> {
-        let file = File::create(path)?;
-        let writer = BufWriter::new(file);
+        let file = File::create(path)?; // Create or truncate the file
+        let writer = BufWriter::new(file); // Buffer for writing
 
-        let setup_json = SetupJson::new(&self.ck, 4);
-        serde_json::to_writer(writer, &setup_json)?;
+        let setup_json = SetupJson::new(&self.ck, 4); // Create JSON representation
+        serde_json::to_writer(writer, &setup_json)?; // Write JSON to file
         Ok(())
     }
 
+    /// Loads setup data from a JSON file
+    ///
+    /// # Parameters
+    /// - `path`: File path to read the JSON
+    ///
+    /// # Returns
+    /// Returns a `Result` with the restored `SetupJson`
     pub fn restore(path: &str) -> Result<SetupJson> {
-        let reader = open_file(&PathBuf::from(path))?;
-        let setup_json: SetupJson = serde_json::from_reader(reader)?;
-        Ok(setup_json)
+        read_json_file(path) // Read and deserialize JSON
     }
 }
 
+
+/// Struct for JSON serialization and deserialization of setup data
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SetupJson {
-    class: u8,
-    ck: Vec<u64>,
-    vk: u64,
+    class: u8,         // Class identifier
+    ck: Vec<u64>,      // Commitment keys
+    vk: u64,           // Verifying key
 }
 
 impl SetupJson {
+    /// Creates a new `SetupJson` from commitment keys and a class identifier
     pub fn new(ck: &Vec<Mfp>, class: u8) -> Self {
-        let ck = write_set(ck);
+        let ck = write_set(ck); // Convert Mfp to u64
         Self {
             class,
-            ck: ck.clone(),
-            vk: ck[1] 
+            ck: ck.clone(), // Store commitment keys
+            vk: ck[1],     // Set verifying key
         }
     }
 
-    pub fn get_commitment_key(&self) -> Vec<Mfp> {
-        self.ck.iter().map(|v| Mfp::from(*v)).collect()
+    /// Gets commitment keys as `Mfp`.
+    pub fn get_ck(&self) -> Vec<Mfp> {
+        self.ck.iter().map(|v| Mfp::from(*v)).collect() // Convert u64 to Mfp
     }
 
-    pub fn get_verifying_key(&self) -> Mfp {
-        Mfp::from(self.vk)
+    /// Gets verifying key as `Mfp`
+    pub fn get_vk(&self) -> Mfp {
+        Mfp::from(self.vk) // Convert u64 to Mfp
     }
 }

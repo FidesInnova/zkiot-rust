@@ -123,7 +123,7 @@ file_path = 'program.s'
 
 # Count the instructions
 n_i, n_g = count_instructions(file_path)
-
+n_i = 32
 t = n_i + 1
 n = n_i + n_g + 1
 m = ((n**2 - n ) / 2) - ((t**2 - t ) / 2)

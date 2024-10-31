@@ -39,7 +39,7 @@ fn main() -> Result<()> {
 
     // Restore setup data from the specified JSON file
     let setup_json =
-        Setup::restore("zkp_data/setup.json").with_context(|| "Error retrieving setup data")?;
+        Setup::restore("data/setup.json").with_context(|| "Error retrieving setup data")?;
         
     // Load commitment data from the commitment file
     let commitment_json = Commitment::restore(program_path)
@@ -52,7 +52,7 @@ fn main() -> Result<()> {
     // .: Verification :.
     let verification = Verification::new(&proof_generation);
     let verification_result = verification.verify(
-        (&setup_json.get_commitment_key(), setup_json.get_verifying_key()), 
+        (&setup_json.get_ck(), setup_json.get_vk()), 
         class_data, 
         commitment_json.get_polys_px(), 
         proof_generation.get_x_vec()

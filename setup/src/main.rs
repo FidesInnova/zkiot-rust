@@ -17,17 +17,17 @@ use anyhow::{Result, Context};
 use zk_iot::ahp::setup::Setup;
 
 fn main() -> Result<()> {
-    let mut setup = Setup::new();
+    let mut setup = Setup::default();
 
     let b = 2; // Random number 
     let d_ahp = 10_000;
     
     // Generate cryptographic keys for the setup
-    setup.key_generate(d_ahp);
+    setup.generate_keys(d_ahp);
 
     // Store the generated setup data in a JSON file
     setup
-        .store("zkp_data/setup.json")
+        .store("data/setup.json")
         .with_context(|| "Error saving setup file")?;
 
     println!("Setup file generated successfully");

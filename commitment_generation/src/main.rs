@@ -52,16 +52,16 @@ fn main() -> Result<()> {
         .build();
 
     // Generate polynomial commitments
-    let commitment_polys = commitment.get_polynomials_commitment(&setup_json.get_commitment_key());
+    let commitment_polys = commitment.get_polynomials_commitment(&setup_json.get_ck());
 
     // Store the matrices data in a JSON file
     commitment
         .matrices
-        .store("zkp_data/program_params.json", &class_data)?;
+        .store("data/program_params.json", &class_data)?;
 
     // Store the commitment data in a JSON file
     commitment
-        .store("zkp_data/program_commitment.json")
+        .store("data/program_commitment.json")
         .with_context(|| "Error storing commitment data")?;
     println!("Commitment file generated successfully");
 
