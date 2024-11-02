@@ -384,10 +384,15 @@ impl Verification {
         // Evaluate the left-hand side of the equation
         let eq21 = poly_r.eval(*beta_2) * sigma_3;
 
+        println_dbg!("poly_r(beta_2)={} * sigma_3={}", poly_r.eval(*beta_2), sigma_3); 
+
         // Evaluate the right-hand side of the equation
         let eq22 = h_2x.eval(*beta_2) * van_poly_vhx.eval(*beta_2)
             + *beta_2 * g_2x.eval(*beta_2)
             + div_mod_val(*sigma_2, Mfp::from(set_h_len as u64));
+
+
+        println_dbg!("h_2x(beta_2)={} *  van_hx(beta_2)={} + beta2={} * g_2x(beta_2)={} + sigma_2={} / set_h_len={}", h_2x.eval(*beta_2), van_poly_vhx.eval(*beta_2), beta_2, g_2x.eval(*beta_2), sigma_3, set_h_len);
 
         // Print evaluated values for debugging
         println_dbg!("eq21: {}", eq21);

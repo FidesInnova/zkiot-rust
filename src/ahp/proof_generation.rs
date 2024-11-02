@@ -887,3 +887,145 @@ impl ProofGenerationJson {
         Mfp::from(self.values[val])
     }
 }
+
+
+
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ProofGenerationJson2 {
+    #[serde(rename = "CommitmentID")]
+    commitment_id: u64,
+    
+    #[serde(rename = "DeviceEncodedID")]
+    device_encoded_id: String,
+    
+    #[serde(rename = "Input")]
+    input: String,
+    
+    #[serde(rename = "Output")]
+    output: String,
+    
+    #[serde(rename = "P1AHP")]
+    p1ahp: u64,
+    
+    #[serde(rename = "P2AHP")]
+    p2ahp: Vec<u64>,
+    
+    #[serde(rename = "P3AHP")]
+    p3ahp: Vec<u64>,
+    
+    #[serde(rename = "P4AHP")]
+    p4ahp: Vec<u64>,
+    
+    #[serde(rename = "P5AHP")]
+    p5ahp: Vec<u64>,
+    
+    #[serde(rename = "P6AHP")]
+    p6ahp: Vec<u64>,
+    
+    #[serde(rename = "P7AHP")]
+    p7ahp: Vec<u64>,
+    
+    #[serde(rename = "P8AHP")]
+    p8ahp: Vec<u64>,
+    
+    #[serde(rename = "P9AHP")]
+    p9ahp: Vec<u64>,
+    
+    #[serde(rename = "P10AHP")]
+    p10ahp: u64,
+    
+    #[serde(rename = "P11AHP")]
+    p11ahp: Vec<u64>,
+    
+    #[serde(rename = "P12AHP")]
+    p12ahp: Vec<u64>,
+    
+    #[serde(rename = "P13AHP")]
+    p13ahp: u64,
+    
+    #[serde(rename = "P14AHP")]
+    p14ahp: Vec<u64>,
+    
+    #[serde(rename = "P15AHP")]
+    p15ahp: Vec<u64>,
+    
+    #[serde(rename = "P16AHP")]
+    p16ahp: u64,
+
+    #[serde(rename = "Protocol")]
+    protocol: String,
+}
+
+impl ProofGenerationJson2 {
+    pub fn new(proof_data: Box<[AHPData]>) -> Self {
+        let mut commits = vec![];
+        let mut polys = vec![];
+        let mut sigma = vec![];
+        let mut values = vec![];
+        let mut x_vec = vec![];
+
+        for val in proof_data {
+            match val {
+                AHPData::Commit(v) => commits.push(v),
+                AHPData::Value(v) => values.push(v),
+                AHPData::Polynomial(v) => polys.push(v),
+                AHPData::Sigma(v) => sigma.push(v),
+                AHPData::Array(v) => x_vec = v,
+            }
+        }
+
+        let commitment_id = sha2_hash("concat_vals(DeviceConfig.json)");
+
+        Self {
+            commitment_id,
+            device_encoded_id: "Base64<MAC>".to_owned(),
+            input: "None".to_owned(),
+            output: "None".to_owned(),
+            p1ahp: sigma[0],
+            p2ahp: polys[0].clone(),
+            p3ahp: polys[1].clone(),
+            p4ahp: polys[2].clone(),
+            p5ahp: polys[3].clone(),
+            p6ahp: polys[4].clone(),
+            p7ahp: polys[5].clone(),
+            p8ahp: polys[6].clone(),
+            p9ahp: polys[7].clone(),
+            p10ahp: sigma[1],
+            p11ahp: polys[8].clone(),
+            p12ahp: polys[9].clone(),
+            p13ahp: sigma[2],
+            p14ahp: polys[10].clone(),
+            p15ahp: polys[11].clone(),
+            p16ahp: values[0],
+            protocol: "None".to_owned(),
+        }
+    }
+
+    pub fn get_x_vec(&self) -> Vec<Mfp> {
+        // self.x_vec.iter().map(|v| Mfp::from(*v)).collect()
+        todo!()
+    }
+
+    pub fn get_poly(&self, poly: usize) -> Poly {
+        // let poly_vec = self.polys[poly]
+        //     .iter()
+        //     .rev()
+        //     .map(|&v| Mfp::from(v))
+        //     .collect::<Vec<Mfp>>();
+        // let mut poly = Poly::from(poly_vec);
+        // poly.trim();
+        // poly
+        todo!()
+    }
+
+    pub fn get_sigma(&self, num: usize) -> Mfp {
+        // Mfp::from(self.sigma[num - 1])
+        todo!()
+    }
+
+    pub fn get_value(&self, val: usize) -> Mfp {
+        // Mfp::from(self.values[val])
+        todo!()
+    }
+}
