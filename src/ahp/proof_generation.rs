@@ -246,6 +246,8 @@ impl ProofGeneration {
     ) -> Vec<HashMap<Mfp, Mfp>> {
         // Matrix A:
         let points_row_p_a = get_matrix_point_row(&matrices[0], &set_h, &set_k);
+        assert!(set_k.len() == points_row_p_a.len());
+        
         let points_col_p_a = get_matrix_point_col(&matrices[0], &set_h, &set_k);
         let points_val_p_a = get_matrix_point_val(
             &matrices[0],

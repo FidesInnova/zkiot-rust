@@ -51,13 +51,10 @@ pub struct Commitment {
 impl Commitment {
     /// Constructor method Generate sets and Initilize matrices
     pub fn new(class_data: ClassData) -> CommitmentBuilder {
-        let set_h_len = class_data.n_g + class_data.n_i + 1;
         let numebr_t_zero = matrix_t_zeros(&class_data) as u64;
-        let set_k_len = ((set_h_len * set_h_len - set_h_len) / 2)
-            - ((numebr_t_zero * numebr_t_zero - numebr_t_zero) / 2);
 
-        let set_h = generate_set(set_h_len);
-        let set_k = generate_set(set_k_len);
+        let set_h = generate_set(class_data.n);
+        let set_k = generate_set(class_data.m);
 
         let matrix_size = matrix_size(&class_data);
         let matrices = Matrices::new(matrix_size.try_into().unwrap());
@@ -360,6 +357,8 @@ impl CommitmentBuilder {
             &self.commitm.set_h,
             &self.commitm.set_k,
         );
+        // TODO: 
+        assert!(self.commitm.set_k.len() == points_row_p_a.len());
         // rowA' = (48, 1), (73, 135), (62, 125), (132, 59), (65, 42), (80, 1)
         // points_row_p_a.insert(Mfp::from(48), Mfp::from(1));
         // points_row_p_a.insert(Mfp::from(73), Mfp::from(135));
