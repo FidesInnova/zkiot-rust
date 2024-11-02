@@ -31,7 +31,7 @@ use crate::to_bint;
 use crate::utils::add_random_points;
 
 /// Define the constant modulus for field operations.
-pub const P: u64 = 5107;
+pub const P: u64 = 181;
 pub const GENERATOR: u64 = 2;
 
 field!(Mfp, P);

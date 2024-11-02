@@ -96,6 +96,15 @@ impl ProofGeneration {
         // push_random_points(&mut points_zb, random_b, &vec_to_set(set_h));
         // push_random_points(&mut points_zc, random_b, &vec_to_set(set_h));
 
+        points_za.push((Mfp::from(150), Mfp::from(5)));
+        points_za.push((Mfp::from(80), Mfp::from(47)));
+        // Random inertation for zb:
+        points_zb.push((Mfp::from(150), Mfp::from(15)));
+        points_zb.push((Mfp::from(80), Mfp::from(170)));
+        // Random inertation for zc:
+        points_zc.push((Mfp::from(150), Mfp::from(1)));
+        points_zc.push((Mfp::from(80), Mfp::from(100)));
+
         let poly_z_hat_a = interpolate(&points_za);
         let poly_z_hat_b = interpolate(&points_zb);
         let poly_z_hat_c = interpolate(&points_zc);
@@ -141,8 +150,8 @@ impl ProofGeneration {
         // Uncomment this line to insert random points for wˉ(h) from the set
         // push_random_points(&mut points_w, random_b, &vec_to_set(&set_h));
         // From wiki: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
-        // points_w.push((Mfp::from(150), Mfp::from(42)));
-        // points_w.push((Mfp::from(80), Mfp::from(180)));
+        points_w.push((Mfp::from(150), Mfp::from(42)));
+        points_w.push((Mfp::from(80), Mfp::from(180)));
 
         // Interpolate polynomial for wˉ(h) based on the points_w
         let poly_w_hat = interpolate(&points_w);
@@ -245,8 +254,24 @@ impl ProofGeneration {
         matrices: Vec<&DMatrix<Mfp>>,
     ) -> Vec<HashMap<Mfp, Mfp>> {
         // Matrix A:
-        let points_row_p_a = get_matrix_point_row(&matrices[0], &set_h, &set_k);
-        let points_col_p_a = get_matrix_point_col(&matrices[0], &set_h, &set_k);
+        let mut points_row_p_a = get_matrix_point_row(&matrices[0], &set_h, &set_k);
+        // rowA' = (48, 1), (73, 135), (62, 125), (132, 59), (65, 42), (80, 1)
+        points_row_p_a.insert(Mfp::from(48), Mfp::from(1));
+        points_row_p_a.insert(Mfp::from(73), Mfp::from(135));
+        points_row_p_a.insert(Mfp::from(62), Mfp::from(125));
+        points_row_p_a.insert(Mfp::from(132), Mfp::from(59));
+        points_row_p_a.insert(Mfp::from(65), Mfp::from(42));
+        points_row_p_a.insert(Mfp::from(80), Mfp::from(1));
+
+        let mut points_col_p_a = get_matrix_point_col(&matrices[0], &set_h, &set_k);
+        // colA' = (48, 42), (73, 1), (62, 135), (132, 125), (65, 59), (80, 42)
+        points_col_p_a.insert(Mfp::from(48), Mfp::from(42));
+        points_col_p_a.insert(Mfp::from(73), Mfp::from(1));
+        points_col_p_a.insert(Mfp::from(62), Mfp::from(135));
+        points_col_p_a.insert(Mfp::from(132), Mfp::from(125));
+        points_col_p_a.insert(Mfp::from(65), Mfp::from(59));
+        points_col_p_a.insert(Mfp::from(80), Mfp::from(42));
+
         let points_val_p_a = get_matrix_point_val(
             &matrices[0],
             &set_h,
@@ -256,8 +281,22 @@ impl ProofGeneration {
         );
 
         // Matrix B:
-        let points_row_p_b = get_matrix_point_row(&matrices[1], &set_h, &set_k);
-        let points_col_p_b = get_matrix_point_col(&matrices[1], &set_h, &set_k);
+        let mut points_row_p_b = get_matrix_point_row(&matrices[1], &set_h, &set_k);
+        // rowB' = (73, 59), (62, 1), (132, 42), (65, 135), (80, 59)
+        points_row_p_b.insert(Mfp::from(73), Mfp::from(59));
+        points_row_p_b.insert(Mfp::from(62), Mfp::from(1));
+        points_row_p_b.insert(Mfp::from(132), Mfp::from(42));
+        points_row_p_b.insert(Mfp::from(65), Mfp::from(135));
+        points_row_p_b.insert(Mfp::from(80), Mfp::from(59));
+
+        let mut points_col_p_b = get_matrix_point_col(&matrices[1], &set_h, &set_k);
+        // colB' = (73, 59), (62, 42), (132, 125), (65, 1), (80, 135)
+        points_col_p_b.insert(Mfp::from(73), Mfp::from(59));
+        points_col_p_b.insert(Mfp::from(62), Mfp::from(42));
+        points_col_p_b.insert(Mfp::from(132), Mfp::from(125));
+        points_col_p_b.insert(Mfp::from(65), Mfp::from(1));
+        points_col_p_b.insert(Mfp::from(80), Mfp::from(135));
+
         let points_val_p_b = get_matrix_point_val(
             &matrices[1],
             &set_h,
@@ -267,8 +306,24 @@ impl ProofGeneration {
         );
 
         // Matrix C
-        let points_row_p_c = get_matrix_point_row(&matrices[2], &set_h, &set_k);
-        let points_col_p_c = get_matrix_point_col(&matrices[2], &set_h, &set_k);
+        let mut points_row_p_c = get_matrix_point_row(&matrices[2], &set_h, &set_k);
+        // rowC' = (48, 1), (73, 59), (62, 125), (132, 1), (65, 135), (80, 42)
+        points_row_p_c.insert(Mfp::from(48), Mfp::from(1));
+        points_row_p_c.insert(Mfp::from(73), Mfp::from(59));
+        points_row_p_c.insert(Mfp::from(62), Mfp::from(125));
+        points_row_p_c.insert(Mfp::from(132), Mfp::from(1));
+        points_row_p_c.insert(Mfp::from(65), Mfp::from(135));
+        points_row_p_c.insert(Mfp::from(80), Mfp::from(42));
+
+        let mut points_col_p_c = get_matrix_point_col(&matrices[2], &set_h, &set_k);
+        // colC' = (48, 125), (73, 59), (62, 1), (132, 1), (65, 42), (80, 59)
+        points_col_p_c.insert(Mfp::from(48), Mfp::from(125));
+        points_col_p_c.insert(Mfp::from(73), Mfp::from(59));
+        points_col_p_c.insert(Mfp::from(62), Mfp::from(1));
+        points_col_p_c.insert(Mfp::from(132), Mfp::from(1));
+        points_col_p_c.insert(Mfp::from(65), Mfp::from(42));
+        points_col_p_c.insert(Mfp::from(80), Mfp::from(59));
+
         let points_val_p_c = get_matrix_point_val(
             &matrices[2],
             &set_h,
