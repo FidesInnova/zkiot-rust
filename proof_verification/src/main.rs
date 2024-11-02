@@ -31,6 +31,7 @@ fn main() -> Result<()> {
 
     let program_path = &args[1];
     let proof_path = &args[2];
+    let setup_path = &args[3];
 
 
     // Load class data from the JSON file
@@ -39,7 +40,7 @@ fn main() -> Result<()> {
 
     // Restore setup data from the specified JSON file
     let setup_json =
-        Setup::restore("data/setup.json").with_context(|| "Error retrieving setup data")?;
+        Setup::restore(setup_path).with_context(|| "Error retrieving setup data")?;
         
     // Load commitment data from the commitment file
     let commitment_json = Commitment::restore(program_path)

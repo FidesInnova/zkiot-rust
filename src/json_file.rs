@@ -139,25 +139,26 @@ pub struct ClassData {
     pub n_i: u64,
     pub n: u64,
     pub m: u64,
-    row_a: u64,
-    col_a: u64,
-    val_a: u64,
-    row_b: u64,
-    col_b: u64,
-    val_b: u64,
-    row_c: u64,
-    col_c: u64,
-    val_c: u64,
 }
 
 pub fn get_class_data(path: &str, class_type: &str) -> Result<ClassData> {
-    let reader = open_file(&PathBuf::from(path))?;
-    // Deserialize the JSON into a HashMap
-    let data: HashMap<String, ClassData> = serde_json::from_reader(reader)?;
+    // Retrieve all class data from the specified path
+    let data = get_all_class_data(path)?;
+
+    // Specify the class type to access
     let class_to_access = class_type;
+
+    // Return the specified class data if it exists
     if let Some(class_data) = data.get(class_to_access) {
         Ok(class_data.clone())
     } else {
         Err(anyhow!("Class {} doesn't exist", class_to_access))
     }
+}
+
+pub fn get_all_class_data(path: &str) -> Result<HashMap<String, ClassData>> {
+    let reader = open_file(&PathBuf::from(path))?;
+    // Deserialize the JSON into a HashMap
+    let data: HashMap<String, ClassData> = serde_json::from_reader(reader)?;
+    Ok(data)
 }

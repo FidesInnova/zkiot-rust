@@ -23,15 +23,14 @@ use crate::{json_file::*, println_dbg};
 use crate::math::Mfp;
 
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(untagged)]
 pub enum LineValue {
-    Single(usize),
     Range((usize, usize))
 }
 
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct DeviceConfigJson {
     #[serde(rename = "class")]
     pub class: u8,
@@ -43,17 +42,12 @@ pub struct DeviceConfigJson {
     pub device_hardware_version: String,
     #[serde(rename = "firmware_version")]
     pub firmware_version: String,
-    pub lines: Vec<LineValue>,
+    pub lines: LineValue,
 }
 
-pub fn convert_lines(lines: Vec<LineValue>) -> Vec<usize> {
-    lines
-        .into_iter() 
-        .flat_map(|line| match line {
-            LineValue::Single(n) => vec![n],
-            LineValue::Range(range) => (range.0..=range.1).collect(),
-        })
-        .collect()
+pub fn convert_lines(lines: LineValue) -> Vec<usize> {
+    let LineValue::Range(r) = lines;
+    (r.0..=r.1).collect()
 }
 
 
@@ -204,18 +198,20 @@ impl Gate {
 ///
 /// # Returns
 /// - `Ok`: Returns a tuple where the first element is a string slice (`&str`) corresponding to the third part of the line, and the second element is a vector of string slices (`Vec<&str>`) containing the remaining parts from the fourth onward.
-/// - `Err`: Returns an error if the line does not contain at least six parts, with an error message including the line index.
+/// - `Err`: Returns an error if the line does not contain at least four parts, with an error message including the line index.
 ///
 /// # Errors
-/// Returns an error if the line does not contain at least six non-empty parts, as determined by splitting on commas and spaces and filtering out empty parts.
+/// Returns an error if the line does not contain at least four non-empty parts, as determined by splitting on commas and spaces and filtering out empty parts.
 fn parse_line(line: &str, index: usize) -> Result<(&str, Vec<&str>)> {
+    // Split the input line into parts by trimming whitespace and splitting on commas and spaces
     let parts: Vec<&str> = line
         .trim()
         .split(&[',', ' '])
         .filter(|s| !s.trim().is_empty())
         .collect();
-    if parts.len() >= 6 {
-        Ok((parts[2], parts[3..].to_vec()))
+    if parts.len() >= 4 {
+        // Part 0 is the instruction, and the rest are registers and numbers
+        Ok((parts[0], parts[1..].to_vec()))
     } else {
         Err(anyhow!("a problem occurred in line {}", index))
     }

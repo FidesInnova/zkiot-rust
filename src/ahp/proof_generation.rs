@@ -39,7 +39,7 @@ use crate::math::*;
 use crate::matrices::matrix_size;
 use crate::matrices::matrix_t_zeros;
 use crate::matrices::Matrices;
-use crate::matrices::MatricesJson;
+use crate::matrices::ProgramParamsJson;
 use crate::parser::Gate;
 use crate::parser::GateType;
 use crate::parser::RegData;
@@ -299,7 +299,7 @@ impl ProofGeneration {
     /// # Returns
     /// A tuple containing three dense matrices: (A, B, C).
     fn get_matrices(
-        matrices: &MatricesJson,
+        matrices: &ProgramParamsJson,
         class_data: &ClassData,
     ) -> (DMatrix<Mfp>, DMatrix<Mfp>, DMatrix<Mfp>) {
         let a = matrices.get_matrix_a(matrix_size(&class_data), matrix_t_zeros(&class_data));
@@ -374,7 +374,7 @@ impl ProofGeneration {
         &self,
         commitment_key: &Vec<Mfp>,
         class_data: ClassData,
-        matrices: MatricesJson,
+        matrices: ProgramParamsJson,
         commitment_json: CommitmentJson,
         gates: Vec<Gate>,
     ) -> Box<[AHPData]> {
@@ -890,7 +890,7 @@ impl ProofGenerationJson {
 
 
 
-
+// JSON struct according to Witi (not complete)
 #[derive(Serialize, Deserialize, Debug)]
 struct ProofGenerationJson2 {
     #[serde(rename = "CommitmentID")]
@@ -1020,8 +1020,12 @@ impl ProofGenerationJson2 {
     }
 
     pub fn get_sigma(&self, num: usize) -> Mfp {
-        // Mfp::from(self.sigma[num - 1])
-        todo!()
+        Mfp::from(match num {
+            1 => self.p1ahp,
+            2 => self.p10ahp,
+            3 => self.p13ahp,
+            _ => panic!("Invalid sigma number")
+        })
     }
 
     pub fn get_value(&self, val: usize) -> Mfp {

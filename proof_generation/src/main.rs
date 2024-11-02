@@ -67,3 +67,14 @@ fn main() -> Result<()> {
     println!("ProofGeneration file generated successfully");
     Ok(())
 }
+
+
+#[no_mangle]
+pub extern "C" fn read_registers() {
+    unsafe {
+        let registers: &[i32; 32] = &*(0x1000 as *const [i32; 32]);
+        for (i, &reg) in registers.iter().enumerate() {
+            println!("Register {}: {}", i, reg);
+        }
+    }
+}

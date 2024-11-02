@@ -39,15 +39,17 @@ pub fn commit(poly_in: &Poly, ck: &[Mfp]) -> Mfp {
     let mut res_poly = Mfp::ZERO;
 
     if let Degree::Num(deg) = poly_in.degree() {
-        res_poly = (0..=deg)
-            .filter_map(|i| {
-                if let Term::Term(t, _) = poly_in.term_with_degree(i) {
-                    Some(Mfp::from(to_bint!(t) * to_bint!(*ck.get(i)?)))
-                } else {
-                    None
+        for i in 0..=deg {
+            match poly_in.term_with_degree(i) {
+                Term::ZeroTerm => {
+                    continue;
                 }
-            })
-            .sum();
+                Term::Term(t, _) => {
+                    let exp = Mfp::from(to_bint!(t) * to_bint!(ck[i]));
+                    res_poly += exp;
+                }
+            }
+        }
     }
 
     res_poly

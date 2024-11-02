@@ -23,12 +23,12 @@ echo "Setup: =====================================================" >> "report.t
 
 cargo build -p commitment_generation $options >> "$filename" && \
 echo "Commitment: ================================================" >> "report.txt" && \
-/usr/bin/time -v -a -o "report.txt" ./target/$dir/commitment_generation program.s data/device_config.json data/setup.json >> "$filename" && \
+/usr/bin/time -v -a -o "report.txt" ./target/$dir/commitment_generation program.s data/device_config.json data/setuptest.json >> "$filename" && \
 
 cargo build -p proof_generation $options >> "$filename" && \
 echo "Proof Generation: ==========================================" >> "report.txt" && \
-/usr/bin/time -v -a -o "report.txt" ./target/$dir/proof_generation data/setup.json data/program_commitment.json data/program_params.json data/device_config.json >> "$filename" && \
+/usr/bin/time -v -a -o "report.txt" ./target/$dir/proof_generation data/setuptest.json data/program_commitment.json data/program_params.json data/device_config.json >> "$filename" && \
 
 cargo build -p proof_verification $options >> "$filename" && \
 echo "Proof Verification: ========================================" >> "report.txt" && \
-/usr/bin/time -v -a -o "report.txt" ./target/$dir/proof_verification data/program_commitment.json data/proof.json >> "$filename"
+/usr/bin/time -v -a -o "report.txt" ./target/$dir/proof_verification data/program_commitment.json data/proof.json data/setuptest.json >> "$filename"

@@ -14,22 +14,41 @@
 
 
 use anyhow::{Result, Context};
-use zk_iot::ahp::setup::Setup;
+use rand::{thread_rng, Rng};
+use zk_iot::{ahp::setup::Setup, json_file::{get_all_class_data, get_class_data}};
 
 fn main() -> Result<()> {
     let mut setup = Setup::default();
-
-    let b = 2; // Random number 
-    let d_ahp = 10_000;
     
-    // Generate cryptographic keys for the setup
-    setup.generate_keys(d_ahp);
+    // Load class data from the JSON file
+    let class_data =
+        get_all_class_data("class_table.json").with_context(|| "Error loading class data")?;
+    
+    // TODO: Uncomment the following code when all tests pass 
+    // Random number in range (1-Ng)
+    // let b = thread_rng().gen_range(1..class_data.n_g);
 
-    // Store the generated setup data in a JSON file
-    setup
-        .store("data/setup.json")
-        .with_context(|| "Error saving setup file")?;
+    // Temporary assignment for b
+    let b = 2; 
 
+    // Actully it should be 18, but i add a "test" class for debug porpuse so thus generate setup file from 1 to 19 not 1 to 18 ok? thanks
+    for (name, metadata) in class_data {
+        // Calculate D_AHP value using the formula: D_AHP = 2 * n_g
+
+        // FIXME: Not work
+        // let d_ahp = 2 * metadata.n_g;
+
+        let d_ahp = 10_000;
+        
+        // Generate cryptographic keys for the setup
+        setup.generate_keys(d_ahp);
+
+        // Store the generated setup data in a JSON file
+        setup
+            .store(&format!("data/setup{}.json", name))
+            .with_context(|| "Error saving setup file")?;
+    }
+    
     println!("Setup file generated successfully");
     Ok(())
 }
