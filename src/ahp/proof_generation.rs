@@ -20,6 +20,7 @@ use std::iter::repeat_with;
 use anyhow::Result;
 use ark_ff::Field;
 use nalgebra::DMatrix;
+use nalgebra::DVector;
 use rand::Rng;
 use rustnomial::Evaluable;
 use rustnomial::FreeSizePolynomial;
@@ -283,7 +284,7 @@ impl ProofGeneration {
         (a, b, c)
     }
 
-    pub fn generate_mat_z(gates: Vec<Gate>, class_data: &ClassData) -> DMatrix<Mfp> {
+    pub fn generate_z_vec(gates: Vec<Gate>, class_data: &ClassData) -> DVector<Mfp> {
         let size = matrix_size(&class_data);
         let mut regs_data: HashMap<u8, RegData> = HashMap::new();
         let mut _index = 0;
@@ -299,16 +300,16 @@ impl ProofGeneration {
             }
             CommitmentBuilder::add_val(&mut regs_data, gate, gate.gate_type, &mut val_counter);
         }
-        let mut matrix_z = DMatrix::<Mfp>::zeros(size, 1);
-        Self::gen_z_mat(&mut matrix_z, &regs_data);
+        let mut z_vec = DVector::zeros(size);
+        Self::z_vec_organize(&mut z_vec, &regs_data);
 
         println_dbg!("Mat Z Proof:");
-        dsp_mat!(matrix_z);
+        dsp_mat!(z_vec);
 
-        matrix_z
+        z_vec
     }
 
-    fn gen_z_mat(z_vec: &mut DMatrix<Mfp>, regs_data: &HashMap<u8, RegData>) {
+    fn z_vec_organize(z_vec: &mut DVector<Mfp>, regs_data: &HashMap<u8, RegData>) {
         z_vec[(0, 0)] = Mfp::ONE;
         let mut z_vec_counter: usize = 1;
 
@@ -358,9 +359,9 @@ impl ProofGeneration {
 
         let numebr_t_zero = matrix_t_zeros(&class_data);
         let (mat_a, mat_b, mat_c) = Self::get_matrices(&matrices, &class_data);
-        let mat_z = Self::generate_mat_z(gates, &class_data);
+        let z_vec = Self::generate_z_vec(gates, &class_data);
         let points_px = Self::get_points_px_vec(&set_h, &set_k, vec![&mat_a, &mat_b, &mat_c]);
-        let x_vec = &mat_to_vec(&mat_z)[..numebr_t_zero];
+        let x_vec = &mat_to_vec(&z_vec)[..numebr_t_zero];
 
         // TODO: Set 'random_b' to a random value in the range 1 to 50
         let random_b = 2;
@@ -368,9 +369,9 @@ impl ProofGeneration {
         // Generate and interpolate points for matrices az, bz, cz
         let (poly_z_hat_a, poly_z_hat_b, poly_z_hat_c) = Self::generate_z_interpolations(
             [
-                mat_to_vec(&(&mat_a * &mat_z)),
-                mat_to_vec(&(&mat_b * &mat_z)),
-                mat_to_vec(&(&mat_c * &mat_z)),
+                mat_to_vec(&(&mat_a * &z_vec)),
+                mat_to_vec(&(&mat_b * &z_vec)),
+                mat_to_vec(&(&mat_c * &z_vec)),
             ],
             random_b,
             &set_h,
@@ -380,7 +381,7 @@ impl ProofGeneration {
             random_b,
             &set_h,
             &x_vec.to_vec(),
-            &mat_to_vec(&(&mat_c * &mat_z)),
+            &mat_to_vec(&(&mat_c * &z_vec)),
             numebr_t_zero,
         );
         println_dbg!("w_hat:"); // Output the interpolated polynomial for wˉ(h)

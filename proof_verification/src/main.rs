@@ -13,25 +13,42 @@
 // limitations under the License.
 
 
-use std::env;
 
 use anyhow::Context;
 use anyhow::Result;
-use zk_iot::ahp::commitment_generation;
 use zk_iot::ahp::commitment_generation::Commitment;
 use zk_iot::ahp::proof_generation::ProofGeneration;
 use zk_iot::json_file::get_class_data;
-use zk_iot::{
-    ahp::{proof_verification::Verification, setup::Setup},
-    math::{Mfp, GENERATOR},
-};
+use zk_iot::ahp::proof_verification::Verification;
+use zk_iot::ahp::setup::Setup;
+use clap::Parser;
+
+/// A program for proof verification
+#[derive(Parser, Debug)]
+#[command(name = "ProofVerifier")]
+#[command(about = "Verifies proofs based on provided commitment and setup files")]
+struct Args {
+    /// Path to the program commitment file
+    #[arg(required = true)]
+    program_path: String,
+
+    /// Path to the proof file
+    #[arg(required = true)]
+    proof_path: String,
+
+    /// Path to the setup file
+    #[arg(required = true)]
+    setup_path: String,
+}
 
 fn main() -> Result<()> {
-    let args: Vec<String> = env::args().collect();
+    // Parse the command-line arguments
+    let args = Args::parse();
 
-    let program_path = &args[1];
-    let proof_path = &args[2];
-    let setup_path = &args[3];
+    // Use the extracted paths
+    let program_path = &args.program_path;
+    let proof_path = &args.proof_path;
+    let setup_path = &args.setup_path;
 
 
     // Load class data from the JSON file

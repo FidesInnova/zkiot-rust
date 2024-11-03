@@ -25,6 +25,3 @@ toml = "0.8.19"
 codegen-units = 1
 lto = "fat"
 opt-level = 3
-
-[target.riscv64gc-unknown-linux-gnu]
-linker = "riscv64-linux-gnu-gcc"

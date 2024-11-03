@@ -15,6 +15,7 @@
 
 //! Utility functions and structures for gate definitions, matrix operations, and polynomial encoding.
 
+use nalgebra::DVector;
 use rand::prelude::SliceRandom;
 use rustnomial::SizedPolynomial;
 use std::collections::HashMap;
@@ -116,7 +117,7 @@ pub fn get_points_set(seq: &[Mfp], n: &[Mfp]) -> Vec<Point> {
 /// # Panics
 /// Panics if the number of columns in the matrix is not equal to 1. The function assumes that the matrix
 /// is a column vector with exactly one column.
-pub fn mat_to_vec(mat: &DMatrix<Mfp>) -> Vec<Mfp> {
+pub fn mat_to_vec(mat: &DVector<Mfp>) -> Vec<Mfp> {
     assert!(mat.ncols() == 1, "cannot convet to vec mat.ncols() == 1");
 
     let mut v = vec![];

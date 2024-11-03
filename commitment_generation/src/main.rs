@@ -15,7 +15,6 @@
 use ahp::setup::Setup;
 use anyhow::Context;
 use anyhow::Result;
-use std::env;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::BufRead;
@@ -27,13 +26,36 @@ use utils::read_json_file;
 use parser::*;
 use zk_iot::json_file::*;
 use zk_iot::*;
+
+use clap::Parser;
+
+/// A program for commitment generation
+#[derive(Parser, Debug)]
+#[command(name = "CommitmentGenerator")]
+#[command(about = "Generates commitments based on provided configuration and setup files")]
+struct Args {
+    /// Path to the program
+    #[arg(required = true)]
+    program_commitment_path: String,
+
+    /// Path to the setup file
+    #[arg(required = true)]
+    setup_path: String,
+
+    /// Path to the device configuration
+    #[arg(required = true)]
+    device_config_path: String,
+}
+
 fn main() -> Result<()> {
-    let args: Vec<String> = env::args().collect();
+    // Parse the command-line arguments
+    let args = Args::parse();
 
-    let program_path = &args[1];
-    let device_config_path = &args[2];
-    let setup_path = &args[3];
-
+    // Use the extracted paths
+    let program_commitment_path = &args.program_commitment_path;
+    let device_config_path = &args.device_config_path;
+    let setup_path = &args.setup_path;
+    
     // Load class data from JSON file
     let class_data =
         get_class_data("class_table.json", "test").with_context(|| "Error loading class table")?;
@@ -47,10 +69,10 @@ fn main() -> Result<()> {
     let lines = convert_lines(device_config.lines);
 
     // Parse opcodes based on the specified line numbers
-    let gates = parse_from_lines(lines, &PathBuf::from(program_path))
+    let gates = parse_from_lines(lines, &PathBuf::from(program_commitment_path))
         .with_context(|| "Error parsing instructions")?;
 
-    generate_new_program(program_path);
+    generate_new_program(program_commitment_path);
 
     // .: Commitment :.
     let commitment = ahp::commitment_generation::Commitment::new(class_data)

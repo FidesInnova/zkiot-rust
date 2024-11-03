@@ -32,16 +32,17 @@ pub enum LineValue {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct DeviceConfigJson {
-    #[serde(rename = "class")]
+    #[serde(rename = "Class")]
     pub class: u8,
-    #[serde(rename = "iot_manufacturer_name")]
+    #[serde(rename = "IoT_Manufacturer_Name")]
     pub manufacturer_name: String,
-    #[serde(rename = "iot_device_name")]
+    #[serde(rename = "IoT_Device_Name")]
     pub device_name: String,
-    #[serde(rename = "device_hardware_version")]
+    #[serde(rename = "Device_Hardware_Version")]
     pub device_hardware_version: String,
-    #[serde(rename = "firmware_version")]
+    #[serde(rename = "Firmware_Version")]
     pub firmware_version: String,
+    #[serde(rename = "Lines")]
     pub lines: LineValue,
 }
 
