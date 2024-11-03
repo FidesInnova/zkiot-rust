@@ -3,3 +3,4 @@ Cargo.lock
 .vscode
 report.txt
 t.txt
+zk_iot/
