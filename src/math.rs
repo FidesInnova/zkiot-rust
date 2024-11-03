@@ -386,6 +386,7 @@ pub fn get_matrix_point_row(mat: &DMatrix<Mfp>, set_h: &[Mfp], set_k: &[Mfp]) ->
     res
 }
 
+
 /// Maps non-zero elements of the matrix `mat` to the corresponding column values from `set_h`
 /// based on the index in `set_k`.
 ///
@@ -419,6 +420,54 @@ pub fn get_matrix_point_col(mat: &DMatrix<Mfp>, set_h: &[Mfp], set_k: &[Mfp]) ->
 
     res
 }
+
+/// Retrieves the row points, column points, and computed polynomial values for non-zero elements
+/// in the given matrix `mat` based on the provided sets `set_h` and `set_k`. The function
+/// evaluates the necessary points and ensures the integrity of the results.
+///
+/// # Parameters
+/// - `mat`: A reference to the matrix `mat` of type `DMatrix<Mfp>`.
+/// - `set_h`: A vector of values in the finite field `Mfp`, used to identify the rows and columns.
+/// - `set_k`: A vector of values in the finite field `Mfp`, used to specify the points in the matrix.
+///
+/// # Returns
+/// Returns a tuple containing three `HashMap<Mfp, Mfp>`:
+/// - The first map contains the row points.
+/// - The second map contains the column points.
+/// - The third map contains the computed polynomial values.
+///
+/// # Description
+/// The function calls helper functions to gather the row points, column points, and polynomial
+/// values for each non-zero element in the matrix. It asserts that the total number of row and
+/// column points is twice the length of `set_k` to ensure consistency.
+///
+/// # Panic
+/// The function will panic if the number of row and column points does not match the expected
+/// count based on `set_k`.
+pub fn get_matrix_points(
+    mat: &DMatrix<Mfp>,
+    set_h: &[Mfp],
+    set_k: &[Mfp],
+) -> (HashMap<Mfp, Mfp>, HashMap<Mfp, Mfp>, HashMap<Mfp, Mfp>) {
+    let row_p = get_matrix_point_row(mat, &set_h, &set_k);
+    // Ensure that the number of row points matches the length of set_k.
+    assert_eq!(row_p.len(), set_k.len());
+    
+    let col_p = get_matrix_point_col(mat, &set_h, &set_k);
+    // Ensure that the number of col points matches the length of set_k.
+    assert_eq!(col_p.len(), set_k.len());
+
+    let val_p = get_matrix_point_val(
+        mat,
+        &set_h,
+        &set_k,
+        &row_p,
+        &col_p,
+    );
+    
+    (row_p, col_p, val_p)
+}
+
 
 /// Represents the order of evaluation for polynomial computations.
 ///

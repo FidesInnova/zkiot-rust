@@ -18,6 +18,7 @@ use rand::{thread_rng, Rng};
 use zk_iot::{ahp::setup::Setup, json_file::{get_all_class_data, get_class_data}};
 
 fn main() -> Result<()> {
+    // 
     let mut setup = Setup::default();
     
     // Load class data from the JSON file
@@ -28,22 +29,18 @@ fn main() -> Result<()> {
     // Random number in range (1-Ng)
     // let b = thread_rng().gen_range(1..class_data.n_g);
 
-    // Temporary assignment for b
+    // Temporary assignment for random number b
     let b = 2; 
 
-    // Actully it should be 18, but i add a "test" class for debug porpuse so thus generate setup file from 1 to 19 not 1 to 18 ok? thanks
+    // Create a setup file for each entry in class_data
     for (name, metadata) in class_data {
-        // Calculate D_AHP value using the formula: D_AHP = 2 * n_g
-
-        // FIXME: Not work
-        // let d_ahp = 2 * metadata.n_g;
-
-        let d_ahp = 10_000;
+        // Calculate the D_AHP value using the formula: D_AHP = 12 * n_g
+        let d_ahp = 12 * metadata.n_g;
         
         // Generate cryptographic keys for the setup
         setup.generate_keys(d_ahp);
 
-        // Store the generated setup data in a JSON file
+        // Save the generated setup data to a JSON file
         setup
             .store(&format!("data/setup{}.json", name))
             .with_context(|| "Error saving setup file")?;

@@ -244,40 +244,12 @@ impl ProofGeneration {
         set_k: &Vec<Mfp>,
         matrices: Vec<&DMatrix<Mfp>>,
     ) -> Vec<HashMap<Mfp, Mfp>> {
-        // Matrix A:
-        let points_row_p_a = get_matrix_point_row(&matrices[0], &set_h, &set_k);
-        assert!(set_k.len() == points_row_p_a.len());
-        
-        let points_col_p_a = get_matrix_point_col(&matrices[0], &set_h, &set_k);
-        let points_val_p_a = get_matrix_point_val(
-            &matrices[0],
-            &set_h,
-            &set_k,
-            &points_row_p_a,
-            &points_col_p_a,
-        );
-
-        // Matrix B:
-        let points_row_p_b = get_matrix_point_row(&matrices[1], &set_h, &set_k);
-        let points_col_p_b = get_matrix_point_col(&matrices[1], &set_h, &set_k);
-        let points_val_p_b = get_matrix_point_val(
-            &matrices[1],
-            &set_h,
-            &set_k,
-            &points_row_p_b,
-            &points_col_p_b,
-        );
-
-        // Matrix C
-        let points_row_p_c = get_matrix_point_row(&matrices[2], &set_h, &set_k);
-        let points_col_p_c = get_matrix_point_col(&matrices[2], &set_h, &set_k);
-        let points_val_p_c = get_matrix_point_val(
-            &matrices[2],
-            &set_h,
-            &set_k,
-            &points_row_p_c,
-            &points_col_p_c,
-        );
+        // Collect row, column, and value points from matrix A
+        let (points_row_p_a, points_col_p_a, points_val_p_a) = get_matrix_points(matrices[0], set_h, set_k);
+        // Collect row, column, and value points from matrix B
+        let (points_row_p_b, points_col_p_b, points_val_p_b) = get_matrix_points(matrices[1], set_h, set_k);
+        // Collect row, column, and value points from matrix C.
+        let (points_row_p_c, points_col_p_c, points_val_p_c) = get_matrix_points(matrices[2], set_h, set_k);
 
         vec![
             points_val_p_a,

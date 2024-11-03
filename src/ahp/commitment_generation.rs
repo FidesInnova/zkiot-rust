@@ -351,106 +351,15 @@ impl CommitmentBuilder {
     }
 
     pub fn gen_polynomials(&mut self) -> Self {
-        // Matrix A:
-        let mut points_row_p_a = get_matrix_point_row(
-            &self.commitm.matrices.a,
-            &self.commitm.set_h,
-            &self.commitm.set_k,
-        );
-        // TODO: 
-        assert!(self.commitm.set_k.len() == points_row_p_a.len());
-        // rowA' = (48, 1), (73, 135), (62, 125), (132, 59), (65, 42), (80, 1)
-        // points_row_p_a.insert(Mfp::from(48), Mfp::from(1));
-        // points_row_p_a.insert(Mfp::from(73), Mfp::from(135));
-        // points_row_p_a.insert(Mfp::from(62), Mfp::from(125));
-        // points_row_p_a.insert(Mfp::from(132), Mfp::from(59));
-        // points_row_p_a.insert(Mfp::from(65), Mfp::from(42));
-        // points_row_p_a.insert(Mfp::from(80), Mfp::from(1));
+        let set_h = &self.commitm.set_h;
+        let set_k = &self.commitm.set_k;
 
-        let mut points_col_p_a = get_matrix_point_col(
-            &self.commitm.matrices.a,
-            &self.commitm.set_h,
-            &self.commitm.set_k,
-        );
-        // colA' = (48, 42), (73, 1), (62, 135), (132, 125), (65, 59), (80, 42)
-        // points_col_p_a.insert(Mfp::from(48), Mfp::from(42));
-        // points_col_p_a.insert(Mfp::from(73), Mfp::from(1));
-        // points_col_p_a.insert(Mfp::from(62), Mfp::from(135));
-        // points_col_p_a.insert(Mfp::from(132), Mfp::from(125));
-        // points_col_p_a.insert(Mfp::from(65), Mfp::from(59));
-        // points_col_p_a.insert(Mfp::from(80), Mfp::from(42));
-
-        let points_val_p_a = get_matrix_point_val(
-            &self.commitm.matrices.a,
-            &self.commitm.set_h,
-            &self.commitm.set_k,
-            &points_row_p_a,
-            &points_col_p_a,
-        );
-
-        // Matrix B:
-        let mut points_row_p_b = get_matrix_point_row(
-            &self.commitm.matrices.b,
-            &self.commitm.set_h,
-            &self.commitm.set_k,
-        );
-        // rowB' = (73, 59), (62, 1), (132, 42), (65, 135), (80, 59)
-        // points_row_p_b.insert(Mfp::from(73), Mfp::from(59));
-        // points_row_p_b.insert(Mfp::from(62), Mfp::from(1));
-        // points_row_p_b.insert(Mfp::from(132), Mfp::from(42));
-        // points_row_p_b.insert(Mfp::from(65), Mfp::from(135));
-        // points_row_p_b.insert(Mfp::from(80), Mfp::from(59));
-
-        let mut points_col_p_b = get_matrix_point_col(
-            &self.commitm.matrices.b,
-            &self.commitm.set_h,
-            &self.commitm.set_k,
-        );
-        // colB' = (73, 59), (62, 42), (132, 125), (65, 1), (80, 135)
-        // points_col_p_b.insert(Mfp::from(73), Mfp::from(59));
-        // points_col_p_b.insert(Mfp::from(62), Mfp::from(42));
-        // points_col_p_b.insert(Mfp::from(132), Mfp::from(125));
-        // points_col_p_b.insert(Mfp::from(65), Mfp::from(1));
-        // points_col_p_b.insert(Mfp::from(80), Mfp::from(135));
-
-        let points_val_p_b = get_matrix_point_val(
-            &self.commitm.matrices.b,
-            &self.commitm.set_h,
-            &self.commitm.set_k,
-            &points_row_p_b,
-            &points_col_p_b,
-        );
-
-        // Matrix C
-        let mut points_row_p_c = get_matrix_point_row(
-            &self.commitm.matrices.c,
-            &self.commitm.set_h,
-            &self.commitm.set_k,
-        );
-        // FIXME: Wiki
-        // rowC' = (48, 1), (73, 59), (62, 125), (132, 1), (65, 135), (80, 42)
-        // points_row_p_c.insert(Mfp::from(48), Mfp::from(1));
-        // points_row_p_c.insert(Mfp::from(73), Mfp::from(59));
-        // points_row_p_c.insert(Mfp::from(62), Mfp::from(125));
-        // points_row_p_c.insert(Mfp::from(132), Mfp::from(1));
-        // points_row_p_c.insert(Mfp::from(65), Mfp::from(135));
-        // points_row_p_c.insert(Mfp::from(80), Mfp::from(42));
-
-        let mut points_col_p_c = get_matrix_point_col(
-            &self.commitm.matrices.c,
-            &self.commitm.set_h,
-            &self.commitm.set_k,
-        );
-        // FIXME: Wiki
-        // colC' = (48, 125), (73, 59), (62, 1), (132, 1), (65, 42), (80, 59)
-
-        let points_val_p_c = get_matrix_point_val(
-            &self.commitm.matrices.c,
-            &self.commitm.set_h,
-            &self.commitm.set_k,
-            &points_row_p_c,
-            &points_col_p_c,
-        );
+        // Collect row, column, and value points from matrix A
+        let (points_row_p_a, points_col_p_a, points_val_p_a) = get_matrix_points(&self.commitm.matrices.a, set_h, set_k);
+        // Collect row, column, and value points from matrix B
+        let (points_row_p_b, points_col_p_b, points_val_p_b) = get_matrix_points(&self.commitm.matrices.b, set_h, set_k);
+        // Collect row, column, and value points from matrix C.
+        let (points_row_p_c, points_col_p_c, points_val_p_c) = get_matrix_points(&self.commitm.matrices.c, set_h, set_k);
 
         let a_row_px = sigma_yi_li(&points_row_p_a, &self.commitm.set_k);
         println_dbg!("a_row_px: ");
