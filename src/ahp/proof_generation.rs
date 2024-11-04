@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::cell::OnceCell;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufWriter;
 use std::iter::repeat_with;
+use std::sync::OnceLock;
 
 use anyhow::Result;
 use ark_ff::Field;
@@ -246,11 +248,14 @@ impl ProofGeneration {
         matrices: Vec<&DMatrix<Mfp>>,
     ) -> Vec<HashMap<Mfp, Mfp>> {
         // Collect row, column, and value points from matrix A
-        let (points_row_p_a, points_col_p_a, points_val_p_a) = get_matrix_points(matrices[0], set_h, set_k);
+        let (points_row_p_a, points_col_p_a, points_val_p_a) =
+            get_matrix_points(matrices[0], set_h, set_k);
         // Collect row, column, and value points from matrix B
-        let (points_row_p_b, points_col_p_b, points_val_p_b) = get_matrix_points(matrices[1], set_h, set_k);
+        let (points_row_p_b, points_col_p_b, points_val_p_b) =
+            get_matrix_points(matrices[1], set_h, set_k);
         // Collect row, column, and value points from matrix C.
-        let (points_row_p_c, points_col_p_c, points_val_p_c) = get_matrix_points(matrices[2], set_h, set_k);
+        let (points_row_p_c, points_col_p_c, points_val_p_c) =
+            get_matrix_points(matrices[2], set_h, set_k);
 
         vec![
             points_val_p_a,
@@ -863,68 +868,66 @@ impl ProofGenerationJson {
     }
 }
 
-
-
 // JSON struct according to Witi (not complete)
 #[derive(Serialize, Deserialize, Debug)]
 struct ProofGenerationJson2 {
     #[serde(rename = "CommitmentID")]
     commitment_id: u64,
-    
+
     #[serde(rename = "DeviceEncodedID")]
     device_encoded_id: String,
-    
+
     #[serde(rename = "Input")]
     input: String,
-    
+
     #[serde(rename = "Output")]
     output: String,
-    
+
     #[serde(rename = "P1AHP")]
     p1ahp: u64,
-    
+
     #[serde(rename = "P2AHP")]
     p2ahp: Vec<u64>,
-    
+
     #[serde(rename = "P3AHP")]
     p3ahp: Vec<u64>,
-    
+
     #[serde(rename = "P4AHP")]
     p4ahp: Vec<u64>,
-    
+
     #[serde(rename = "P5AHP")]
     p5ahp: Vec<u64>,
-    
+
     #[serde(rename = "P6AHP")]
     p6ahp: Vec<u64>,
-    
+
     #[serde(rename = "P7AHP")]
     p7ahp: Vec<u64>,
-    
+
     #[serde(rename = "P8AHP")]
     p8ahp: Vec<u64>,
-    
+
     #[serde(rename = "P9AHP")]
     p9ahp: Vec<u64>,
-    
+
     #[serde(rename = "P10AHP")]
     p10ahp: u64,
-    
+
     #[serde(rename = "P11AHP")]
     p11ahp: Vec<u64>,
-    
+
     #[serde(rename = "P12AHP")]
     p12ahp: Vec<u64>,
-    
+
     #[serde(rename = "P13AHP")]
     p13ahp: u64,
-    
+
     #[serde(rename = "P14AHP")]
     p14ahp: Vec<u64>,
-    
+
     #[serde(rename = "P15AHP")]
     p15ahp: Vec<u64>,
-    
+
     #[serde(rename = "P16AHP")]
     p16ahp: u64,
 
@@ -999,7 +1002,7 @@ impl ProofGenerationJson2 {
             1 => self.p1ahp,
             2 => self.p10ahp,
             3 => self.p13ahp,
-            _ => panic!("Invalid sigma number")
+            _ => panic!("Invalid sigma number"),
         })
     }
 

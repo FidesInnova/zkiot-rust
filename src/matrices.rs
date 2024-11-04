@@ -98,10 +98,10 @@ impl Matrices {
     }
 
     /// Store in Json file
-    pub fn store(&self, path: &str, setup: SetupJson, class_data: &ClassData) -> Result<()> {
+    pub fn store(&self, path: &str, class_data: &ClassData) -> Result<()> {
         let file = File::create(path)?;
         let writer = BufWriter::new(file);
-        let matrices_json = ProgramParamsJson::new(&self.a, &self.b, setup, class_data);
+        let matrices_json = ProgramParamsJson::new(&self.a, &self.b, class_data);
         serde_json::to_writer(writer, &matrices_json)?;
         Ok(())
     }
@@ -117,21 +117,19 @@ impl Matrices {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ProgramParamsJson {
     /// [t_zeros, ... ,col1, col2, col3, ...]
+    #[serde(rename="A")]
     a: Vec<u64>,
 
     /// [(row1, col1, val1), (row2, col2, val2), (row3, col3, val3), ...]
+    #[serde(rename="B")]
     b: Vec<(usize, usize, u64)>,
-
-    #[serde(flatten)]
-    setup: SetupJson,
 }
 
 impl ProgramParamsJson {
-    fn new(a: &DMatrix<Mfp>, b: &DMatrix<Mfp>, setup: SetupJson, class_data: &ClassData) -> Self {
+    fn new(a: &DMatrix<Mfp>, b: &DMatrix<Mfp>, class_data: &ClassData) -> Self {
         Self {
             a: Matrices::to_sparse_column_indices(&a, matrix_t_zeros(class_data)),
             b: Matrices::to_sparse_coordinate_form(&b),
-            setup
         }
     }
 
