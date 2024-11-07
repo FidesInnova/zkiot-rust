@@ -13,7 +13,11 @@
 // limitations under the License.
 
 use anyhow::Result;
-use std::io::{BufReader, Write};
+use zk_iot::json_file::ClassData;
+use zk_iot::parser::LineValue;
+use std::collections::HashMap;
+use std::f32::RADIX;
+use std::io::{BufReader, Read, Write};
 use std::{
     fs::{File, OpenOptions},
     io::BufRead,
@@ -21,10 +25,11 @@ use std::{
 };
 
 
-pub fn generate_new_program(input_path: &str) -> Result<()> {
+pub fn generate_new_program(input_path: &str, line_range: LineValue, class_data: ClassData) -> Result<()> {
     // Open the input file
     let input_file = File::open(input_path)?;
     let reader = BufReader::new(input_file);
+    let n_g = class_data.n_g;
     
     // Create output file path
     let output_path = create_output_path(input_path);
@@ -34,62 +39,51 @@ pub fn generate_new_program(input_path: &str) -> Result<()> {
         .truncate(true)
         .open(output_path)?;
 
-    insert_assembly_instructions(&mut output_file, reader)
-}
+    let LineValue::Range(range) = line_range;
 
-fn insert_assembly_instructions(output_file: &mut File, reader: BufReader<File>) -> Result<()> {
-    insert_save_registers_function(output_file)?;
+    let diff = (range.1 - range.0) as u64;
+    let add_no_op_number = n_g - diff - 1;
 
-    writeln!(output_file, "    call save_registers")?; // Call before the instruction
-    for line in reader.lines() {
-        let instruction = line?;
-        writeln!(output_file, "    {}", instruction)?;
-        writeln!(output_file, "    call save_registers")?;
-    }
+    insert_assembly_instructions(&mut output_file, reader, range, n_g.try_into()?, add_no_op_number)?;
 
     Ok(())
 }
 
-fn insert_save_registers_function(output_file: &mut File) -> Result<()> {
+fn insert_assembly_instructions(output_file: &mut File, reader: BufReader<File>, line_range: (usize, usize), n_g: usize, add_no_op_number: u64) -> Result<()> {
+
+    for (num, line) in reader.lines().enumerate() {
+        let num = num + 1;
+
+        let instruction = line?;
+        
+        if num == line_range.0 {
+            writeln!(output_file, "    jal store_register_instances")?;
+        }
+
+        writeln!(output_file, "{}", instruction)?;
+
+        if num >= line_range.0 && num <= line_range.1 {
+            writeln!(output_file, "    jal store_register_instances")?;
+        }
+
+        if num == line_range.1 {
+            for _ in 0..add_no_op_number {
+                writeln!(output_file, "    nop")?;
+            }
+        }
+    }
+
+    insert_store_register_function(output_file, n_g)?;
+
+    Ok(())
+}
+
+fn insert_store_register_function(output_file: &mut File, n_g: usize) -> Result<()> {
     // Save register function
     writeln!(
         output_file,
-        r#"
-    .section .text
-    .global save_registers
-    save_registers:
-        la t0, registers     # Load the starting address of storage space
-        # Storing register values
-        sw zero, 0(t0)       # Store the value of register zero
-        sw ra, 4(t0)         # Store the value of register ra
-        sw sp, 8(t0)         # Store the value of register sp
-        sw gp, 12(t0)        # Store the value of register gp
-        sw tp, 16(t0)        # Store the value of register tp
-        sw t0, 20(t0)        # Store the value of register t0
-        sw t1, 24(t0)        # Store the value of register t1
-        sw t2, 28(t0)        # Store the value of register t2
-        sw s0, 32(t0)        # Store the value of register s0
-        sw s1, 36(t0)        # Store the value of register s1
-        sw s2, 40(t0)        # Store the value of register s2
-        sw s3, 44(t0)        # Store the value of register s3
-        sw s4, 48(t0)        # Store the value of register s4
-        sw s5, 52(t0)        # Store the value of register s5
-        sw s6, 56(t0)        # Store the value of register s6
-        sw s7, 60(t0)        # Store the value of register s7
-        sw s8, 64(t0)        # Store the value of register s8
-        sw s9, 68(t0)        # Store the value of register s9
-        sw s10, 72(t0)       # Store the value of register s10
-        sw s11, 76(t0)       # Store the value of register s11
-        sw a0, 80(t0)        # Store the value of register a0
-        sw a1, 84(t0)        # Store the value of register a1
-        sw a2, 88(t0)        # Store the value of register a2
-        sw a3, 92(t0)        # Store the value of register a3
-        sw a4, 96(t0)        # Store the value of register a4
-        sw a5, 100(t0)       # Store the value of register a5
-        sw a6, 104(t0)       # Store the value of register a6
-        sw a7, 108(t0)       # Store the value of register a7
-        ret                  # Return from the function
-    "#
+        r#"{}"#
+        , include_str!("../store_registers.asm").replace("SPACE_SIZE", &n_g.to_string())
     )?;
     Ok(())
 }

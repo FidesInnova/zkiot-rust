@@ -16,6 +16,9 @@ use anyhow::Result;
 use proof_generation::proof_gen;
 
 fn main() -> Result<()> {
+    // Read matrix z from registers
+
     proof_gen()?;
+    
     Ok(())
 }

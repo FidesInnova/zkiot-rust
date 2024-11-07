@@ -135,10 +135,18 @@ pub fn open_file(file_path: &PathBuf) -> Result<BufReader<File>> {
 
 #[derive(Debug, Deserialize, Clone, Copy)]
 pub struct ClassData {
+    /// Number of gates
     pub n_g: u64,
+    /// Number of inputs
     pub n_i: u64,
+    /// N = n_i + n_g
     pub n: u64,
+    /// M = 2 * n_g
     pub m: u64,
+    /// Prime number
+    pub p: u64,
+    /// Generator
+    pub g: u64,
 }
 
 pub fn get_class_data(path: &str, class_type: &str) -> Result<ClassData> {

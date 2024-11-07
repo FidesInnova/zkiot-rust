@@ -115,75 +115,77 @@ pub fn func_u(x: Option<Mfp>, y: Option<Mfp>, degree: usize) -> Poly {
 ///
 /// # Parameters
 /// - `a`: A reference to the dividend polynomial.
-/// - `rhs`: A reference to the divisor polynomial.
+/// - `b`: A reference to the divisor polynomial.
 ///
 /// # Returns
 /// A tuple containing the quotient polynomial and the remainder polynomial.
 ///
 /// # Panics
 /// This function will panic if attempting to divide by a zero polynomial.
-pub fn div_mod(a: &Poly, rhs: &Poly) -> (Poly, Poly) {
+pub fn div_mod(a: &Poly, b: &Poly) -> (Poly, Poly) {
     let zero = Mfp::ZERO;
 
-    let (rhs_first, rhs_deg) = match first_term(&rhs.terms) {
-        Term::ZeroTerm => panic!("Can't divide polynomial by 0."),
+    let (a_first, a_degree) = match first_term(&b.terms) {
+        Term::ZeroTerm => panic!("Division by zero"),
         Term::Term(coeff, deg) => (coeff, deg),
     };
 
-    let (mut coeff, mut self_degree) = match first_term(&a.terms) {
+    let (mut coeff, mut s_degree) = match first_term(&a.terms) {
         Term::ZeroTerm => {
             return (Polynomial::zero(), a.clone());
         }
         Term::Term(coeff, degree) => {
-            if degree < rhs_deg {
+            if degree < a_degree {
                 return (Polynomial::zero(), a.clone());
             }
             (coeff, degree)
         }
     };
 
-    let mut remainder = a.terms.clone();
-    let mut div = vec![zero; self_degree - rhs_deg + 1];
-    let offset = self_degree;
+    // Remainder
+    let mut rem = a.terms.clone();
+    let mut div = vec![zero; s_degree - a_degree + 1];
+    // Offset
+    let offs = s_degree;
 
-    while self_degree >= rhs_deg {
-        let div_res = div_mod_val(coeff, rhs_first);
+    while s_degree >= a_degree {
+        let div_res = div_mod_val(coeff, a_first);
         let scale = div_res;
-        vec_sub_w_scale(&mut remainder, self_degree, &rhs.terms, rhs_deg, scale);
-        div[offset - self_degree] = scale;
-        match first_term(&remainder) {
+        vec_sub_w_scale(&mut rem, s_degree, &b.terms, a_degree, scale);
+        div[offs - s_degree] = scale;
+        match first_term(&rem) {
             Term::ZeroTerm => break,
             Term::Term(coeffx, degree) => {
                 coeff = coeffx;
-                self_degree = degree;
+                s_degree = degree;
             }
         }
     }
 
-    (Poly::new(div), Poly::new(remainder))
+    (Poly::new(div), Poly::new(rem))
 }
 
 /// Subtracts a scaled version of the right-hand side polynomial from the left-hand side polynomial.
 ///
 /// # Parameters
-/// - `lhs`: A mutable slice representing the coefficients of the left-hand side polynomial.
-/// - `lhs_degree`: The degree of the left-hand side polynomial.
-/// - `rhs`: A slice representing the coefficients of the right-hand side polynomial.
-/// - `rhs_deg`: The degree of the right-hand side polynomial.
-/// - `rhs_scale`: The scaling factor to apply to the right-hand side polynomial.
+/// - `a`: A mutable slice representing the coefficients of the left-hand side polynomial.
+/// - `a_deg`: The degree of the left-hand side polynomial.
+/// - `b`: A slice representing the coefficients of the right-hand side polynomial.
+/// - `b_deg`: The degree of the right-hand side polynomial.
+/// - `b_scale`: The scaling factor to apply to the right-hand side polynomial.
 fn vec_sub_w_scale(
-    lhs: &mut [Mfp],
-    lhs_degree: usize,
-    rhs: &[Mfp],
-    rhs_deg: usize,
-    rhs_scale: Mfp,
+    a: &mut [Mfp],
+    a_deg: usize,
+    b: &[Mfp],
+    b_deg: usize,
+    b_scale: Mfp,
 ) {
-    let loc = lhs.len() - lhs_degree - 1;
-    for (lhs_t, rhs_t) in lhs[loc..]
+    let l = a.len() - a_deg - 1;
+    for (lhs_t, rhs_t) in a[l..]
         .iter_mut()
-        .zip(rhs[rhs.len() - rhs_deg - 1..].iter())
+        .zip(b[b.len() - b_deg - 1..].iter())
     {
-        *lhs_t -= (*rhs_t) * rhs_scale;
+        *lhs_t -= (*rhs_t) * b_scale;
     }
 }
 
@@ -195,20 +197,20 @@ fn vec_sub_w_scale(
 /// # Returns
 /// A `Term` representing the first non-zero term found, or `Term::ZeroTerm` if all coefficients are zero.
 fn first_term(poly_vec: &[Mfp]) -> Term<Mfp> {
-    for (degree, chunk) in poly_vec.chunks_exact(4).enumerate() {
-        for (index, &value) in chunk.iter().enumerate() {
-            if !value.is_zero() {
-                return Term::Term(value, poly_vec.len() - degree * 4 - index - 1);
+    for (deg, ch) in poly_vec.chunks_exact(4).enumerate() {
+        for (inx, &val) in ch.iter().enumerate() {
+            if !val.is_zero() {
+                return Term::Term(val, poly_vec.len() - deg * 4 - inx - 1);
             }
         }
     }
 
-    let mut index = poly_vec.chunks_exact(4).len() * 4;
-    for &value in poly_vec.chunks_exact(4).remainder().iter() {
-        if !value.is_zero() {
-            return Term::Term(value, poly_vec.len() - index - 1);
+    let mut inx = poly_vec.chunks_exact(4).len() * 4;
+    for &val in poly_vec.chunks_exact(4).remainder().iter() {
+        if !val.is_zero() {
+            return Term::Term(val, poly_vec.len() - inx - 1);
         }
-        index += 1;
+        inx += 1;
     }
 
     Term::ZeroTerm

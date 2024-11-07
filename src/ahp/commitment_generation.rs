@@ -252,6 +252,7 @@ impl CommitmentBuilder {
                     b_mat[(_index, inx_right)] = right_val;
                 }
                 GateType::Sub => {
+                    // FIXME: This instruction has mathematical flaws and should not be used
                     println_dbg!("Gate: Sub");
                     println_dbg!("A[{}, 0] = 1", _index);
                     a_mat[(_index, 0)] = Mfp::ONE;
@@ -299,6 +300,7 @@ impl CommitmentBuilder {
         rows_to_zero(&mut self.commitm.matrices.b, self.commitm.numebr_t_zero);
         rows_to_zero(&mut self.commitm.matrices.c, self.commitm.numebr_t_zero);
 
+        // Print matrices if the program is compiled in debug mode
         println_dbg!("Mat A:");
         dsp_mat!(self.commitm.matrices.a);
         println_dbg!("Mat B:");
@@ -316,7 +318,7 @@ impl CommitmentBuilder {
         val_counter: &mut usize,
     ) {
         if let Some(left_val) = gate.val_left {
-            if let Some(reg) = regs_data.get_mut(&gate.reg_right) {
+            if let Some(reg) = regs_data.get_mut(&gate.reg_left) {
                 let new_value = match reg.witness.last() {
                     // FIXME: Correct left and right position
                     Some(&(_, val)) => Self::apply_operator(val, Mfp::from(left_val), operator),

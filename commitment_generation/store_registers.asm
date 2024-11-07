@@ -1,151 +1,39 @@
-	.file	"main.cpp"
-	.option nopic
-	.attribute arch, "rv32i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zifencei2p0"
-	.attribute unaligned_access, 0
-	.attribute stack_align, 16
-	.text
-	.align	1
-	.globl	main
-	.type	main, @function
-main:
-.LFB0:
-	.cfi_startproc
-	addi	sp,sp,-32
-	.cfi_def_cfa_offset 32
-	sw	s0,28(sp)
-	.cfi_offset 8, -4
-	addi	s0,sp,32
-	.cfi_def_cfa 8, 0
-	li	a5,232
-	sw	a5,-20(s0)
-	lw	a5,-20(s0)
-	addi	a5,a5,123
-    #START_LINE
-    jal store_register_instances
-    addi s2, s2, 5
-    jal store_register_instances
-    mul  s3, s3, 2
-    jal store_register_instances
-    addi s3, s3, 10
-    jal store_register_instances
-    mul  s2, s2, 7
-    jal store_register_instances
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    #END_LINE
-	sw	a5,-20(s0)
-	lw	a5,-20(s0)
-	addi	a5,a5,123
-	sw	a5,-20(s0)
-	lw	a5,-20(s0)
-	addi	a5,a5,123
-	sw	a5,-20(s0)
-	li	a5,0
-	mv	a0,a5
-	lw	s0,28(sp)
-	.cfi_restore 8
-	.cfi_def_cfa 2, 32
-	addi	sp,sp,32
-	.cfi_def_cfa_offset 0
-	jr	ra
-	.cfi_endproc
-.LFE0:
-	.size	main, .-main
-	.ident	"GCC: (13.2.0-11ubuntu1+12) 13.2.0"
 
 .data
 a0_saved:    .word 0               # Temporary storage for the original value of a0
 last_space_instance:  .word 0      # Temporary storage for the latest instance value
-    x0_array:    .space {64}   # Array for x0
-    x1_array:    .space {64}   # Array for x1
-    x2_array:    .space {64}   # Array for x2
-    x3_array:    .space {64}   # Array for x3
-    x4_array:    .space {64}   # Array for x4
-    x5_array:    .space {64}   # Array for x5
-    x6_array:    .space {64}   # Array for x6
-    x7_array:    .space {64}   # Array for x7
-    x8_array:    .space {64}   # Array for x8
-    x9_array:    .space {64}   # Array for x9
-    x10_array:   .space {64}   # Array for x10
-    x11_array:   .space {64}   # Array for x11
-    x12_array:   .space {64}   # Array for x12
-    x13_array:   .space {64}   # Array for x13
-    x14_array:   .space {64}   # Array for x14
-    x15_array:   .space {64}   # Array for x15
-    x16_array:   .space {64}   # Array for x16
-    x17_array:   .space {64}   # Array for x17
-    x18_array:   .space {64}   # Array for x18
-    x19_array:   .space {64}   # Array for x19
-    x20_array:   .space {64}   # Array for x20
-    x21_array:   .space {64}   # Array for x21
-    x22_array:   .space {64}   # Array for x22
-    x23_array:   .space {64}   # Array for x23
-    x24_array:   .space {64}   # Array for x24
-    x25_array:   .space {64}   # Array for x25
-    x26_array:   .space {64}   # Array for x26
-    x27_array:   .space {64}   # Array for x27
-    x28_array:   .space {64}   # Array for x28
-    x29_array:   .space {64}   # Array for x29
-    x30_array:   .space {64}   # Array for x30
-    x31_array:   .space {64}   # Array for x31
+    x0_array:    .space {SPACE_SIZE}   # Array for x0
+    x1_array:    .space {SPACE_SIZE}   # Array for x1
+    x2_array:    .space {SPACE_SIZE}   # Array for x2
+    x3_array:    .space {SPACE_SIZE}   # Array for x3
+    x4_array:    .space {SPACE_SIZE}   # Array for x4
+    x5_array:    .space {SPACE_SIZE}   # Array for x5
+    x6_array:    .space {SPACE_SIZE}   # Array for x6
+    x7_array:    .space {SPACE_SIZE}   # Array for x7
+    x8_array:    .space {SPACE_SIZE}   # Array for x8
+    x9_array:    .space {SPACE_SIZE}   # Array for x9
+    x10_array:   .space {SPACE_SIZE}   # Array for x10
+    x11_array:   .space {SPACE_SIZE}   # Array for x11
+    x12_array:   .space {SPACE_SIZE}   # Array for x12
+    x13_array:   .space {SPACE_SIZE}   # Array for x13
+    x14_array:   .space {SPACE_SIZE}   # Array for x14
+    x15_array:   .space {SPACE_SIZE}   # Array for x15
+    x16_array:   .space {SPACE_SIZE}   # Array for x16
+    x17_array:   .space {SPACE_SIZE}   # Array for x17
+    x18_array:   .space {SPACE_SIZE}   # Array for x18
+    x19_array:   .space {SPACE_SIZE}   # Array for x19
+    x20_array:   .space {SPACE_SIZE}   # Array for x20
+    x21_array:   .space {SPACE_SIZE}   # Array for x21
+    x22_array:   .space {SPACE_SIZE}   # Array for x22
+    x23_array:   .space {SPACE_SIZE}   # Array for x23
+    x24_array:   .space {SPACE_SIZE}   # Array for x24
+    x25_array:   .space {SPACE_SIZE}   # Array for x25
+    x26_array:   .space {SPACE_SIZE}   # Array for x26
+    x27_array:   .space {SPACE_SIZE}   # Array for x27
+    x28_array:   .space {SPACE_SIZE}   # Array for x28
+    x29_array:   .space {SPACE_SIZE}   # Array for x29
+    x30_array:   .space {SPACE_SIZE}   # Array for x30
+    x31_array:   .space {SPACE_SIZE}   # Array for x31
 
 .text
 .globl store_register_instances

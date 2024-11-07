@@ -28,7 +28,7 @@ echo "Commitment: ================================================" >> "report.t
 /usr/bin/time -v -a -o "report.txt" ./target/$dir/commitment_generation program.s data/setuptest.json data/device_config.json >> "$filename" && \
 
 
-./unrelated/run_proof_riscv.sh >> "$filename"
+./unrelated/run_proof_riscv.sh >> "$filename" && \
 
 
 cargo build -p proof_verification $options >> "$filename" && \

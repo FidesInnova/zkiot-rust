@@ -32,7 +32,7 @@ use clap::Parser;
 #[command(name = "CommitmentGenerator")]
 #[command(about = "Generates commitments based on provided configuration and setup files")]
 struct Args {
-    /// Path to the program
+    /// Path to the program that contains the opcodes
     #[arg(required = true)]
     program_commitment_path: String,
 
@@ -45,6 +45,7 @@ struct Args {
     device_config_path: String,
 }
 
+
 fn main() -> Result<()> {
     // Parse the command-line arguments
     let args = Args::parse();
@@ -55,10 +56,15 @@ fn main() -> Result<()> {
     let setup_path = &args.setup_path;
 
     // Load class data from JSON file
-    let class_data =
-        get_class_data("class_table.json", "test").with_context(|| "Error loading class table")?;
+    let classes_data =
+        get_all_class_data("class_table.json").with_context(|| "Error loading class table")?;
+    
+    // Used for automatically choosing a class (currently selected by the user)
+    let mut lines_scope: Vec<u64> = classes_data.iter().map(|v| v.1.n_g).collect();
+    lines_scope.sort();
 
     let device_config: DeviceConfigJson = read_json_file(device_config_path)?;
+    let class_number = &device_config.class_numebr.to_string();
 
     // Restore setup data from the specified JSON file
     let setup_json = Setup::restore(setup_path).with_context(|| "Error retrieving setup data")?;
@@ -70,11 +76,13 @@ fn main() -> Result<()> {
     let gates = parse_from_lines(lines, &PathBuf::from(program_commitment_path))
         .with_context(|| "Error parsing instructions")?;
 
-    generate_new_program(program_commitment_path)?;
+
+    // Generate new assembly file at program_commitment_path/program_new.s
+    generate_new_program(program_commitment_path, device_config.lines, classes_data[class_number])?;
 
     // .: Commitment :.
-    let commitment = ahp::commitment_generation::Commitment::new(class_data)
-        .gen_matrices(gates, class_data.n_i.try_into()?)
+    let commitment = ahp::commitment_generation::Commitment::new(classes_data[class_number])
+        .gen_matrices(gates, classes_data[class_number].n_i.try_into()?)
         .gen_polynomials()
         .build();
 
@@ -84,7 +92,7 @@ fn main() -> Result<()> {
     // Store the matrices data in a JSON file
     commitment
         .matrices
-        .store("data/program_params.json", &class_data)?;
+        .store("data/program_params.json", &classes_data[class_number])?;
 
     // Store the commitment data in a JSON file
     commitment

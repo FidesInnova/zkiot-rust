@@ -45,21 +45,10 @@ pub fn proof_gen() -> Result<()> {
     let commitment_json = ahp::commitment_generation::Commitment::restore(PROGRAM_COMMITMENT_PATH)
         .with_context(|| "Error loading commitment data")?;
 
-    // Read registers to generate vector z
-    let registers = read_registers();
-    println!("regs-lvl1");
-    dsp_reg(&registers);
-    unsafe {
-        asm!("li a1, 111111", options(nomem, nostack));
-        asm!("add a1, a1, 5", options(nomem, nostack));
-    }
-    let registers = read_registers();
-    println!("regs-lvl2");
-    dsp_reg(&registers);
 
-    // println!("registers: {:?}", registers);
+    // TODO: Implement logic to read from registers and potentially generate vector z here
 
-    // Hardcoded gates
+    // Temporary hardcoded gates for initial testing; will replace with dynamic reading from registers in the future
     let gates = include!("gates.rs");
 
     // Load matrices
@@ -82,21 +71,6 @@ pub fn proof_gen() -> Result<()> {
     println!("ProofGeneration file generated successfully");
 
     Ok(())
-}
-
-
-fn dsp_reg(regs: &[u64; 32]) {
-    for (i, val) in regs.iter().enumerate() {
-        println!("x{i} = {val}");
-    }
-    println!();
-}
-
-
-#[no_mangle]
-#[inline(never)]
-pub extern "C" fn create_matrix_z(vec: Vec<u32>, size: usize) {
-    println!("vec = {:?} and size {}", vec, size);
 }
 
 #[export_name = "saveReg"]

@@ -1,8 +1,8 @@
 {
-    "Class": 12,
+    "Class": 3,
     "IoT_Manufacturer_Name": "TrustSense",
     "IoT_Device_Name": "zk-MultiSensor",
     "Device_Hardware_Version": "1.0",
     "Firmware_Version": "1.0",
-    "Lines": [1, 4]
+    "Lines": [24, 27]
   }

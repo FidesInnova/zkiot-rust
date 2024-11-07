@@ -23,7 +23,7 @@ use crate::{json_file::*, println_dbg};
 use crate::math::Mfp;
 
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 #[serde(untagged)]
 pub enum LineValue {
     Range((usize, usize))
@@ -33,7 +33,7 @@ pub enum LineValue {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct DeviceConfigJson {
     #[serde(rename = "Class")]
-    pub class: u8,
+    pub class_numebr: u8,
     #[serde(rename = "IoT_Manufacturer_Name")]
     pub manufacturer_name: String,
     #[serde(rename = "IoT_Device_Name")]
@@ -369,7 +369,7 @@ pub fn parse_from_lines(line_file: Vec<usize>, opcodes_file: &PathBuf) -> Result
 /// that the operation is not supported.
 fn gate_type(op: &str) -> Result<GateType> {
     match op {
-        "add" => Ok(GateType::Add),
+        "addi" => Ok(GateType::Add),
         "sub" => Ok(GateType::Sub),
         "mul" => Ok(GateType::Mul),
         "div" => Ok(GateType::Div),
