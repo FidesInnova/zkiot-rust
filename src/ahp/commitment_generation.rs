@@ -26,13 +26,11 @@ use crate::dsp_poly;
 use crate::dsp_vec;
 use crate::json_file::open_file;
 use crate::json_file::write_term;
-use crate::json_file::ClassData;
+use crate::json_file::ClassDataJson;
 use crate::math::*;
-use crate::matrices::matrix_size;
-use crate::matrices::matrix_t_zeros;
 use crate::matrices::Matrices;
 use crate::parser::Gate;
-use crate::parser::GateType;
+use crate::parser::Instructions;
 use crate::parser::RegData;
 use crate::print_dbg;
 use crate::println_dbg;
@@ -46,17 +44,21 @@ pub struct Commitment {
     pub numebr_t_zero: usize,
     pub matrices: Matrices,
     pub polys_px: Vec<Poly>,
+    pub points_px: Vec<HashMap<Mfp, Mfp>>,
 }
 
 impl Commitment {
     /// Constructor method Generate sets and Initilize matrices
-    pub fn new(class_data: ClassData) -> CommitmentBuilder {
-        let numebr_t_zero = matrix_t_zeros(&class_data) as u64;
+    pub fn new(class_data: ClassDataJson) -> CommitmentBuilder {
+        let numebr_t_zero = class_data.get_matrix_t_zeros() as u64;
 
-        let set_h = generate_set(class_data.n);
-        let set_k = generate_set(class_data.m);
+        let set_h = generate_set(class_data.n, class_data);
+        let set_k = generate_set(class_data.m, class_data);
 
-        let matrix_size = matrix_size(&class_data);
+        println_dbg!("set_h: {}", dsp_vec!(set_h));
+        println_dbg!("set_k: {}", dsp_vec!(set_k));
+
+        let matrix_size = class_data.get_matrix_size();
         let matrices = Matrices::new(matrix_size.try_into().unwrap());
 
         CommitmentBuilder {
@@ -66,6 +68,7 @@ impl Commitment {
                 numebr_t_zero: numebr_t_zero.try_into().unwrap(),
                 matrices,
                 polys_px: vec![],
+                points_px: vec![],
             },
         }
     }
@@ -209,10 +212,19 @@ impl CommitmentBuilder {
                 inx_right + 1
             };
 
+            // println!("diff ==> {} <-> {}", inx_left,  gate.reg_left);
+            // println!("diff ==> {} <-> {}", inx_right,  gate.reg_right);
+            
+            // TODO: Uncomment when proof is fixed
+            // inx_left = gate.reg_left as usize;
+            // inx_left = gate.reg_right as usize;
+
             Self::add_val(&mut regs_data, gate, gate.gate_type, &mut val_counter);
 
+
+            // Set left and right values
             let left_val = if let Some(val) = gate.val_left {
-                inx_left = 0;
+                inx_left = 0; // Set index to zero if value exists
                 println_dbg!("* left:  index = 0    , val = {}", val);
                 Mfp::from(val)
             } else {
@@ -220,7 +232,7 @@ impl CommitmentBuilder {
                 Mfp::ONE
             };
             let right_val = if let Some(val) = gate.val_right {
-                inx_right = 0;
+                inx_right = 0; // Set index to zero if value exists
                 println_dbg!("* right: index = 0    , val = {}", val);
                 Mfp::from(val)
             } else {
@@ -232,7 +244,7 @@ impl CommitmentBuilder {
             println_dbg!("C[{}, {}] = 1", _index, _index);
 
             match gate.gate_type {
-                GateType::Add => {
+                Instructions::Addi => {
                     println_dbg!("Gate: Add");
                     println_dbg!("A[{}, 0] = 1", _index);
                     a_mat[(_index, 0)] = Mfp::ONE;
@@ -243,52 +255,13 @@ impl CommitmentBuilder {
                     println_dbg!("Right: B[{}, {}] = {}", _index, inx_right, right_val);
                     b_mat[(_index, inx_right)] = right_val;
                 }
-                GateType::Mul => {
+                Instructions::Mul => {
                     println_dbg!("Gate: Mul");
                     println_dbg!("Left:  A[{}, {}] = {}", _index, inx_left, left_val);
                     a_mat[(_index, inx_left)] = left_val;
 
                     println_dbg!("Right: B[{}, {}] = {}", _index, inx_right, right_val);
                     b_mat[(_index, inx_right)] = right_val;
-                }
-                GateType::Sub => {
-                    // FIXME: This instruction has mathematical flaws and should not be used
-                    println_dbg!("Gate: Sub");
-                    println_dbg!("A[{}, 0] = 1", _index);
-                    a_mat[(_index, 0)] = Mfp::ONE;
-
-                    print_dbg!("Left:  B[{}, {}] = ", _index, inx_left);
-                    b_mat[(_index, inx_left)] = match to_bint!(left_val) {
-                        1 => Mfp::ONE,
-                        _ => -left_val,
-                    };
-                    println_dbg!("{}", b_mat[(_index, inx_left)]);
-
-                    print_dbg!("Right: B[{}, {}] = ", _index, inx_right);
-                    b_mat[(_index, inx_right)] = match to_bint!(right_val) {
-                        1 => Mfp::ONE,
-                        _ => -right_val,
-                    };
-                    println_dbg!("{}", b_mat[(_index, inx_right)]);
-                }
-                GateType::Div => {
-                    // FIXME: This instruction has mathematical flaws and should not be used
-                    println_dbg!("Gate: Div");
-                    println_dbg!(
-                        "Left:  A[{}, {}] = {}",
-                        _index,
-                        inx_left,
-                        invers_val(left_val)
-                    );
-                    a_mat[(_index, inx_left)] = invers_val(left_val);
-
-                    println_dbg!(
-                        "Right: B[{}, {}] = {}",
-                        _index,
-                        inx_right,
-                        invers_val(right_val)
-                    );
-                    b_mat[(_index, inx_right)] = invers_val(right_val);
                 }
                 _ => panic!("Invalid gate {:?}", gate.gate_type),
             }
@@ -314,7 +287,7 @@ impl CommitmentBuilder {
     pub fn add_val(
         regs_data: &mut HashMap<u8, RegData>,
         gate: &Gate,
-        operator: GateType,
+        operator: Instructions,
         val_counter: &mut usize,
     ) {
         if let Some(left_val) = gate.val_left {
@@ -342,13 +315,14 @@ impl CommitmentBuilder {
         }
     }
 
-    fn apply_operator(l: Mfp, r: Mfp, operator: GateType) -> Mfp {
+    fn apply_operator(l: Mfp, r: Mfp, operator: Instructions) -> Mfp {
         match operator {
-            GateType::Add => l + r,
-            GateType::Sub => l - r,
-            GateType::Mul => l * r,
-            GateType::Div => div_mod_val(l, r),
-            GateType::Ld => panic!("Invalid operation for Ld gate type"),
+            Instructions::Addi => l + r,
+            Instructions::Add => l + r,
+            Instructions::Sub => l - r,
+            Instructions::Mul => l * r,
+            Instructions::Div => div_mod_val(l, r),
+            Instructions::Ld => panic!("Invalid operation for Ld gate type"),
         }
     }
 
@@ -398,6 +372,19 @@ impl CommitmentBuilder {
             c_val_px,
         ];
 
+        let points_vector = vec![
+            points_val_p_a,
+            points_row_p_a,
+            points_col_p_a,
+            points_val_p_b,
+            points_row_p_b,
+            points_col_p_b,
+            points_val_p_c,
+            points_row_p_c,
+            points_col_p_c,
+        ];
+
+        self.commitm.points_px = points_vector;
         self.commitm.polys_px = polys_pxs;
 
         self.clone()

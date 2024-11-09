@@ -18,10 +18,15 @@ use anyhow::Context;
 use anyhow::Result;
 use zk_iot::ahp::commitment_generation::Commitment;
 use zk_iot::ahp::proof_generation::ProofGeneration;
-use zk_iot::json_file::get_class_data;
 use zk_iot::ahp::proof_verification::Verification;
 use zk_iot::ahp::setup::Setup;
 use clap::Parser;
+use zk_iot::json_file::ClassDataJson;
+use zk_iot::json_file::DeviceConfigJson;
+use zk_iot::utils::read_json_file;
+
+
+const DEVICE_CONFIG_PATH: &str = "data/device_config.json";
 
 /// A program for proof verification
 #[derive(Parser, Debug)]
@@ -51,8 +56,11 @@ fn main() -> Result<()> {
     let setup_path = &args.setup_path;
 
 
+    let device_config: DeviceConfigJson = read_json_file(DEVICE_CONFIG_PATH)?;
+    let class_number = device_config.class;
+    
     // Load class data from the JSON file
-    let class_data = get_class_data("class_table.json", "test")
+    let class_data = ClassDataJson::get_class_data("class_table.json", class_number)
         .with_context(|| "Error loading class data")?;
 
     // Restore setup data from the specified JSON file
@@ -73,7 +81,8 @@ fn main() -> Result<()> {
         (&setup_json.get_ck(), setup_json.get_vk()), 
         class_data, 
         commitment_json.get_polys_px(), 
-        proof_generation.get_x_vec()
+        proof_generation.get_x_vec(),
+        class_data.g
     );
 
     eprintln!("Verification result: {}", verification_result);

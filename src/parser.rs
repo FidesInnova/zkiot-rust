@@ -23,33 +23,6 @@ use crate::{json_file::*, println_dbg};
 use crate::math::Mfp;
 
 
-#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
-#[serde(untagged)]
-pub enum LineValue {
-    Range((usize, usize))
-}
-
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct DeviceConfigJson {
-    #[serde(rename = "Class")]
-    pub class_numebr: u8,
-    #[serde(rename = "IoT_Manufacturer_Name")]
-    pub manufacturer_name: String,
-    #[serde(rename = "IoT_Device_Name")]
-    pub device_name: String,
-    #[serde(rename = "Device_Hardware_Version")]
-    pub device_hardware_version: String,
-    #[serde(rename = "Firmware_Version")]
-    pub firmware_version: String,
-    #[serde(rename = "Lines")]
-    pub lines: LineValue,
-}
-
-pub fn convert_lines(lines: LineValue) -> Vec<usize> {
-    let LineValue::Range(r) = lines;
-    (r.0..=r.1).collect()
-}
 
 
 #[derive(Debug)]
@@ -129,8 +102,9 @@ enum RiscvReg {
 /// This enum defines the possible types of gates,
 /// specifically addition and multiplication gates.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum GateType {
+pub enum Instructions {
     Add,
+    Addi,
     Sub,
     Mul,
     Div,
@@ -155,7 +129,7 @@ pub struct Gate {
     pub val_right: Option<u64>,
     pub reg_left: u8,
     pub reg_right: u8,
-    pub gate_type: GateType,
+    pub gate_type: Instructions,
 }
 
 impl Gate {
@@ -179,7 +153,7 @@ impl Gate {
         val_right: Option<u64>,
         reg_left: u8,
         reg_right: u8,
-        gate_type: GateType,
+        gate_type: Instructions,
     ) -> Self {
         Self {
             val_left,
@@ -221,7 +195,6 @@ fn parse_line(line: &str, index: usize) -> Result<(&str, Vec<&str>)> {
 fn match_reg(reg: &str) -> Option<u8> {
     // TODO: Add zero?
     let res = match reg.to_lowercase().as_str() {
-        "z" => 0,
         "ra" => 1,   // x1 - Return address
         "sp" => 2,   // x2 - Stack pointer
         "gp" => 3,   // x3 - Global pointer
@@ -279,20 +252,11 @@ impl RegData {
             witness: vec![],
         }
     }
-    fn get_final(&mut self) -> Option<(usize, Mfp)> {
-        self.witness.pop()
-    }
 }
 
-struct GateSide {
-    index: usize,
-    constan: Option<u64>,
-    register: u8,
-}
 
 pub fn parse_from_lines(line_file: Vec<usize>, opcodes_file: &PathBuf) -> Result<Vec<Gate>> {
     let mut gates = Vec::new();
-    let (mut inx_left, mut inx_right) = (0, 0);
     
     for line_num in line_file {
         let gates_file = open_file(opcodes_file).context("Failed to open opcodes file")?;
@@ -322,19 +286,6 @@ pub fn parse_from_lines(line_file: Vec<usize>, opcodes_file: &PathBuf) -> Result
             .parse::<u64>()
             .ok();
 
-        if gate_type != GateType::Ld {
-            inx_right += 1;
-            inx_left += 1;
-        }
-
-            
-        if constant_right.is_some() && gate_type != GateType::Ld {
-            inx_right = 0;
-        }
-        if constant_left.is_some() && gate_type != GateType::Ld {
-            inx_left = 0;
-        }
-
         let reg_data = register_parser(operands.clone());
 
         let gate = Gate::new(
@@ -350,6 +301,9 @@ pub fn parse_from_lines(line_file: Vec<usize>, opcodes_file: &PathBuf) -> Result
         gates.push(gate);
     }
 
+    println!("Gates:");
+    println!("{:#?}", gates);
+    
     Ok(gates)
 }
 
@@ -367,13 +321,13 @@ pub fn parse_from_lines(line_file: Vec<usize>, opcodes_file: &PathBuf) -> Result
 /// If the operation is recognized (e.g., `"mul"` or `"addi"`), the corresponding `GateType`
 /// is returned. If the operation is unrecognized, the function returns an error indicating
 /// that the operation is not supported.
-fn gate_type(op: &str) -> Result<GateType> {
+fn gate_type(op: &str) -> Result<Instructions> {
     match op {
-        "addi" => Ok(GateType::Add),
-        "sub" => Ok(GateType::Sub),
-        "mul" => Ok(GateType::Mul),
-        "div" => Ok(GateType::Div),
-        "ld" => Ok(GateType::Ld),
+        "addi" => Ok(Instructions::Addi),
+        "add" => Ok(Instructions::Add),
+        // "sub" => Ok(GateType::Sub),
+        "mul" => Ok(Instructions::Mul),
+        // "div" => Ok(GateType::Div),
         _ => Err(anyhow!("operation is not support: {}", op)),
     }
 }

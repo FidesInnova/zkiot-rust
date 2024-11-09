@@ -22,10 +22,14 @@ use utils::read_json_file;
 use parser::*;
 use zk_iot::json_file::*;
 use zk_iot::*;
+use clap::Parser;
 
 mod generate_program;
 
-use clap::Parser;
+
+const PROGRAM_PARAMS_PATH: &str = "data/program_params.json";
+const PROGRAM_COMMITMENT_PATH: &str = "data/program_commitment.json";
+const CLASS_TABLE: &str = "class_table.json";
 
 /// A program for commitment generation
 #[derive(Parser, Debug)]
@@ -38,7 +42,7 @@ struct Args {
 
     /// Path to the setup file
     #[arg(required = true)]
-    setup_path: String,
+    setup_path: String, // TODO: get class numebr from args
 
     /// Path to the device configuration
     #[arg(required = true)]
@@ -57,20 +61,20 @@ fn main() -> Result<()> {
 
     // Load class data from JSON file
     let classes_data =
-        get_all_class_data("class_table.json").with_context(|| "Error loading class table")?;
+        ClassDataJson::get_all_class_data(CLASS_TABLE).with_context(|| "Error loading class table")?;
     
     // Used for automatically choosing a class (currently selected by the user)
     let mut lines_scope: Vec<u64> = classes_data.iter().map(|v| v.1.n_g).collect();
     lines_scope.sort();
 
     let device_config: DeviceConfigJson = read_json_file(device_config_path)?;
-    let class_number = &device_config.class_numebr.to_string();
+    let class_number = &device_config.class;
 
     // Restore setup data from the specified JSON file
     let setup_json = Setup::restore(setup_path).with_context(|| "Error retrieving setup data")?;
 
     // Convert line ranges to individual line numbers.
-    let lines = convert_lines(device_config.lines);
+    let lines = DeviceConfigJson::convert_lines(device_config.code_block);
 
     // Parse opcodes based on the specified line numbers
     let gates = parse_from_lines(lines, &PathBuf::from(program_commitment_path))
@@ -78,7 +82,7 @@ fn main() -> Result<()> {
 
 
     // Generate new assembly file at program_commitment_path/program_new.s
-    generate_new_program(program_commitment_path, device_config.lines, classes_data[class_number])?;
+    generate_new_program(program_commitment_path, device_config.code_block, classes_data[class_number])?;
 
     // .: Commitment :.
     let commitment = ahp::commitment_generation::Commitment::new(classes_data[class_number])
@@ -89,15 +93,14 @@ fn main() -> Result<()> {
     // Generate polynomial commitments
     let commitment_polys = commitment.get_polynomials_commitment(&setup_json.get_ck());
 
-    // Store the matrices data in a JSON file
-    commitment
-        .matrices
-        .store("data/program_params.json", &classes_data[class_number])?;
+    let _ = ProgramParamsJson::new(&commitment.matrices, &commitment.points_px, classes_data[class_number])
+        .store(PROGRAM_PARAMS_PATH)?;
 
     // Store the commitment data in a JSON file
     commitment
-        .store("data/program_commitment.json")
+        .store(PROGRAM_COMMITMENT_PATH)
         .with_context(|| "Error storing commitment data")?;
+
     println!("Commitment file generated successfully");
 
     Ok(())

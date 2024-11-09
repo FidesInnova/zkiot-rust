@@ -18,7 +18,7 @@ use rustnomial::FreeSizePolynomial;
 use rustnomial::SizedPolynomial;
 
 use crate::dsp_poly;
-use crate::json_file::ClassData;
+use crate::json_file::ClassDataJson;
 use crate::kzg;
 use crate::math::div_mod;
 use crate::math::div_mod_val;
@@ -29,7 +29,6 @@ use crate::math::interpolate;
 use crate::math::vanishing_poly;
 use crate::math::Mfp;
 use crate::math::Poly;
-use crate::math::GENERATOR;
 use crate::println_dbg;
 use crate::to_bint;
 use crate::utils::get_points_set;
@@ -63,9 +62,10 @@ impl Verification {
     pub fn verify(
         &self,
         (ck, vk): (&[Mfp], Mfp),
-        class_data: ClassData,
+        class_data: ClassDataJson,
         polys_px: Vec<Poly>,
         x_vec: Vec<Mfp>,
+        g: u64
     ) -> bool {
         let poly_sx = &self.data.get_poly(Polys::Sx as usize);
         // TODO:
@@ -87,7 +87,7 @@ impl Verification {
         let eta = vec![Mfp::from(2), Mfp::from(30), Mfp::from(100)];
         let t = (class_data.n_i + 1) as usize;
         let set_h_len = class_data.n as usize;
-        let set_h = generate_set(set_h_len as u64);
+        let set_h = generate_set(set_h_len as u64, class_data);
         let set_k_len = class_data.m as usize;
 
         // https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/4-proof-verification-phase#id-4-2-ahp-verify
@@ -97,7 +97,7 @@ impl Verification {
         res &= self.check_2(&beta, alpha, set_h_len);
         res &= self.check_3(x_vec, alpha, &beta, &eta, &set_h, t);
         res &= self.check_4(&beta, set_h_len);
-        res &= self.check_5((ck, vk), z, Mfp::from(GENERATOR));
+        res &= self.check_5((ck, vk), z, Mfp::from(g));
         res
     }
 

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{fs::File, io::BufWriter, path::PathBuf};
+use std::{collections::HashMap, fs::File, io::BufWriter, path::PathBuf};
 
 use anyhow::Result;
 use ark_ff::Field;
@@ -21,7 +21,7 @@ use rand::{thread_rng, Rng};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{
-    ahp::setup::SetupJson, json_file::{open_file, ClassData}, math::Mfp, parser::DeviceConfigJson, to_bint
+    ahp::setup::SetupJson, json_file::{open_file, ClassDataJson}, math::{Mfp, Point}, to_bint
 };
 
 #[derive(Debug, Clone)]
@@ -47,7 +47,7 @@ impl Matrices {
     /// Converts a dense matrix to a sparse coordinate form, represented as a vector of
     /// tuples (i, j, val), where `i` is the row index, `j` is the column index, and
     /// `val` is the value at that position in the matrix.
-    fn to_sparse_coordinate_form(matrix: &DMatrix<Mfp>) -> Vec<(usize, usize, u64)> {
+    pub fn to_sparse_coordinate_form(matrix: &DMatrix<Mfp>) -> Vec<(usize, usize, u64)> {
         let mut sp_mat = vec![];
 
         for i in 0..matrix.ncols() {
@@ -64,7 +64,7 @@ impl Matrices {
     /// Converts a dense matrix to a sparse representation by storing the column indices
     /// where the values are set to 1. The resulting vector contains the column indices
     /// for each row, with the assumption that all other values are 0.
-    fn to_sparse_column_indices(matrix: &DMatrix<Mfp>, number_t_zeros: usize) -> Vec<u64> {
+    pub fn to_sparse_column_indices(matrix: &DMatrix<Mfp>, number_t_zeros: usize) -> Vec<u64> {
         assert!(matrix.ncols() == matrix.nrows());
         assert!(number_t_zeros <= matrix.ncols());
 
@@ -76,9 +76,7 @@ impl Matrices {
             for j in 0..mat_size {
                 assert!(matrix[(i, j)] == Mfp::ZERO || matrix[(i, j)] == Mfp::ONE);
                 if matrix[(i, j)] == Mfp::ONE {
-                    // FIXME: use insert or push?
-                    // sp_mat.insert(i - number_t_zeros, (j + 1).try_into().unwrap());
-                    sp_mat.push((j + 1).try_into().unwrap());
+                    sp_mat.push((j).try_into().unwrap());
                 }
             }
         }
@@ -96,74 +94,4 @@ impl Matrices {
 
         c
     }
-
-    /// Store in Json file
-    pub fn store(&self, path: &str, class_data: &ClassData) -> Result<()> {
-        let file = File::create(path)?;
-        let writer = BufWriter::new(file);
-        let matrices_json = ProgramParamsJson::new(&self.a, &self.b, class_data);
-        serde_json::to_writer(writer, &matrices_json)?;
-        Ok(())
-    }
-
-    /// Restore Commitment from Json file
-    pub fn restore(path: &str) -> Result<ProgramParamsJson> {
-        let reader = open_file(&PathBuf::from(path))?;
-        let matrices_json: ProgramParamsJson = serde_json::from_reader(reader)?;
-        Ok(matrices_json)
-    }
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct ProgramParamsJson {
-    /// [t_zeros, ... ,col1, col2, col3, ...]
-    #[serde(rename="A")]
-    a: Vec<u64>,
-
-    /// [(row1, col1, val1), (row2, col2, val2), (row3, col3, val3), ...]
-    #[serde(rename="B")]
-    b: Vec<(usize, usize, u64)>,
-}
-
-impl ProgramParamsJson {
-    fn new(a: &DMatrix<Mfp>, b: &DMatrix<Mfp>, class_data: &ClassData) -> Self {
-        Self {
-            a: Matrices::to_sparse_column_indices(&a, matrix_t_zeros(class_data)),
-            b: Matrices::to_sparse_coordinate_form(&b),
-        }
-    }
-
-    pub fn get_matrix_a(&self, size: usize, number_t_zeros: usize) -> DMatrix<Mfp> {
-        let mut mat_a = DMatrix::<Mfp>::zeros(size, size);
-
-        for (i, &j) in self.a.iter().enumerate() {
-            if j == 0 {
-                continue;
-            }
-            mat_a[(i + number_t_zeros, (j - 1) as usize)] = Mfp::ONE;
-        }
-
-        mat_a
-    }
-
-    pub fn get_matrix_b(&self, size: usize) -> DMatrix<Mfp> {
-        let mut mat_b = DMatrix::<Mfp>::zeros(size, size);
-
-        for &(i, j, val) in self.b.iter() {
-            mat_b[(i, j)] = Mfp::from(val);
-        }
-
-        mat_b
-    }
-}
-
-/// Returns the size of the matrix based on class data
-pub fn matrix_size(class_data: &ClassData) -> usize {
-    (class_data.n_g + class_data.n_i + 1).try_into().unwrap()
-}
-
-/// Returns the number of zero rows in the matrix based on class data
-pub fn matrix_t_zeros(class_data: &ClassData) -> usize {
-    // Number of rows (|x| = numebr_t_zero, where numebr_t_zero = ni + 1)
-    (class_data.n_i + 1).try_into().unwrap()
 }

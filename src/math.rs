@@ -25,14 +25,15 @@ use std::ops::Neg;
 
 use crate::dsp_poly;
 use crate::field;
+use crate::json_file::ClassDataJson;
 use crate::kzg;
 use crate::println_dbg;
 use crate::to_bint;
 use crate::utils::add_random_points;
 
+
 /// Define the constant modulus for field operations.
 pub const P: u64 = 4767673;
-pub const GENERATOR: u64 = 5;
 
 field!(Mfp, P);
 
@@ -272,8 +273,8 @@ pub fn interpolate(points: &[Point]) -> Poly {
 /// This function generates a set of field elements using the specified generator
 /// and length. Each element in the resulting vector is computed as `ms_gen^i`, where
 /// `i` ranges from 0 to `len - 1`.
-pub fn generate_set(len: u64) -> Vec<Mfp> {
-    let g = to_bint!(exp_mod(GENERATOR, (P - 1) / len)); // Compute the generator for set H
+pub fn generate_set(len: u64, class_data: ClassDataJson) -> Vec<Mfp> {
+    let g = to_bint!(exp_mod(class_data.g, (class_data.p - 1) / len)); // Compute the generator for set H
     (0..len).map(|i| exp_mod(g, i)).collect()
 }
 
@@ -612,8 +613,7 @@ pub fn sigma_m(
 ) -> Mfp {
     let nu = van_poly_vhx.eval(*beta_1) * van_poly_vhx.eval(*beta_2) * polys[2].eval(*k);
     let de = (beta_2 - &polys[0].eval(*k)) * (beta_1 - &polys[1].eval(*k));
-    let de = exp_mod(to_bint!(de), P - 2);
-    let div = nu * de;
+    let div = nu * invers_val(de);
     eta * &div
 }
 
@@ -715,37 +715,6 @@ pub fn compute_all_commitment(polys: &[Poly], ck: &Vec<Mfp>) -> Vec<Mfp> {
     res
 }
 
-/// Computes the logarithm of `b` in base `a` using a modified approach based on the
-/// Baby-step Giant-step algorithm.
-///
-/// # Parameters
-/// - `a`: The base of the logarithm, represented as an `Mfp` type.
-/// - `b`: The value for which the logarithm is to be computed, also represented as an `Mfp` type.
-///
-/// # Returns
-/// An `Mfp` representing the logarithm of `b` in base `a`, or `Mfp::ZERO` if the
-/// logarithm cannot be determined.
-pub fn log_mod(a: Mfp, b: Mfp) -> Mfp {
-    let m = ((P - 1) as f64).sqrt().ceil() as u64;
-
-    let mut tbl = std::collections::HashMap::new();
-
-    for i in 0..m {
-        tbl.insert(exp_mod(to_bint!(a), i), i);
-    }
-    let c = exp_mod(to_bint!(a), m * (P - 2));
-
-    for j in 0..m {
-        let y = b * exp_mod(to_bint!(c), j);
-
-        if tbl.contains_key(&y) {
-            let num = *tbl.get(&y).unwrap();
-            return Mfp::from(j * m + num);
-        }
-    }
-
-    Mfp::ZERO
-}
 
 #[cfg(test)]
 mod math_test {
@@ -771,20 +740,6 @@ mod math_test {
         for (a, b, expected) in test_cases {
             if let Some(expected_value) = expected {
                 assert_eq!(div_mod_val(a, b), expected_value)
-            }
-        }
-    }
-
-    #[test]
-    fn test_log_mod() {
-        for _ in 0..100 {
-            let a = Mfp::from(thread_rng().gen_range(1..P));
-            let b = Mfp::from(thread_rng().gen_range(1..P));
-
-            if log_mod(a, b) == Mfp::ZERO {
-                assert_eq!(exp_mod(to_bint!(a), to_bint!(log_mod(a, b))), Mfp::ONE);
-            } else {
-                assert_eq!(exp_mod(to_bint!(a), to_bint!(log_mod(a, b))), b);
             }
         }
     }

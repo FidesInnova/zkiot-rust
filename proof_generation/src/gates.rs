@@ -298,7 +298,7 @@ vec![
         ),
         reg_left: 0,
         reg_right: 0,
-        gate_type: Add,
+        gate_type: Addi,
     },
     Gate {
         val_left: None,
@@ -316,7 +316,7 @@ vec![
         ),
         reg_left: 1,
         reg_right: 1,
-        gate_type: Add,
+        gate_type: Addi,
     },
     Gate {
         val_left: None,

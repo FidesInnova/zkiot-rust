@@ -36,15 +36,13 @@ use crate::dsp_poly;
 use crate::dsp_vec;
 use crate::json_file::write_set;
 use crate::json_file::write_term;
-use crate::json_file::ClassData;
+use crate::json_file::ClassDataJson;
+use crate::json_file::ProgramParamsJson;
 use crate::kzg;
 use crate::math::*;
-use crate::matrices::matrix_size;
-use crate::matrices::matrix_t_zeros;
 use crate::matrices::Matrices;
-use crate::matrices::ProgramParamsJson;
 use crate::parser::Gate;
-use crate::parser::GateType;
+use crate::parser::Instructions;
 use crate::parser::RegData;
 use crate::println_dbg;
 use crate::to_bint;
@@ -136,7 +134,7 @@ impl ProofGeneration {
             // Compute the adjusted polynomial wˉ(h) for each element in the subset
 
             let w_bar_h = (w_hat.eval(*i) - poly_x_hat.eval(*i))
-                * exp_mod(to_bint!(van_poly_vh1.eval(*i)), P - 2);
+                * invers_val(van_poly_vh1.eval(*i));
             points_w.push((*i, w_bar_h));
         }
 
@@ -162,6 +160,7 @@ impl ProofGeneration {
         let r_a_kx = sigma_rk_mk(
             set_h,
             alpha,
+            // points A
             &points_px[0],
             &points_px[1],
             &points_px[2],
@@ -175,6 +174,7 @@ impl ProofGeneration {
         let r_b_kx = sigma_rk_mk(
             set_h,
             alpha,
+            // points B
             &points_px[3],
             &points_px[4],
             &points_px[5],
@@ -187,6 +187,7 @@ impl ProofGeneration {
         let r_c_kx = sigma_rk_mk(
             set_h,
             alpha,
+            // points C
             &points_px[6],
             &points_px[7],
             &points_px[8],
@@ -270,32 +271,15 @@ impl ProofGeneration {
         ]
     }
 
-    /// Retrieves matrices A, B, and C based on the provided matrices JSON and class data.
-    ///
-    /// # Parameters
-    /// - `matrices`: A reference to a `MatricesJson` object containing matrix data.
-    /// - `class_data`: A reference to a `ClassData` object used to determine the size of the matrices.
-    ///
-    /// # Returns
-    /// A tuple containing three dense matrices: (A, B, C).
-    fn get_matrices(
-        matrices: &ProgramParamsJson,
-        class_data: &ClassData,
-    ) -> (DMatrix<Mfp>, DMatrix<Mfp>, DMatrix<Mfp>) {
-        let a = matrices.get_matrix_a(matrix_size(&class_data), matrix_t_zeros(&class_data));
-        let b = matrices.get_matrix_b(matrix_size(&class_data));
-        let c = Matrices::generate_matrix_c(matrix_size(&class_data), matrix_t_zeros(&class_data));
+    
 
-        (a, b, c)
-    }
-
-    pub fn generate_z_vec(gates: Vec<Gate>, class_data: &ClassData) -> DVector<Mfp> {
-        let size = matrix_size(&class_data);
+    pub fn generate_z_vec(gates: Vec<Gate>, class_data: &ClassDataJson) -> DVector<Mfp> {
+        let size = class_data.get_matrix_size();
         let mut regs_data: HashMap<u8, RegData> = HashMap::new();
         let mut _index = 0;
         let mut val_counter: usize = 0;
         for (_, gate) in gates.iter().enumerate() {
-            if gate.gate_type == GateType::Ld {
+            if gate.gate_type == Instructions::Ld {
                 let right_val = gate.val_right.map_or(Mfp::ZERO, Mfp::from);
                 match regs_data.contains_key(&gate.reg_right) {
                     true => panic!("The register has been loaded again!"),
@@ -353,19 +337,20 @@ impl ProofGeneration {
     pub fn generate_proof(
         &self,
         commitment_key: &Vec<Mfp>,
-        class_data: ClassData,
-        matrices: ProgramParamsJson,
+        class_data: ClassDataJson,
+        program_params: ProgramParamsJson,
         commitment_json: CommitmentJson,
         gates: Vec<Gate>,
     ) -> Box<[AHPData]> {
         // Generate sets
-        let set_h = generate_set(class_data.n);
-        let set_k = generate_set(class_data.m);
+        let set_h = generate_set(class_data.n, class_data);
+        let set_k = generate_set(class_data.m, class_data);
 
-        let numebr_t_zero = matrix_t_zeros(&class_data);
-        let (mat_a, mat_b, mat_c) = Self::get_matrices(&matrices, &class_data);
+        let numebr_t_zero = class_data.get_matrix_t_zeros();
+        let matrices = program_params.get_matrices(&class_data);
+        let (mat_a, mat_b, mat_c) = matrices.clone();
         let z_vec = Self::generate_z_vec(gates, &class_data);
-        let points_px = Self::get_points_px_vec(&set_h, &set_k, vec![&mat_a, &mat_b, &mat_c]);
+        let points_px = program_params.get_points_px(&set_k);
         let x_vec = &mat_to_vec(&z_vec)[..numebr_t_zero];
 
         // TODO: Set 'random_b' to a random value in the range 1 to 50
@@ -405,7 +390,7 @@ impl ProofGeneration {
         dsp_poly!(poly_h_0);
 
         // Generate a random polynomial
-        let poly_sx = Self::generate_random_polynomial(2 * set_h.len() + 2 - 1, (0, P));
+        let poly_sx = Self::generate_random_polynomial(2 * set_h.len() + 2 - 1, (0, class_data.p));
         println_dbg!("poly_sx");
         dsp_poly!(poly_sx);
 

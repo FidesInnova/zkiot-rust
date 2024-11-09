@@ -1,8 +1,8 @@
 {
-    "Class": 3,
-    "IoT_Manufacturer_Name": "TrustSense",
-    "IoT_Device_Name": "zk-MultiSensor",
-    "Device_Hardware_Version": "1.0",
-    "Firmware_Version": "1.0",
-    "Lines": [24, 27]
-  }
+    "class": 3,
+    "iot_manufacturer_name": "TrustSense",
+    "iot_device_name": "zk-MultiSensor",
+    "device_hardware_version": "1.0",
+    "firmware_version": "1.0",
+    "code_block": [24, 27]
+}

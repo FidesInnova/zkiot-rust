@@ -13,8 +13,7 @@
 // limitations under the License.
 
 use anyhow::Result;
-use zk_iot::json_file::ClassData;
-use zk_iot::parser::LineValue;
+use zk_iot::json_file::{ClassDataJson, LineValue};
 use std::collections::HashMap;
 use std::f32::RADIX;
 use std::io::{BufReader, Read, Write};
@@ -25,7 +24,7 @@ use std::{
 };
 
 
-pub fn generate_new_program(input_path: &str, line_range: LineValue, class_data: ClassData) -> Result<()> {
+pub fn generate_new_program(input_path: &str, line_range: LineValue, class_data: ClassDataJson) -> Result<()> {
     // Open the input file
     let input_file = File::open(input_path)?;
     let reader = BufReader::new(input_file);

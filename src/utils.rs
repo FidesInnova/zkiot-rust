@@ -1,47 +1,39 @@
 // Copyright 2024 Fidesinnova, Inc.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 //! Utility functions and structures for gate definitions, matrix operations, and polynomial encoding.
 
+use anyhow::Result;
+use ark_ff::Field;
+use nalgebra::DMatrix;
 use nalgebra::DVector;
 use rand::prelude::SliceRandom;
+use rand::thread_rng;
+use rand::Rng;
 use rustnomial::SizedPolynomial;
+use sha2::Digest;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use anyhow::Result;
-use nalgebra::DMatrix;
-use rand::thread_rng;
-use ark_ff::Field;
-use sha2::Digest;
-use rand::Rng;
-
-
-
-
 
 use crate::define_get_points_fn;
-use crate::println_dbg;
 use crate::get_val;
+use crate::println_dbg;
 
 use crate::math::interpolate;
+use crate::math::Mfp;
 use crate::math::Point;
 use crate::math::Poly;
-use crate::math::Mfp;
-use crate::math::P;
-
-
 
 /// Sets the first `t` rows of the matrix `mat` to zero.
 ///
@@ -60,14 +52,10 @@ pub fn rows_to_zero(mat: &mut DMatrix<Mfp>, t: usize) {
     }
 }
 
-
-
 // Define functions to get points from a matrix based on row, column, and value modes.
 define_get_points_fn!(get_points_row, row);
 define_get_points_fn!(get_points_col, col);
 define_get_points_fn!(get_points_val, val);
-
-
 
 /// Creates a vector of `Point` tuples from two vectors of field elements.
 ///
@@ -91,15 +79,19 @@ define_get_points_fn!(get_points_val, val);
 pub fn get_points_set(seq: &[Mfp], n: &[Mfp]) -> Vec<Point> {
     let mut points: Vec<Point> = vec![];
 
-    assert!(seq.len() == n.len(), "sets are not equal => {:?} & {:?}", seq, n);
+    assert!(
+        seq.len() == n.len(),
+        "sets are not equal => {:?} & {:?}",
+        seq,
+        n
+    );
 
     for point in n.iter().zip(seq.iter()) {
         points.push((*point.0, *point.1));
     }
-    
+
     points
 }
-
 
 /// Converts a column vector matrix to a vector of field elements.
 ///
@@ -128,8 +120,6 @@ pub fn mat_to_vec(mat: &DVector<Mfp>) -> Vec<Mfp> {
     v
 }
 
-
-
 /// Converts a vector of `Mfp` elements into a `HashSet` of `Mfp`.
 ///
 /// # Parameters
@@ -146,7 +136,6 @@ pub fn vec_to_set(set: &[Mfp]) -> HashSet<Mfp> {
     set.iter().copied().collect()
 }
 
-
 /// Generates a random field element not present in a given set.
 ///
 /// # Parameters
@@ -159,12 +148,12 @@ pub fn vec_to_set(set: &[Mfp]) -> HashSet<Mfp> {
 /// This function repeatedly generates random field elements until it finds one that is not in the specified
 /// hash set. This ensures that the generated value is unique with respect to the given set.
 ///
-pub fn gen_rand_not_in_set(set: &HashSet<Mfp>) -> Mfp {
+pub fn gen_rand_not_in_set(set: &HashSet<Mfp>, p: u64) -> Mfp {
     let mut rng = rand::thread_rng();
     let mut num;
 
     loop {
-        num = Mfp::from(rng.gen_range(0..P));
+        num = Mfp::from(rng.gen_range(0..p));
         if !set.contains(&num) {
             break;
         }
@@ -184,19 +173,14 @@ pub fn gen_rand_not_in_set(set: &HashSet<Mfp>) -> Mfp {
 /// selected randomly from a set of values that are not present in `set_h`, ensuring uniqueness. The `y`
 /// coordinate is a random value from the field elements. The generated points are then appended to the
 /// `points` vector.
-pub fn push_random_points(
-    points: &mut Vec<Point>,
-    b: u64,
-    set_h: &HashSet<Mfp>,
-) {
+pub fn push_random_points(points: &mut Vec<Point>, b: u64, set_h: &HashSet<Mfp>, p: u64) {
     let mut rng = thread_rng();
     for _ in 0..b {
-        let d = gen_rand_not_in_set(set_h);
-        let r = Mfp::from(rng.gen_range(0..P));
+        let d = gen_rand_not_in_set(set_h, p);
+        let r = Mfp::from(rng.gen_range(0..p));
         points.push((d, r));
     }
 }
-
 
 /// Generates a random polynomial of a specified degree.
 ///
@@ -210,27 +194,24 @@ pub fn push_random_points(
 /// This function creates a polynomial of the given degree with each coefficient being a random
 /// field element from the finite field. The polynomial is constructed using these randomly generated
 /// coefficients.
-pub fn poly_gen_randomly(deg: usize) -> Poly {
+pub fn poly_gen_randomly(deg: usize, p: u64) -> Poly {
     let mut rng = rand::thread_rng();
     let mut poly = vec![];
 
     for _ in 0..deg {
-        poly.push(Mfp::from(rng.gen_range(0..P)));
+        poly.push(Mfp::from(rng.gen_range(0..p)));
     }
-    
+
     Poly::new(poly)
 }
 
-
-
-
-/// Adds random points to the given `points` HashMap by pairing each element in `set_k` 
-/// (starting from index `c`) with a randomly chosen element from `set_h`. 
+/// Adds random points to the given `points` HashMap by pairing each element in `set_k`
+/// (starting from index `c`) with a randomly chosen element from `set_h`.
 /// Returns an error if a random element cannot be chosen from `set_h`.
 ///
 /// # Arguments
 ///
-/// * `points` - A mutable HashMap where new points will be added, with keys from `set_k` 
+/// * `points` - A mutable HashMap where new points will be added, with keys from `set_k`
 ///   and values chosen randomly from `set_h`.
 /// * `c` - The starting index in `set_k` from which to begin adding points.
 /// * `set_h` - A slice of values used to pair with elements from `set_k`.
@@ -238,18 +219,18 @@ pub fn poly_gen_randomly(deg: usize) -> Poly {
 ///
 /// # Returns
 ///
-/// A `Result<()>` indicating success or failure. If successful, it returns `Ok(())`. 
+/// A `Result<()>` indicating success or failure. If successful, it returns `Ok(())`.
 /// If an error occurs while choosing a random element from `set_h`, it returns an error.
 pub fn add_random_points(
-    points: &mut HashMap<Mfp, Mfp>, 
-    c: usize, 
-    set_h: &[Mfp], 
-    set_k: &[Mfp]
+    points: &mut HashMap<Mfp, Mfp>,
+    c: usize,
+    set_h: &[Mfp],
+    set_k: &[Mfp],
 ) -> Result<()> {
     let mut rng = rand::thread_rng();
 
     for i in c..set_k.len() {
-        // TODO: 
+        // TODO:
         // let rand_h = set_h.choose(&mut rng).ok_or(anyhow!("Failed to choose a random element from set_h"))?;
         let rand_h = &set_h[i % set_h.len()];
         points.insert(set_k[i], *rand_h);
@@ -257,7 +238,6 @@ pub fn add_random_points(
 
     Ok(())
 }
-
 
 pub fn print_hashmap(points: &HashMap<Mfp, Mfp>, set_k: &[Mfp]) {
     for k in set_k.iter() {
@@ -268,7 +248,6 @@ pub fn print_hashmap(points: &HashMap<Mfp, Mfp>, set_k: &[Mfp]) {
         }
     }
 }
-
 
 /// Encodes a matrix into three polynomials: row, column, and value polynomials.
 ///
@@ -286,12 +265,12 @@ pub fn print_hashmap(points: &HashMap<Mfp, Mfp>, set_k: &[Mfp]) {
 /// 2. The column polynomial is obtained by performing Lagrange interpolation on the points corresponding to the columns of the matrix.
 /// 3. The value polynomial is obtained by performing Lagrange interpolation on the points corresponding to the non-zero values in the matrix.
 pub fn encode_matrix_m(matrix: &DMatrix<Mfp>, set_h: &[Mfp], set_k: &[Mfp]) -> Vec<Poly> {
-    let points  = get_points_row(matrix, set_h, set_k);   
-    let row     = interpolate(&points);                                        
-    let points  = get_points_col(matrix, set_h, set_k);  
-    let col     = interpolate(&points);                 
-    let points  = get_points_val(matrix, set_h, set_k);
-    let val     = interpolate(&points);
+    let points = get_points_row(matrix, set_h, set_k);
+    let row = interpolate(&points);
+    let points = get_points_col(matrix, set_h, set_k);
+    let col = interpolate(&points);
+    let points = get_points_val(matrix, set_h, set_k);
+    let val = interpolate(&points);
 
     // println_dbg!("lag row:");
     // dsp_poly!(row);
@@ -299,10 +278,9 @@ pub fn encode_matrix_m(matrix: &DMatrix<Mfp>, set_h: &[Mfp], set_k: &[Mfp]) -> V
     // dsp_poly!(col);
     // println_dbg!("lag val:");
     // dsp_poly!(val);
-    
+
     vec![row, col, val]
 }
-
 
 /// Defines a field configuration and type alias for a given modulus.
 ///
@@ -331,17 +309,16 @@ macro_rules! field {
     ($name:ident, $num:expr) => {
         pub struct P64MontConfig<const N: u64>;
         impl<const N: u64> ark_ff::MontConfig<1> for P64MontConfig<N> {
-        const MODULUS: ark_ff::BigInt<1> = ark_ff::BigInt::new([N; 1]);
-        const GENERATOR: ark_ff::Fp<ark_ff::MontBackend<Self, 1>, 1> 
-        = <ark_ff::Fp64<ark_ff::MontBackend<P64MontConfig<N>, 1>> as ark_ff::Field>::ONE;
-        const TWO_ADIC_ROOT_OF_UNITY: ark_ff::Fp<ark_ff::MontBackend<Self, 1>, 1> =
-            ark_ff::Fp::new(Self::MODULUS);
-}
+            const MODULUS: ark_ff::BigInt<1> = ark_ff::BigInt::new([N; 1]);
+            const GENERATOR: ark_ff::Fp<ark_ff::MontBackend<Self, 1>, 1> =
+                <ark_ff::Fp64<ark_ff::MontBackend<P64MontConfig<N>, 1>> as ark_ff::Field>::ONE;
+            const TWO_ADIC_ROOT_OF_UNITY: ark_ff::Fp<ark_ff::MontBackend<Self, 1>, 1> =
+                ark_ff::Fp::new(Self::MODULUS);
+        }
         #[allow(warnings)]
         pub type $name = ark_ff::Fp64<ark_ff::MontBackend<P64MontConfig<$num>, 1>>;
     };
 }
-
 
 /// Retrieves a value based on the specified mode and input parameters.
 ///
@@ -354,7 +331,7 @@ macro_rules! get_val {
     (row, $h:expr, $_:expr, $i:expr, $j:expr) => {
         $h[$i]
     };
-    (col, $h:expr, $_:expr, $i:expr, $j:expr)=> {
+    (col, $h:expr, $_:expr, $i:expr, $j:expr) => {
         $h[$j]
     };
     (val, $_:expr, $mat:expr, $i:expr, $j:expr) => {
@@ -380,13 +357,8 @@ macro_rules! get_val {
 #[macro_export]
 macro_rules! define_get_points_fn {
     ($name:ident, $mode:ident) => {
-
         #[allow(unused_variables)]
-        pub fn $name(
-            mat: &DMatrix<Mfp>,
-            h: &[Mfp],
-            k: &[Mfp],
-        ) -> Vec<(Mfp, Mfp)> {
+        pub fn $name(mat: &DMatrix<Mfp>, h: &[Mfp], k: &[Mfp]) -> Vec<(Mfp, Mfp)> {
             let mut points: Vec<(Mfp, Mfp)> = vec![];
             let mut c = 0;
 
@@ -423,10 +395,10 @@ macro_rules! define_get_points_fn {
 /// use zk_iot::field;
 /// use zk_iot::to_bint;
 /// use ark_ff::PrimeField; // for into_bigint()
-/// 
+///
 /// field!(MyField, 1234567890123456789);
 /// let x: MyField = MyField::from(10);
-/// 
+///
 /// let big_int = to_bint!(x);
 /// assert_eq!(big_int, x.into_bigint().0[0]);
 /// ```
@@ -466,7 +438,6 @@ macro_rules! dsp_mat {
     };
 }
 
-
 /// Converts a vector to a formatted string with elements separated by commas.
 ///
 /// # Parameters
@@ -493,7 +464,7 @@ macro_rules! dsp_vec {
                 result.push_str(&format!("{}, ", x));
             }
         }
-        
+
         result
     }};
 }
@@ -510,8 +481,8 @@ macro_rules! dsp_vec {
 #[macro_export]
 macro_rules! dsp_poly {
     ($poly:expr) => {{
+        use rustnomial::{Degree, SizedPolynomial};
         use std::io::Write;
-        use rustnomial::{SizedPolynomial, Degree};
 
         let mut result = String::new();
         let mut poly = $poly.clone();
@@ -532,11 +503,13 @@ macro_rules! dsp_poly {
                         result.push_str(&format!("{}x^{}", term, deg - i));
                     }
                 }
-            } 
+            }
         }
-        
-        crate::println_dbg!("{result}
-");
+
+        crate::println_dbg!(
+            "{result}
+"
+        );
     }};
 }
 
@@ -552,8 +525,8 @@ pub fn sha2_hash(input: &str) -> u64 {
     hasher.update(input);
     let result = hasher.finalize();
     u64::from_le_bytes([
-        result[31], result[30], result[29], result[28],
-        result[27], result[26], result[25], result[24],
+        result[31], result[30], result[29], result[28], result[27], result[26], result[25],
+        result[24],
     ])
 }
 
@@ -568,19 +541,17 @@ pub fn concat_polys(polys: &[&Poly]) -> Vec<Mfp> {
     let mut result = vec![];
 
     for poly in polys {
-        result.extend(poly.terms_as_vec().iter().map(|v| v.0)); 
+        result.extend(poly.terms_as_vec().iter().map(|v| v.0));
     }
 
     result
 }
-
 
 pub fn read_json_file<T: serde::de::DeserializeOwned>(path: &str) -> Result<T> {
     let reader = crate::json_file::open_file(&std::path::PathBuf::from(path))?;
     let setup_json: T = serde_json::from_reader(reader)?;
     Ok(setup_json)
 }
-
 
 #[macro_export]
 macro_rules! print_dbg {

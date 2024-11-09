@@ -25,7 +25,7 @@ echo "Setup: =====================================================" >> "report.t
 
 cargo build -p commitment_generation $options >> "$filename" && \
 echo "Commitment: ================================================" >> "report.txt" && \
-/usr/bin/time -v -a -o "report.txt" ./target/$dir/commitment_generation program.s data/setuptest.json data/device_config.json >> "$filename" && \
+/usr/bin/time -v -a -o "report.txt" ./target/$dir/commitment_generation program.s data/setup3.json data/device_config.json >> "$filename" && \
 
 
 ./unrelated/run_proof_riscv.sh >> "$filename" && \
@@ -33,4 +33,4 @@ echo "Commitment: ================================================" >> "report.t
 
 cargo build -p proof_verification $options >> "$filename" && \
 echo "Proof Verification: ========================================" >> "report.txt" && \
-/usr/bin/time -v -a -o "report.txt" ./target/$dir/proof_verification data/program_commitment.json data/proof.json data/setuptest.json >> "$filename"
+/usr/bin/time -v -a -o "report.txt" ./target/$dir/proof_verification data/program_commitment.json data/proof.json data/setup3.json >> "$filename"

@@ -15,7 +15,10 @@
 
 use anyhow::{Result, Context};
 use rand::{thread_rng, Rng};
-use zk_iot::{ahp::setup::Setup, json_file::{get_all_class_data, get_class_data}};
+use zk_iot::{ahp::setup::Setup, json_file::ClassDataJson};
+
+
+const CLASS_TABLE: &str = "class_table.json";
 
 fn main() -> Result<()> {
     // 
@@ -23,7 +26,7 @@ fn main() -> Result<()> {
     
     // Load class data from the JSON file
     let class_data =
-        get_all_class_data("class_table.json").with_context(|| "Error loading class data")?;
+        ClassDataJson::get_all_class_data(CLASS_TABLE).with_context(|| "Error loading class data")?;
     
     // TODO: Uncomment the following code when all tests pass 
     // Random number in range (1-Ng)
@@ -33,16 +36,16 @@ fn main() -> Result<()> {
     let b = 2; 
 
     // Create a setup file for each entry in class_data
-    for (name, metadata) in class_data {
+    for (class_number, metadata) in class_data {
         // Calculate the D_AHP value using the formula: D_AHP = 12 * n_g
         let d_ahp = 12 * metadata.n_g;
         
         // Generate cryptographic keys for the setup
-        setup.generate_keys(d_ahp);
+        setup.generate_keys(d_ahp, metadata.p, metadata.g);
 
         // Save the generated setup data to a JSON file
         setup
-            .store(&format!("data/setup{}.json", name))
+            .store(&format!("data/setup{}.json", class_number), class_number)
             .with_context(|| "Error saving setup file")?;
     }
     

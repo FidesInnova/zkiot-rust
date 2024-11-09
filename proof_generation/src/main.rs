@@ -13,12 +13,11 @@
 // limitations under the License.
 
 use anyhow::Result;
-use proof_generation::proof_gen;
+use proof_generation::main_proof_gen;
 
 fn main() -> Result<()> {
-    // Read matrix z from registers
-
-    proof_gen()?;
+    // Initiate the proof generation process
+    main_proof_gen()?;
     
     Ok(())
 }

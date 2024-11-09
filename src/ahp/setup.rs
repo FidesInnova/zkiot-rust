@@ -21,7 +21,6 @@ use serde::Deserialize;
 
 use crate::kzg;
 use crate::math::Mfp;
-use crate::math::GENERATOR;
 use crate::json_file::write_set;
 use crate::utils::read_json_file;
 
@@ -44,12 +43,12 @@ impl Setup {
     ///
     /// # Parameters
     /// - `num`: Number of keys to generate.
-    pub fn generate_keys(&mut self, num: u64) {
+    pub fn generate_keys(&mut self, num: u64, p: u64, g: u64) {
         // TODO: Replace with a random number in the range
         let tau = 119;  // Placeholder for a random number
 
         // Generate commitment keys using KZG.
-        let ck = kzg::setup(num, tau, GENERATOR);
+        let ck = kzg::setup(num, tau, p, g);
 
         self.ck = ck; // Store commitment keys
         self.vk = self.ck[1]; // Set verifying key
@@ -59,11 +58,11 @@ impl Setup {
     ///
     /// # Parameters
     /// - `path`: File path to save the JSON
-    pub fn store(&self, path: &str) -> Result<()> {
+    pub fn store(&self, path: &str, class_number: u8) -> Result<()> {
         let file = File::create(path)?; // Create or truncate the file
         let writer = BufWriter::new(file); // Buffer for writing
 
-        let setup_json = SetupJson::new(&self.ck, 4); // Create JSON representation
+        let setup_json = SetupJson::new(&self.ck, class_number); // Create JSON representation
         serde_json::to_writer(writer, &setup_json)?; // Write JSON to file
         Ok(())
     }

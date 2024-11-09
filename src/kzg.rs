@@ -19,11 +19,10 @@ use rustnomial::Term;
 
 use crate::math::Mfp;
 use crate::math::Poly;
-use crate::math::P;
 use crate::to_bint;
 
-pub fn setup(max: u64, tau: u64, g: u64) -> Vec<Mfp> {
-    let tau = tau % (P - 1);
+pub fn setup(max: u64, tau: u64, p: u64, g: u64) -> Vec<Mfp> {
+    let tau = tau % (p - 1);
     let mut tmp = Mfp::from(g);
 
     (0..max)
