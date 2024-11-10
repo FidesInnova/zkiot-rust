@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use anyhow::Result;
-use zk_iot::json_file::{ClassDataJson, LineValue};
+use anyhow::{anyhow, Result};
 use std::collections::HashMap;
 use std::f32::RADIX;
 use std::io::{BufReader, Read, Write};
@@ -22,14 +21,19 @@ use std::{
     io::BufRead,
     path::{Path, PathBuf},
 };
+use zk_iot::json_file::{ClassDataJson, LineValue};
+use zk_iot::parser::{match_reg, parse_from_lines, parse_line};
 
-
-pub fn generate_new_program(input_path: &str, line_range: LineValue, class_data: ClassDataJson) -> Result<()> {
+pub fn generate_new_program(
+    input_path: &str,
+    line_range: LineValue,
+    class_data: ClassDataJson,
+) -> Result<()> {
     // Open the input file
     let input_file = File::open(input_path)?;
     let reader = BufReader::new(input_file);
     let n_g = class_data.n_g;
-    
+
     // Create output file path
     let output_path = create_output_path(input_path);
     let mut output_file = OpenOptions::new()
@@ -43,18 +47,32 @@ pub fn generate_new_program(input_path: &str, line_range: LineValue, class_data:
     let diff = (range.1 - range.0) as u64;
     let add_no_op_number = n_g - diff - 1;
 
-    insert_assembly_instructions(&mut output_file, reader, range, n_g.try_into()?, add_no_op_number)?;
+    insert_assembly_instructions(
+        &mut output_file,
+        reader,
+        range,
+        n_g.try_into()?,
+        add_no_op_number,
+    )?;
 
     Ok(())
 }
 
-fn insert_assembly_instructions(output_file: &mut File, reader: BufReader<File>, line_range: (usize, usize), n_g: usize, add_no_op_number: u64) -> Result<()> {
+fn insert_assembly_instructions(
+    output_file: &mut File,
+    reader: BufReader<File>,
+    line_range: (usize, usize),
+    n_g: usize,
+    add_no_op_number: u64,
+) -> Result<()> {
+    // Allocating memory for the generated ASM file!
+    let mut space_size = vec![4; 32];
 
     for (num, line) in reader.lines().enumerate() {
         let num = num + 1;
-
         let instruction = line?;
-        
+
+
         if num == line_range.0 {
             writeln!(output_file, "    jal store_register_instances")?;
         }
@@ -62,18 +80,34 @@ fn insert_assembly_instructions(output_file: &mut File, reader: BufReader<File>,
         writeln!(output_file, "{}", instruction)?;
 
         if num >= line_range.0 && num <= line_range.1 {
-            writeln!(output_file, "    jal store_register_instances")?;
+            // Parsing the destination register from the instruction
+            let des_reg = parse_line(&instruction, num)?.1[0];
+            let des_reg_num = match_reg(des_reg).ok_or_else(|| anyhow!("Match register faild"))? as usize;
+            writeln!(output_file, "    sw x{}, x{}_array({})", des_reg_num, des_reg_num, space_size[des_reg_num])?;
+            space_size[des_reg_num] += 4;
         }
 
         if num == line_range.1 {
-            for _ in 0..add_no_op_number {
-                writeln!(output_file, "    nop")?;
-            }
+            // for _ in 0..add_no_op_number {
+            //     writeln!(output_file, "    nop")?;
+            // }
+            writeln!(output_file, "    jal proofGenerator")?;
         }
     }
 
+
+    insert_arrays(output_file, space_size)?;
+
     insert_store_register_function(output_file, n_g)?;
 
+    Ok(())
+}
+
+fn insert_arrays(output_file: &mut File, space_size: Vec<u64>) -> Result<()> {
+    writeln!(output_file, "    .data")?;
+    for (num, size) in space_size.iter().enumerate() {
+        writeln!(output_file, "x{}_array:    .space {}   # Array for x{}", num, size, num)?;
+    }
     Ok(())
 }
 
@@ -81,12 +115,12 @@ fn insert_store_register_function(output_file: &mut File, n_g: usize) -> Result<
     // Save register function
     writeln!(
         output_file,
-        r#"{}"#
-        , include_str!("../store_registers.asm").replace("SPACE_SIZE", &n_g.to_string())
+        r#"{}"#,
+        include_str!("../store_registers.asm").replace("SPACE_SIZE", &n_g.to_string())
     )?;
     Ok(())
 }
- 
+
 fn create_output_path(input: &str) -> PathBuf {
     let path = Path::new(input);
     let parent = path.parent().unwrap();

@@ -14,25 +14,51 @@
 
 //! Module for mathematical functions and utilities for finite field operations using the `Mfp` type and polynomials.
 
+#![no_std]
+#![feature(const_refs_to_static)]
+#![feature(const_mut_refs)]
+
+
+use anyhow::Context;
 use ark_ff::Field;
 use ark_ff::Zero;
 use nalgebra::DMatrix;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use rustnomial::*;
+use std::cell::LazyCell;
 use std::collections::HashMap;
 use std::ops::Neg;
+use std::sync::LazyLock;
 
 use crate::dsp_poly;
 use crate::field;
 use crate::json_file::ClassDataJson;
+use crate::json_file::DeviceConfigJson;
 use crate::kzg;
 use crate::println_dbg;
 use crate::to_bint;
 use crate::utils::add_random_points;
+use crate::utils::read_json_file;
 
+use lazy_static::lazy_static;
+/// Define the constant modulus for field operations
 
-/// Define the constant modulus for field operations.
+const DEVICE_CONFIG_PATH: &str = "data/device_config.json";
+const CLASS_TABLE: &str = "class_table.json";
+
+fn get_p() -> u64 {
+    let device_config: DeviceConfigJson = read_json_file(DEVICE_CONFIG_PATH).unwrap();
+    let class_number = device_config.class;
+    let class_data =
+        ClassDataJson::get_class_data(CLASS_TABLE, class_number).with_context(|| "Error loading class data").unwrap();
+    class_data.p
+}
+
+// static S2: LazyLock<u64> =  LazyLock::new(|| get_p());
+// the S should be JUST u64
+// static S: u64 = *S2;
+// pub const P: u64 = S;
 pub const P: u64 = 4767673;
 
 field!(Mfp, P);

@@ -177,11 +177,11 @@ impl Gate {
 ///
 /// # Errors
 /// Returns an error if the line does not contain at least four non-empty parts, as determined by splitting on commas and spaces and filtering out empty parts.
-fn parse_line(line: &str, index: usize) -> Result<(&str, Vec<&str>)> {
+pub fn parse_line(line: &str, index: usize) -> Result<(&str, Vec<&str>)> {
     // Split the input line into parts by trimming whitespace and splitting on commas and spaces
     let parts: Vec<&str> = line
         .trim()
-        .split(&[',', ' '])
+        .split(&[',', ' ', '\t'])
         .filter(|s| !s.trim().is_empty())
         .collect();
     if parts.len() >= 4 {
@@ -192,7 +192,7 @@ fn parse_line(line: &str, index: usize) -> Result<(&str, Vec<&str>)> {
     }
 }
 
-fn match_reg(reg: &str) -> Option<u8> {
+pub fn match_reg(reg: &str) -> Option<u8> {
     // TODO: Add zero?
     let res = match reg.to_lowercase().as_str() {
         "ra" => 1,   // x1 - Return address

@@ -4,5 +4,5 @@
     "iot_device_name": "zk-MultiSensor",
     "device_hardware_version": "1.0",
     "firmware_version": "1.0",
-    "code_block": [24, 27]
+    "code_block": [463, 466]
 }

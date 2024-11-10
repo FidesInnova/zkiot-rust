@@ -14,10 +14,26 @@
 
 use anyhow::Result;
 use proof_generation::main_proof_gen;
+use std::arch::{asm, global_asm};
+
+global_asm!(
+    ".data",
+    ".global x18_array", // Declare x18_array as a global label
+    "x18_array: .space 20" // Allocate 20 bytes for x18_array
+);
 
 fn main() -> Result<()> {
     // Initiate the proof generation process
+    unsafe {
+        asm!(
+            "addi s2, s2, 12",
+            "addi s2, s2, 12",
+            "addi s2, s2, 12",
+            "addi s2, s2, 12",
+        );
+    }
+
     main_proof_gen()?;
-    
+
     Ok(())
 }
