@@ -18,7 +18,7 @@ use rand::{thread_rng, Rng};
 use zk_iot::{ahp::setup::Setup, json_file::ClassDataJson};
 
 
-const CLASS_TABLE: &str = "class_table.json";
+const CLASS_TABLE: &str = "class.json";
 
 fn main() -> Result<()> {
     // 

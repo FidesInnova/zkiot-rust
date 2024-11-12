@@ -60,7 +60,7 @@ fn main() -> Result<()> {
     let class_number = device_config.class;
     
     // Load class data from the JSON file
-    let class_data = ClassDataJson::get_class_data("class_table.json", class_number)
+    let class_data = ClassDataJson::get_class_data("class.json", class_number)
         .with_context(|| "Error loading class data")?;
 
     // Restore setup data from the specified JSON file

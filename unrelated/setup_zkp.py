@@ -51,7 +51,7 @@ def count_instructions(file_path):
 
     return n_i, n_g
 
-def update_test_values(n_g, n_i, m, n, filename = "class_table.json"):
+def update_test_values(n_g, n_i, m, n, filename = "class.json"):
     new_values = {
         "n_g": n_g,
         "n_i": n_i,

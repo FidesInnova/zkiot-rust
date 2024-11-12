@@ -30,44 +30,44 @@ const PROGRAM_PARAMS_PATH: &str = "data/program_params.json";
 const PROGRAM_COMMITMENT_PATH: &str = "data/program_commitment.json";
 const SETUP_PATH: &str = "data/setup3.json";
 const DEVICE_CONFIG_PATH: &str = "data/device_config.json";
-const CLASS_TABLE: &str = "class_table.json";
+const CLASS_TABLE: &str = "class.json";
 const PROOF_PATH: &str = "data/proof.json";
 
 
 // Declare the arrays from assembly as external variables
 extern "C" {
-    static x0_array: u32;
-    static x1_array: u32;
-    static x2_array: u32;
-    static x3_array: u32;
-    static x4_array: u32;
-    static x5_array: u32;
-    static x6_array: u32;
-    static x7_array: u32;
-    static x8_array: u32;
-    static x9_array: u32;
-    static x10_array: u32;
-    static x11_array: u32;
-    static x12_array: u32;
-    static x13_array: u32;
-    static x14_array: u32;
-    static x15_array: u32;
-    static x16_array: u32;
-    static x17_array: u32;
-    static x18_array: u32;
-    static x19_array: u32;
-    static x20_array: u32;
-    static x21_array: u32;
-    static x22_array: u32;
-    static x23_array: u32;
-    static x24_array: u32;
-    static x25_array: u32;
-    static x26_array: u32;
-    static x27_array: u32;
-    static x28_array: u32;
-    static x29_array: u32;
-    static x30_array: u32;
-    static x31_array: u32;
+    static x0_array: *const u32;
+    static x1_array: *const u32;
+    static x2_array: *const u32;
+    static x3_array: *const u32;
+    static x4_array: *const u32;
+    static x5_array: *const u32;
+    static x6_array: *const u32;
+    static x7_array: *const u32;
+    static x8_array: *const u32;
+    static x9_array: *const u32;
+    static x10_array: *const u32;
+    static x11_array: *const u32;
+    static x12_array: *const u32;
+    static x13_array: *const u32;
+    static x14_array: *const u32;
+    static x15_array: *const u32;
+    static x16_array: *const u32;
+    static x17_array: *const u32;
+    static x18_array: *const u32;
+    static x19_array: *const u32;
+    static x20_array: *const u32;
+    static x21_array: *const u32;
+    static x22_array: *const u32;
+    static x23_array: *const u32;
+    static x24_array: *const u32;
+    static x25_array: *const u32;
+    static x26_array: *const u32;
+    static x27_array: *const u32;
+    static x28_array: *const u32;
+    static x29_array: *const u32;
+    static x30_array: *const u32;
+    static x31_array: *const u32;
 }
 
 // fn get_array(reg_num: u8) -> Vec<u64> {
@@ -130,11 +130,6 @@ extern "C" {
 // Exported for use in assembly
 #[export_name = "proofGenerator"]
 pub fn main_proof_gen() -> Result<()> {
-
-    unsafe { println!("reg_1: {:?}", 
-        x18_array    
-    ) };
-
     // Load files
     let device_config: DeviceConfigJson = read_json_file(DEVICE_CONFIG_PATH)?;
     let class_number = device_config.class;

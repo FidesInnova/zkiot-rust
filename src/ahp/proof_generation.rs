@@ -133,8 +133,8 @@ impl ProofGeneration {
         for i in set_h_2 {
             // Compute the adjusted polynomial wˉ(h) for each element in the subset
 
-            let w_bar_h = (w_hat.eval(*i) - poly_x_hat.eval(*i))
-                * invers_val(van_poly_vh1.eval(*i));
+            let w_bar_h =
+                (w_hat.eval(*i) - poly_x_hat.eval(*i)) * invers_val(van_poly_vh1.eval(*i));
             points_w.push((*i, w_bar_h));
         }
 
@@ -270,8 +270,6 @@ impl ProofGeneration {
             points_col_p_c,
         ]
     }
-
-    
 
     pub fn generate_z_vec(gates: Vec<Gate>, class_data: &ClassDataJson) -> DVector<Mfp> {
         let size = class_data.get_matrix_size();
@@ -793,71 +791,11 @@ impl ProofGeneration {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ProofGenerationJson {
-    commits: Vec<u64>,
-    polys: Vec<Vec<u64>>,
-    sigma: Vec<u64>,
-    values: Vec<u64>,
-    x_vec: Vec<u64>,
-}
-
-impl ProofGenerationJson {
-    pub fn new(proof_data: Box<[AHPData]>) -> Self {
-        let mut commits = vec![];
-        let mut polys = vec![];
-        let mut sigma = vec![];
-        let mut values = vec![];
-        let mut x_vec = vec![];
-
-        for val in proof_data {
-            match val {
-                AHPData::Commit(v) => commits.push(v),
-                AHPData::Value(v) => values.push(v),
-                AHPData::Polynomial(v) => polys.push(v),
-                AHPData::Sigma(v) => sigma.push(v),
-                AHPData::Array(v) => x_vec = v,
-            }
-        }
-
-        Self {
-            commits,
-            polys,
-            sigma,
-            values,
-            x_vec,
-        }
-    }
-
-    pub fn get_x_vec(&self) -> Vec<Mfp> {
-        self.x_vec.iter().map(|v| Mfp::from(*v)).collect()
-    }
-
-    pub fn get_poly(&self, poly: usize) -> Poly {
-        let poly_vec = self.polys[poly]
-            .iter()
-            .rev()
-            .map(|&v| Mfp::from(v))
-            .collect::<Vec<Mfp>>();
-        let mut poly = Poly::from(poly_vec);
-        poly.trim();
-        poly
-    }
-
-    pub fn get_sigma(&self, num: usize) -> Mfp {
-        Mfp::from(self.sigma[num - 1])
-    }
-
-    pub fn get_value(&self, val: usize) -> Mfp {
-        Mfp::from(self.values[val])
-    }
-}
-
 // JSON struct according to Witi (not complete)
-#[derive(Serialize, Deserialize, Debug)]
-struct ProofGenerationJson2 {
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ProofGenerationJson {
     #[serde(rename = "CommitmentID")]
-    commitment_id: u64,
+    commitment_id: String,
 
     #[serde(rename = "DeviceEncodedID")]
     device_encoded_id: String,
@@ -867,6 +805,45 @@ struct ProofGenerationJson2 {
 
     #[serde(rename = "Output")]
     output: String,
+
+    #[serde(rename = "COM1AHP")]
+    com1ahp: Vec<u64>,
+
+    #[serde(rename = "COM2AHP")]
+    com2ahp: u64,
+
+    #[serde(rename = "COM3AHP")]
+    com3ahp: u64,
+
+    #[serde(rename = "COM4AHP")]
+    com4ahp: u64,
+
+    #[serde(rename = "COM5AHP")]
+    com5ahp: u64,
+
+    #[serde(rename = "COM6AHP")]
+    com6ahp: u64,
+
+    #[serde(rename = "COM7AHP")]
+    com7ahp: u64,
+
+    #[serde(rename = "COM8AHP")]
+    com8ahp: u64,
+
+    #[serde(rename = "COM9AHP")]
+    com9ahp: u64,
+
+    #[serde(rename = "COM10AHP")]
+    com10ahp: u64,
+
+    #[serde(rename = "COM11AHP")]
+    com11ahp: u64,
+
+    #[serde(rename = "COM12AHP")]
+    com12ahp: u64,
+
+    #[serde(rename = "COM13AHP")]
+    com13ahp: u64,
 
     #[serde(rename = "P1AHP")]
     p1ahp: u64,
@@ -916,11 +893,14 @@ struct ProofGenerationJson2 {
     #[serde(rename = "P16AHP")]
     p16ahp: u64,
 
+    #[serde(rename = "P17AHP")]
+    p17ahp: u64,
+
     #[serde(rename = "Protocol")]
     protocol: String,
 }
 
-impl ProofGenerationJson2 {
+impl ProofGenerationJson {
     pub fn new(proof_data: Box<[AHPData]>) -> Self {
         let mut commits = vec![];
         let mut polys = vec![];
@@ -941,10 +921,23 @@ impl ProofGenerationJson2 {
         let commitment_id = sha2_hash("concat_vals(DeviceConfig.json)");
 
         Self {
-            commitment_id,
+            commitment_id: commitment_id.to_string(),
             device_encoded_id: "Base64<MAC>".to_owned(),
             input: "None".to_owned(),
             output: "None".to_owned(),
+            com1ahp: x_vec,
+            com2ahp: commits[0],
+            com3ahp: commits[1],
+            com4ahp: commits[2],
+            com5ahp: commits[3],
+            com6ahp: commits[4],
+            com7ahp: commits[5],
+            com8ahp: commits[6],
+            com9ahp: commits[7],
+            com10ahp: commits[8],
+            com11ahp: commits[9],
+            com12ahp: commits[10],
+            com13ahp: commits[11],
             p1ahp: sigma[0],
             p2ahp: polys[0].clone(),
             p3ahp: polys[1].clone(),
@@ -961,25 +954,39 @@ impl ProofGenerationJson2 {
             p14ahp: polys[10].clone(),
             p15ahp: polys[11].clone(),
             p16ahp: values[0],
+            p17ahp: values[1],
             protocol: "None".to_owned(),
         }
     }
 
     pub fn get_x_vec(&self) -> Vec<Mfp> {
-        // self.x_vec.iter().map(|v| Mfp::from(*v)).collect()
-        todo!()
+        self.com1ahp.iter().map(|v| Mfp::from(*v)).collect()
     }
 
     pub fn get_poly(&self, poly: usize) -> Poly {
-        // let poly_vec = self.polys[poly]
-        //     .iter()
-        //     .rev()
-        //     .map(|&v| Mfp::from(v))
-        //     .collect::<Vec<Mfp>>();
-        // let mut poly = Poly::from(poly_vec);
-        // poly.trim();
-        // poly
-        todo!()
+        let polys = vec![
+            &self.p2ahp,
+            &self.p3ahp,
+            &self.p4ahp,
+            &self.p5ahp,
+            &self.p6ahp,
+            &self.p7ahp,
+            &self.p8ahp,
+            &self.p9ahp,
+            &self.p11ahp,
+            &self.p12ahp,
+            &self.p14ahp,
+            &self.p15ahp,
+        ];
+
+        let poly_vec = polys[poly]
+            .iter()
+            .rev()
+            .map(|&v| Mfp::from(v))
+            .collect::<Vec<Mfp>>();
+        let mut poly = Poly::from(poly_vec);
+        poly.trim();
+        poly
     }
 
     pub fn get_sigma(&self, num: usize) -> Mfp {
@@ -991,8 +998,17 @@ impl ProofGenerationJson2 {
         })
     }
 
-    pub fn get_value(&self, val: usize) -> Mfp {
-        // Mfp::from(self.values[val])
-        todo!()
+    /// Retrieves the value associated with the given number.
+    /// Valid inputs: 1 for p16ahp, 2 for p17ahp.
+    /// # Panics
+    /// Panics if the input is not 1 or 2.
+    /// 
+    /// For more details, refer to the [documentation](https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-3-proof-structure)
+    pub fn get_value(&self, num: usize) -> Mfp {
+        Mfp::from(match num {
+            1 => self.p16ahp,
+            2 => self.p17ahp,
+            _ => panic!("Invalid value number"),
+        })
     }
 }

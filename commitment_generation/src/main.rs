@@ -29,7 +29,7 @@ mod generate_program;
 
 const PROGRAM_PARAMS_PATH: &str = "data/program_params.json";
 const PROGRAM_COMMITMENT_PATH: &str = "data/program_commitment.json";
-const CLASS_TABLE: &str = "class_table.json";
+const CLASS_TABLE: &str = "class.json";
 
 /// A program for commitment generation
 #[derive(Parser, Debug)]
@@ -98,7 +98,7 @@ fn main() -> Result<()> {
 
     // Store the commitment data in a JSON file
     commitment
-        .store(PROGRAM_COMMITMENT_PATH)
+        .store(PROGRAM_COMMITMENT_PATH, *class_number, classes_data[class_number])
         .with_context(|| "Error storing commitment data")?;
 
     println!("Commitment file generated successfully");

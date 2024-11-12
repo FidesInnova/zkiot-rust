@@ -44,19 +44,9 @@ use crate::utils::read_json_file;
 use lazy_static::lazy_static;
 /// Define the constant modulus for field operations
 
-const DEVICE_CONFIG_PATH: &str = "data/device_config.json";
-const CLASS_TABLE: &str = "class_table.json";
-
-fn get_p() -> u64 {
-    let device_config: DeviceConfigJson = read_json_file(DEVICE_CONFIG_PATH).unwrap();
-    let class_number = device_config.class;
-    let class_data =
-        ClassDataJson::get_class_data(CLASS_TABLE, class_number).with_context(|| "Error loading class data").unwrap();
-    class_data.p
-}
 
 // static S2: LazyLock<u64> =  LazyLock::new(|| get_p());
-// the S should be JUST u64
+// // the S should be JUST u64
 // static S: u64 = *S2;
 // pub const P: u64 = S;
 pub const P: u64 = 4767673;

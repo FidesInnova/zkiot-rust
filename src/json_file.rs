@@ -51,8 +51,6 @@ pub fn write_term(poly: &Poly) -> Vec<u64> {
     let mut poly = poly.clone();
     poly.trim();
 
-    // let poly_mapped = poly.terms_as_vec().iter().map(|v| (v.1, to_bint!(v.0))).collect::<HashMap<usize, u64>>();
-
     let poly_terms = poly.terms_as_vec();
 
     let max_deg = if let Degree::Num(n) = poly.degree() {

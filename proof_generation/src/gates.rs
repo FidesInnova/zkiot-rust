@@ -294,37 +294,37 @@ vec![
     Gate {
         val_left: None,
         val_right: Some(
-            5,
+            12,
         ),
-        reg_left: 0,
-        reg_right: 0,
+        reg_left: 18,
+        reg_right: 18,
         gate_type: Addi,
     },
     Gate {
         val_left: None,
         val_right: Some(
-            2,
+            12,
         ),
-        reg_left: 1,
-        reg_right: 1,
-        gate_type: Mul,
-    },
-    Gate {
-        val_left: None,
-        val_right: Some(
-            10,
-        ),
-        reg_left: 1,
-        reg_right: 1,
+        reg_left: 18,
+        reg_right: 18,
         gate_type: Addi,
     },
     Gate {
         val_left: None,
         val_right: Some(
-            7,
+            12,
         ),
-        reg_left: 0,
-        reg_right: 0,
-        gate_type: Mul,
+        reg_left: 18,
+        reg_right: 18,
+        gate_type: Addi,
+    },
+    Gate {
+        val_left: None,
+        val_right: Some(
+            12,
+        ),
+        reg_left: 18,
+        reg_right: 18,
+        gate_type: Addi,
     },
 ]

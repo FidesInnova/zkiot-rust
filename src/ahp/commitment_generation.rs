@@ -43,7 +43,11 @@ pub struct Commitment {
     pub set_k: Vec<Mfp>,
     pub numebr_t_zero: usize,
     pub matrices: Matrices,
+
+    /// row, col, val
     pub polys_px: Vec<Poly>,
+
+    /// val, row, col
     pub points_px: Vec<HashMap<Mfp, Mfp>>,
 }
 
@@ -83,11 +87,11 @@ impl Commitment {
     }
 
     /// Store in Json file
-    pub fn store(&self, path: &str) -> Result<()> {
+    pub fn store(&self, path: &str, class_number: u8, class: ClassDataJson) -> Result<()> {
         let file = File::create(path)?;
         let writer = BufWriter::new(file);
 
-        let commitment_json = CommitmentJson::new(&self.polys_px);
+        let commitment_json = CommitmentJson::new(&self.polys_px, class_number, class);
         serde_json::to_writer(writer, &commitment_json)?;
         Ok(())
     }
@@ -98,19 +102,132 @@ impl Commitment {
     }
 }
 
+// #[derive(Debug, Clone, Deserialize, Serialize)]
+// /// A struct representing a commitment in JSON format, containing points and polynomial data.
+// pub struct CommitmentJson {
+//     polys_px: Vec<Vec<u64>>,
+// }
+// impl CommitmentJson {
+//     pub fn new(polys_px: &Vec<Poly>, class_number: u8, class: ClassDataJson) -> Self {
+//         // Extract values for CommitmentJson from the Commitment struct
+//         let polys_px_t: Vec<Vec<u64>> = polys_px.iter().map(|p| write_term(p)).collect();
+
+//         Self {
+//             polys_px: polys_px_t,
+//         }
+//     }
+
+//     /// Retrieves the polynomial data as a vector of `Poly` instances.
+//     ///
+//     /// # Returns
+//     /// A vector of `Poly` objects constructed from the polynomial coefficients stored in `polys_px`.
+//     pub fn get_polys_px(&self) -> Vec<Poly> {
+//         self.polys_px
+//             .iter()
+//             .map(|v| {
+//                 let mut poly =
+//                     Poly::from(v.iter().rev().map(|&t| Mfp::from(t)).collect::<Vec<Mfp>>());
+//                 poly.trim();
+//                 poly
+//             })
+//             .collect()
+//     }
+// }
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 /// A struct representing a commitment in JSON format, containing points and polynomial data.
 pub struct CommitmentJson {
-    polys_px: Vec<Vec<u64>>,
+    #[serde(rename = "commitmentID")]
+    commitment_id: String,
+
+    #[serde(rename = "IoT_Manufacturer_Name")]
+    iot_manufacturer_name: String,
+
+    #[serde(rename = "IoT_Device_Name")]
+    iot_device_name: String,
+
+    #[serde(rename = "Device_Hardware_Version")]
+    device_hardware_version: String,
+
+    #[serde(rename = "Firmware_Version")]
+    firmware_version: String,
+
+    #[serde(rename = "Class")]
+    class: u8,
+
+    m: u64,
+    n: u64,
+    p: u64,
+    g: u64,
+
+    #[serde(rename = "RowA")]
+    row_a: Vec<u64>,
+
+    #[serde(rename = "ColA")]
+    col_a: Vec<u64>,
+
+    #[serde(rename = "ValA")]
+    val_a: Vec<u64>,
+
+    #[serde(rename = "RowB")]
+    row_b: Vec<u64>,
+
+    #[serde(rename = "ColB")]
+    col_b: Vec<u64>,
+
+    #[serde(rename = "ValB")]
+    val_b: Vec<u64>,
+
+    #[serde(rename = "RowC")]
+    row_c: Vec<u64>,
+
+    #[serde(rename = "ColC")]
+    col_c: Vec<u64>,
+
+    #[serde(rename = "ValC")]
+    val_c: Vec<u64>,
+
+    #[serde(rename = "Curve")]
+    curve: String,
+
+    #[serde(rename = "PolynomialCommitment")]
+    polynomial_commitment: String,
 }
+
 impl CommitmentJson {
-    pub fn new(polys_px: &Vec<Poly>) -> Self {
+    pub fn new(polys_px: &Vec<Poly>, class_number: u8, class: ClassDataJson) -> Self {
         // Extract values for CommitmentJson from the Commitment struct
         let polys_px_t: Vec<Vec<u64>> = polys_px.iter().map(|p| write_term(p)).collect();
 
         Self {
-            polys_px: polys_px_t,
+            commitment_id: "123456789".to_string(),
+            iot_manufacturer_name: "FidesInnova".to_string(),
+            iot_device_name: "test".to_string(),
+            device_hardware_version: "1".to_string(),
+            firmware_version: "2".to_string(),
+            class: class_number,
+            m: class.m,
+            n: class.n,
+            p: class.p,
+            g: class.g,
+            row_a: polys_px_t[0].clone(),
+            col_a: polys_px_t[1].clone(),
+            val_a: polys_px_t[2].clone(),
+            row_b: polys_px_t[3].clone(),
+            col_b: polys_px_t[4].clone(),
+            val_b: polys_px_t[5].clone(),
+            row_c: polys_px_t[6].clone(),
+            col_c: polys_px_t[7].clone(),
+            val_c: polys_px_t[8].clone(),
+            curve: "bn128".to_string(),
+            polynomial_commitment: "KZG".to_string(),
         }
+    }
+
+    fn convert_poly(v: &Vec<u64>) -> Poly {
+        let mut poly = Poly::from(v.iter().rev().map(|&t| Mfp::from(t)).collect::<Vec<Mfp>>());
+        poly.trim();
+        poly
     }
 
     /// Retrieves the polynomial data as a vector of `Poly` instances.
@@ -118,15 +235,17 @@ impl CommitmentJson {
     /// # Returns
     /// A vector of `Poly` objects constructed from the polynomial coefficients stored in `polys_px`.
     pub fn get_polys_px(&self) -> Vec<Poly> {
-        self.polys_px
-            .iter()
-            .map(|v| {
-                let mut poly =
-                    Poly::from(v.iter().rev().map(|&t| Mfp::from(t)).collect::<Vec<Mfp>>());
-                poly.trim();
-                poly
-            })
-            .collect()
+        vec![
+            Self::convert_poly(&self.row_a),
+            Self::convert_poly(&self.col_a),
+            Self::convert_poly(&self.val_a),
+            Self::convert_poly(&self.row_b),
+            Self::convert_poly(&self.col_b),
+            Self::convert_poly(&self.val_b),
+            Self::convert_poly(&self.row_c),
+            Self::convert_poly(&self.col_c),
+            Self::convert_poly(&self.val_c),
+        ]
     }
 }
 
@@ -214,13 +333,12 @@ impl CommitmentBuilder {
 
             // println!("diff ==> {} <-> {}", inx_left,  gate.reg_left);
             // println!("diff ==> {} <-> {}", inx_right,  gate.reg_right);
-            
+
             // TODO: Uncomment when proof is fixed
             // inx_left = gate.reg_left as usize;
             // inx_left = gate.reg_right as usize;
 
             Self::add_val(&mut regs_data, gate, gate.gate_type, &mut val_counter);
-
 
             // Set left and right values
             let left_val = if let Some(val) = gate.val_left {
@@ -331,11 +449,14 @@ impl CommitmentBuilder {
         let set_k = &self.commitm.set_k;
 
         // Collect row, column, and value points from matrix A
-        let (points_row_p_a, points_col_p_a, points_val_p_a) = get_matrix_points(&self.commitm.matrices.a, set_h, set_k);
+        let (points_row_p_a, points_col_p_a, points_val_p_a) =
+            get_matrix_points(&self.commitm.matrices.a, set_h, set_k);
         // Collect row, column, and value points from matrix B
-        let (points_row_p_b, points_col_p_b, points_val_p_b) = get_matrix_points(&self.commitm.matrices.b, set_h, set_k);
+        let (points_row_p_b, points_col_p_b, points_val_p_b) =
+            get_matrix_points(&self.commitm.matrices.b, set_h, set_k);
         // Collect row, column, and value points from matrix C.
-        let (points_row_p_c, points_col_p_c, points_val_p_c) = get_matrix_points(&self.commitm.matrices.c, set_h, set_k);
+        let (points_row_p_c, points_col_p_c, points_val_p_c) =
+            get_matrix_points(&self.commitm.matrices.c, set_h, set_k);
 
         let a_row_px = sigma_yi_li(&points_row_p_a, &self.commitm.set_k);
         println_dbg!("a_row_px: ");
