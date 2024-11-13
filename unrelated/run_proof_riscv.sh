@@ -10,7 +10,7 @@ export QEMU_LD_PREFIX=/usr/riscv64-linux-gnu
 cd proof_generation && \
 # Build the project for the RISC-V architecture
 cargo build --target riscv64gc-unknown-linux-gnu && \
-cargo rustc --lib --target riscv64gc-unknown-linux-gnu -- --emit=asm && \
+cargo rustc --bin proof_generation --target riscv64gc-unknown-linux-gnu -- --emit=asm && \
 
 cd ../ && \
 # Execute the compiled proof_generation binary using QEMU for RISC-V

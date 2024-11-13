@@ -83,6 +83,7 @@ impl Setup {
 /// Struct for JSON serialization and deserialization of setup data
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetupJson {
+    #[serde(rename = "Class")]
     class: u8,         // Class identifier
     ck: Vec<u64>,      // Commitment keys
     vk: u64,           // Verifying key

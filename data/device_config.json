@@ -1,5 +1,5 @@
 {
-    "class": 2,
+    "Class": 2,
     "iot_manufacturer_name": "TrustSense",
     "iot_device_name": "zk-MultiSensor",
     "device_hardware_version": "1.0",
