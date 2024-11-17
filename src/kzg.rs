@@ -22,6 +22,7 @@ use crate::math::Poly;
 use crate::to_bint;
 
 pub fn setup(max: u64, tau: u64, p: u64, g: u64) -> Vec<Mfp> {
+    // Random number 
     let tau = tau % (p - 1);
     let mut tmp = Mfp::from(g);
 

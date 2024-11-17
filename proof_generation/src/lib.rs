@@ -148,9 +148,6 @@ pub fn main_proof_gen() -> Result<()> {
 
     // TODO: Implement logic to read from registers and potentially generate vector z here
 
-    // Temporary hardcoded gates for initial testing; will replace with dynamic reading from registers in the future
-    let gates = include!("gates.rs");
-
     // Load matrices
     let program_params = ProgramParamsJson::restore(PROGRAM_PARAMS_PATH)?;
 
@@ -161,7 +158,6 @@ pub fn main_proof_gen() -> Result<()> {
         class_data,
         program_params,
         commitment_json,
-        gates,
     );
 
     // Store the generated proof data in a JSON file

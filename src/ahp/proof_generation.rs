@@ -271,24 +271,25 @@ impl ProofGeneration {
         ]
     }
 
-    pub fn generate_z_vec(gates: Vec<Gate>, class_data: &ClassDataJson) -> DVector<Mfp> {
+    pub fn generate_z_vec(class_data: &ClassDataJson) -> DVector<Mfp> {
         let size = class_data.get_matrix_size();
-        let mut regs_data: HashMap<u8, RegData> = HashMap::new();
-        let mut _index = 0;
-        let mut val_counter: usize = 0;
-        for (_, gate) in gates.iter().enumerate() {
-            if gate.gate_type == Instructions::Ld {
-                let right_val = gate.val_right.map_or(Mfp::ZERO, Mfp::from);
-                match regs_data.contains_key(&gate.reg_right) {
-                    true => panic!("The register has been loaded again!"),
-                    false => regs_data.insert(gate.reg_right, RegData::new(right_val)),
-                };
-                continue;
-            }
-            CommitmentBuilder::add_val(&mut regs_data, gate, gate.gate_type, &mut val_counter);
+        let mut z_vec: DVector<Mfp> = DVector::zeros(size);
+        let vals = vec![
+            1, // One
+            0, 7, 11, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // X: Init 0-16
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // X: Init 16-32
+            12, 22, // W: Witneses
+            84, 32, // Y: Last vals
+        ]
+        .iter()
+        .map(|v| Mfp::from(*v))
+        .collect::<Vec<Mfp>>();
+
+        println!("val len: {}", vals.len());
+
+        for (i, z) in vals.iter().enumerate() {
+            z_vec[(i, 0)] = *z;
         }
-        let mut z_vec = DVector::zeros(size);
-        Self::z_vec_organize(&mut z_vec, &regs_data);
 
         println_dbg!("Mat Z Proof:");
         dsp_mat!(z_vec);
@@ -338,7 +339,6 @@ impl ProofGeneration {
         class_data: ClassDataJson,
         program_params: ProgramParamsJson,
         commitment_json: CommitmentJson,
-        gates: Vec<Gate>,
     ) -> Box<[AHPData]> {
         // Generate sets
         let set_h = generate_set(class_data.n, class_data);
@@ -347,7 +347,7 @@ impl ProofGeneration {
         let numebr_t_zero = class_data.get_matrix_t_zeros();
         let matrices = program_params.get_matrices(&class_data);
         let (mat_a, mat_b, mat_c) = matrices.clone();
-        let z_vec = Self::generate_z_vec(gates, &class_data);
+        let z_vec = Self::generate_z_vec(&class_data);
         let points_px = program_params.get_points_px(&set_k);
         let x_vec = &mat_to_vec(&z_vec)[..numebr_t_zero];
 
@@ -1002,7 +1002,7 @@ impl ProofGenerationJson {
     /// Valid inputs: 1 for p16ahp, 2 for p17ahp.
     /// # Panics
     /// Panics if the input is not 1 or 2.
-    /// 
+    ///
     /// For more details, refer to the [documentation](https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-3-proof-structure)
     pub fn get_value(&self, num: usize) -> Mfp {
         Mfp::from(match num {

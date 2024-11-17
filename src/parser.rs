@@ -127,9 +127,10 @@ pub enum Instructions {
 pub struct Gate {
     pub val_left: Option<u64>,
     pub val_right: Option<u64>,
+    pub des_reg: u8,
     pub reg_left: u8,
     pub reg_right: u8,
-    pub gate_type: Instructions,
+    pub instr: Instructions,
 }
 
 impl Gate {
@@ -151,6 +152,7 @@ impl Gate {
     pub fn new(
         val_left: Option<u64>,
         val_right: Option<u64>,
+        des_reg: u8,
         reg_left: u8,
         reg_right: u8,
         gate_type: Instructions,
@@ -158,9 +160,10 @@ impl Gate {
         Self {
             val_left,
             val_right,
+            des_reg,
             reg_left,
             reg_right,
-            gate_type,
+            instr: gate_type,
         }
     }
 }
@@ -231,13 +234,12 @@ pub fn match_reg(reg: &str) -> Option<u8> {
     Some(res)
 }
 
-fn register_parser(reg: Vec<&str>) -> (u8, u8) {
-    let left_reg = match_reg(reg[0]).expect(format!("Invalid left register: {}", reg[0]).as_str());
+fn register_parser(reg: Vec<&str>) -> (u8, u8, u8) {
     println_dbg!("reg --> {:?}, {:?}", reg[1], reg[2]);
-    let right_reg = match_reg(reg[1]).unwrap_or_else( ||
-        match_reg(reg[2]).expect(format!("Invalid right register: {}", reg[2]).as_str())
-    );
-    (left_reg, right_reg)
+    let ds_reg = match_reg(reg[0]).expect(format!("Invalid left register: {}", reg[0]).as_str());
+    let left_reg = match_reg(reg[1]).expect(format!("Invalid left register: {}", reg[1]).as_str());
+    let right_reg = match_reg(reg[2]).expect(format!("Invalid left register: {}", reg[2]).as_str());
+    (ds_reg, left_reg, right_reg)
 }
 
 #[derive(Debug)]
@@ -293,6 +295,7 @@ pub fn parse_from_lines(line_file: Vec<usize>, opcodes_file: &PathBuf) -> Result
             constant_right,
             reg_data.0,
             reg_data.1,
+            reg_data.2,
             gate_type,
         );
 

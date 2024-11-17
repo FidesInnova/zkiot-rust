@@ -540,14 +540,14 @@ _ZN16proof_generation4main17h92c5237958f168d4E:
 	.loc	12 28 9 prologue_end
 	#APP
     jal store_register_instances
-	addi	s2, s2, 12
-    sw x18, x18_array(4)
-	addi	s2, s2, 12
-    sw x18, x18_array(8)
-	addi	s2, s2, 12
-    sw x18, x18_array(12)
-	addi	s2, s2, 12
-    sw x18, x18_array(16)
+	addi	ra, sp, gp
+    sw x1, x1_array(4)
+	mul		sp, gp, tp
+    sw x2, x2_array(4)
+	mul		sp, ra, t0
+    sw x2, x2_array(8)
+	mul		t2, t2, t2
+    sw x7, x7_array(4)
     jal proofGenerator
 	#NO_APP
 	.loc	12 37 5
@@ -5403,13 +5403,13 @@ DW.ref.rust_eh_personality:
 .Lline_table_start0:
     .data
 x0_array:    .space 4   # Array for x0
-x1_array:    .space 4   # Array for x1
-x2_array:    .space 4   # Array for x2
+x1_array:    .space 8   # Array for x1
+x2_array:    .space 12   # Array for x2
 x3_array:    .space 4   # Array for x3
 x4_array:    .space 4   # Array for x4
 x5_array:    .space 4   # Array for x5
 x6_array:    .space 4   # Array for x6
-x7_array:    .space 4   # Array for x7
+x7_array:    .space 8   # Array for x7
 x8_array:    .space 4   # Array for x8
 x9_array:    .space 4   # Array for x9
 x10_array:    .space 4   # Array for x10
@@ -5420,7 +5420,7 @@ x14_array:    .space 4   # Array for x14
 x15_array:    .space 4   # Array for x15
 x16_array:    .space 4   # Array for x16
 x17_array:    .space 4   # Array for x17
-x18_array:    .space 20   # Array for x18
+x18_array:    .space 4   # Array for x18
 x19_array:    .space 4   # Array for x19
 x20_array:    .space 4   # Array for x20
 x21_array:    .space 4   # Array for x21

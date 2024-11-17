@@ -49,7 +49,7 @@ use lazy_static::lazy_static;
 // // the S should be JUST u64
 // static S: u64 = *S2;
 // pub const P: u64 = S;
-pub const P: u64 = 4767673;
+pub const P: u64 = 1678321;
 
 field!(Mfp, P);
 

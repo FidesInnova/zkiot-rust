@@ -12,7 +12,7 @@ cd proof_generation && \
 cargo build --target riscv64gc-unknown-linux-gnu && \
 cargo rustc --bin proof_generation --target riscv64gc-unknown-linux-gnu -- --emit=asm && \
 
-cd ../ && \
+cd ../ 
 # Execute the compiled proof_generation binary using QEMU for RISC-V
 qemu-riscv64 target/riscv64gc-unknown-linux-gnu/debug/proof_generation && \ 
 

@@ -17,6 +17,7 @@ use ark_ff::Field;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::BufWriter;
 use std::path::PathBuf;
@@ -101,38 +102,6 @@ impl Commitment {
         read_json_file(path)
     }
 }
-
-// #[derive(Debug, Clone, Deserialize, Serialize)]
-// /// A struct representing a commitment in JSON format, containing points and polynomial data.
-// pub struct CommitmentJson {
-//     polys_px: Vec<Vec<u64>>,
-// }
-// impl CommitmentJson {
-//     pub fn new(polys_px: &Vec<Poly>, class_number: u8, class: ClassDataJson) -> Self {
-//         // Extract values for CommitmentJson from the Commitment struct
-//         let polys_px_t: Vec<Vec<u64>> = polys_px.iter().map(|p| write_term(p)).collect();
-
-//         Self {
-//             polys_px: polys_px_t,
-//         }
-//     }
-
-//     /// Retrieves the polynomial data as a vector of `Poly` instances.
-//     ///
-//     /// # Returns
-//     /// A vector of `Poly` objects constructed from the polynomial coefficients stored in `polys_px`.
-//     pub fn get_polys_px(&self) -> Vec<Poly> {
-//         self.polys_px
-//             .iter()
-//             .map(|v| {
-//                 let mut poly =
-//                     Poly::from(v.iter().rev().map(|&t| Mfp::from(t)).collect::<Vec<Mfp>>());
-//                 poly.trim();
-//                 poly
-//             })
-//             .collect()
-//     }
-// }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 /// A struct representing a commitment in JSON format, containing points and polynomial data.
@@ -279,116 +248,85 @@ impl CommitmentBuilder {
     ///
     /// For further details, please refer to the documentation:
     /// [Documentation Link](https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/2-commitment-phase)
-    pub fn gen_matrices(&mut self, gates: Vec<Gate>, number_inputs: usize) -> Self {
+    pub fn gen_matrices(&mut self, gates: Vec<Gate>, ni: usize) -> Self {
         // Initialize matrices A, B, C based on parsed gates
-        let ni = number_inputs;
         let a_mat = &mut self.commitm.matrices.a;
         let b_mat = &mut self.commitm.matrices.b;
         let c_mat = &mut self.commitm.matrices.c;
 
-        let mut regs_data: HashMap<u8, RegData> = HashMap::new();
+        // Map the registers to last index
+        let mut regs_data: HashMap<u8, usize> = HashMap::new();
+        // let mut regs_data_right: HashMap<u8, usize> = HashMap::new();
 
-        let mut _index = 0;
+        let mut _inx = 0;
         let mut counter = 0;
-        let mut inx_left = 0;
-        let mut inx_right = 0;
-        let mut val_counter: usize = 0;
+        // Left index
+        let mut _li = 0;
+        // Right index
+        let mut _ri = 0;
+
+        let mut index_regs: Vec<(u8, usize, usize)> = Vec::new();
+
+        for (i, gate) in gates.iter().enumerate() {
+            // Set index
+            _inx = 1 + ni + i;
+
+            // Update index
+            (_li, _ri) = Self::get_register_index(&mut regs_data, gate.reg_left, gate.reg_right, gate.des_reg, _inx);
+
+            index_regs.push((gate.des_reg, _li, _ri));
+        }
+
+        for (i, val) in index_regs.iter().enumerate() {
+            println!("{i}: {} {} {}", val.0, val.1, val.2);
+        }
 
         for (_, gate) in gates.iter().enumerate() {
-            if !regs_data.contains_key(&gate.reg_right) {
-                regs_data.insert(gate.reg_right, RegData::new(Mfp::ONE));
-            }
-
             println_dbg!("Gate Loop: {} ------------", counter);
-            println_dbg!("Register: {}", gate.reg_left);
-
+            
             // Set index
-            _index = 1 + ni + counter;
+            _inx = 1 + ni + counter;
 
-            inx_left = if !regs_data.get(&gate.reg_left).unwrap().witness.is_empty() {
-                let inx = (0..=gate.reg_left).fold(0, |acc, x| {
-                    acc + regs_data
-                        .get(&x)
-                        .unwrap_or(&RegData::new(Mfp::ZERO))
-                        .witness
-                        .len()
-                }) + ni;
-                inx
-            } else {
-                inx_left + 1
-            };
+            // Update index
+            (_li, _ri) = Self::get_register_index(&mut regs_data, gate.reg_left, gate.reg_right, gate.des_reg, _inx);
 
-            inx_right = if !regs_data.get(&gate.reg_right).unwrap().witness.is_empty() {
-                let inx = (0..=gate.reg_right).fold(0, |acc, x| {
-                    acc + regs_data
-                        .get(&x)
-                        .unwrap_or(&RegData::new(Mfp::ZERO))
-                        .witness
-                        .len()
-                }) + ni;
-                inx
-            } else {
-                inx_right + 1
-            };
+            // Get left and right values (index is zero if value exists)
+            let left_val = Self::get_mfp_value(gate.val_left, &mut _li);
+            let right_val = Self::get_mfp_value(gate.val_right, &mut _ri);
 
-            // println!("diff ==> {} <-> {}", inx_left,  gate.reg_left);
-            // println!("diff ==> {} <-> {}", inx_right,  gate.reg_right);
+            println_dbg!("li: {_li}");
+            println_dbg!("ri: {_ri}");
 
-            // TODO: Uncomment when proof is fixed
-            // inx_left = gate.reg_left as usize;
-            // inx_left = gate.reg_right as usize;
+            c_mat[(_inx, _inx)] = Mfp::ONE;
+            println_dbg!("C[{}, {}] = 1", _inx, _inx);
 
-            Self::add_val(&mut regs_data, gate, gate.gate_type, &mut val_counter);
 
-            // Set left and right values
-            let left_val = if let Some(val) = gate.val_left {
-                inx_left = 0; // Set index to zero if value exists
-                println_dbg!("* left:  index = 0    , val = {}", val);
-                Mfp::from(val)
-            } else {
-                println_dbg!("* left:  index = {:<5}, val = None = 1", inx_left);
-                Mfp::ONE
-            };
-            let right_val = if let Some(val) = gate.val_right {
-                inx_right = 0; // Set index to zero if value exists
-                println_dbg!("* right: index = 0    , val = {}", val);
-                Mfp::from(val)
-            } else {
-                println_dbg!("* right: index = {:<5}, val = None = 1", inx_right);
-                Mfp::ONE
-            };
-
-            c_mat[(_index, _index)] = Mfp::ONE;
-            println_dbg!("C[{}, {}] = 1", _index, _index);
-
-            match gate.gate_type {
+            match gate.instr {
                 Instructions::Addi => {
                     println_dbg!("Gate: Add");
-                    println_dbg!("A[{}, 0] = 1", _index);
-                    a_mat[(_index, 0)] = Mfp::ONE;
+                    println_dbg!("A[{}, 0] = 1", _inx);
+                    a_mat[(_inx, 0)] = Mfp::ONE;
 
-                    println_dbg!("Left:  B[{}, {}] = {}", _index, inx_left, left_val);
-                    b_mat[(_index, inx_left)] = left_val;
+                    println_dbg!("Left:  B[{}, {}] = {}", _inx, _li, left_val);
+                    b_mat[(_inx, _li)] = left_val;
 
-                    println_dbg!("Right: B[{}, {}] = {}", _index, inx_right, right_val);
-                    b_mat[(_index, inx_right)] = right_val;
+                    println_dbg!("Right: B[{}, {}] = {}", _inx, _ri, right_val);
+                    b_mat[(_inx, _ri)] = right_val;
                 }
                 Instructions::Mul => {
                     println_dbg!("Gate: Mul");
-                    println_dbg!("Left:  A[{}, {}] = {}", _index, inx_left, left_val);
-                    a_mat[(_index, inx_left)] = left_val;
+                    println_dbg!("Left:  A[{}, {}] = {}", _inx, _li, left_val);
+                    a_mat[(_inx, _li)] = left_val;
 
-                    println_dbg!("Right: B[{}, {}] = {}", _index, inx_right, right_val);
-                    b_mat[(_index, inx_right)] = right_val;
+                    println_dbg!("Right: B[{}, {}] = {}", _inx, _ri, right_val);
+                    b_mat[(_inx, _ri)] = right_val;
                 }
-                _ => panic!("Invalid gate {:?}", gate.gate_type),
+                _ => panic!("Invalid gate {:?}", gate.instr),
             }
             counter += 1;
         }
 
-        // Set specific rows in matrices A, B, C to zero
-        rows_to_zero(&mut self.commitm.matrices.a, self.commitm.numebr_t_zero);
-        rows_to_zero(&mut self.commitm.matrices.b, self.commitm.numebr_t_zero);
+        // Set specific rows in matrix C to zero
         rows_to_zero(&mut self.commitm.matrices.c, self.commitm.numebr_t_zero);
 
         // Print matrices if the program is compiled in debug mode
@@ -400,6 +338,50 @@ impl CommitmentBuilder {
         dsp_mat!(self.commitm.matrices.c);
 
         self.clone()
+    }
+
+    fn get_register_index(
+        regs_data: &mut HashMap<u8, usize>, 
+        l_reg: u8, 
+        r_reg: u8, 
+        des: u8, 
+        inx: usize
+    ) -> (usize, usize) {
+        println!("=>> {des} {l_reg} {r_reg}");
+        let li = if regs_data.contains_key(&l_reg) {
+            let inx_new = *regs_data.get(&l_reg).unwrap();
+            regs_data.insert(des, inx);
+            inx_new
+        } else {
+            l_reg as usize
+        };
+
+        let ri = if regs_data.contains_key(&r_reg) {
+            let inx_new = *regs_data.get(&l_reg).unwrap();
+            regs_data.insert(des, inx);
+            inx_new
+        } else {
+            r_reg as usize
+        };
+
+
+        if !regs_data.contains_key(&des) {
+            regs_data.insert(des, inx);
+        }
+
+        (li, ri)
+    }
+
+    /// Helper function to get Mfp value and index
+    fn get_mfp_value(val: Option<u64>, index: &mut usize) -> Mfp {
+        if let Some(v) = val {
+            *index = 0; // Set index to zero if value exists
+            println_dbg!("* index = 0, val = {}", v);
+            Mfp::from(v)
+        } else {
+            println_dbg!("* index = {:<5}, val = None = 1", *index);
+            Mfp::ONE
+        }
     }
 
     pub fn add_val(
