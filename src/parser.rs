@@ -196,8 +196,8 @@ pub fn parse_line(line: &str, index: usize) -> Result<(&str, Vec<&str>)> {
 }
 
 pub fn match_reg(reg: &str) -> Option<u8> {
-    // TODO: Add zero?
     let res = match reg.to_lowercase().as_str() {
+        "zero" => 0,
         "ra" => 1,   // x1 - Return address
         "sp" => 2,   // x2 - Stack pointer
         "gp" => 3,   // x3 - Global pointer
@@ -235,10 +235,23 @@ pub fn match_reg(reg: &str) -> Option<u8> {
 }
 
 fn register_parser(reg: Vec<&str>) -> (u8, u8, u8) {
-    println_dbg!("reg --> {:?}, {:?}", reg[1], reg[2]);
-    let ds_reg = match_reg(reg[0]).expect(format!("Invalid left register: {}", reg[0]).as_str());
-    let left_reg = match_reg(reg[1]).expect(format!("Invalid left register: {}", reg[1]).as_str());
-    let right_reg = match_reg(reg[2]).expect(format!("Invalid left register: {}", reg[2]).as_str());
+    println_dbg!("reg --> {:?}, {:?}, {:?}", reg[0], reg[1], reg[2]);
+    
+    let ds_reg = match_reg(reg[0]).unwrap_or_else(|| {
+        reg[0].parse::<u64>().expect(format!("Invalid left register: {}", reg[0]).as_str()); 
+        0
+    });
+    
+    let left_reg = match_reg(reg[1]).unwrap_or_else(|| {
+        reg[1].parse::<u64>().expect(format!("Invalid left register: {}", reg[1]).as_str()); 
+        0
+    });
+
+    let right_reg = match_reg(reg[2]).unwrap_or_else(|| {
+        reg[2].parse::<u64>().expect(format!("Invalid left register: {}", reg[2]).as_str()); 
+        0
+    });
+
     (ds_reg, left_reg, right_reg)
 }
 

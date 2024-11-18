@@ -539,11 +539,19 @@ _ZN16proof_generation4main17h92c5237958f168d4E:
 .Ltmp55:
 	.loc	12 28 9 prologue_end
 	#APP
+	addi	zero, zero, 5
+	mul		ra, ra, 2
+	addi	sp, ra, 10
+	mul		zero, zero, 7
+	#NO_APP
+	#APP1
 	addi	ra, sp, gp
 	mul		sp, gp, tp
 	mul		sp, ra, t0
-	mul		t2, t2, t2
-	#NO_APP
+	mul		ra, sp, sp
+	addi	ra, ra, 5
+	addi	gp, sp, ra
+	addi 	ra, gp, gp
 	.loc	12 37 5
 	call	proofGenerator
 	call	_ZN79_$LT$core..result..Result$LT$T$C$E$GT$$u20$as$u20$core..ops..try_trait..Try$GT$6branch17h8c8033d2b111120eE

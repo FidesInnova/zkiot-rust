@@ -276,10 +276,10 @@ impl ProofGeneration {
         let mut z_vec: DVector<Mfp> = DVector::zeros(size);
         let vals = vec![
             1, // One
-            0, 7, 11, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // X: Init 0-16
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // X: Init 16-32
+            7, 11, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // X: Init 0-16
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // X: Init 16-32
             12, 22, // W: Witneses
-            84, 32, // Y: Last vals
+            32, 84, // Y: Last vals
         ]
         .iter()
         .map(|v| Mfp::from(*v))
@@ -295,42 +295,6 @@ impl ProofGeneration {
         dsp_mat!(z_vec);
 
         z_vec
-    }
-
-    fn z_vec_organize(z_vec: &mut DVector<Mfp>, regs_data: &HashMap<u8, RegData>) {
-        z_vec[(0, 0)] = Mfp::ONE;
-        let mut z_vec_counter: usize = 1;
-
-        let mut witnesses: Vec<(usize, Mfp)> = vec![];
-        let mut final_val = vec![];
-        for reg in 0..32 {
-            if regs_data.contains_key(&reg) {
-                let data = regs_data.get(&reg).unwrap();
-                // println_dbg!("data here ==> {:?}", data);
-                z_vec[(z_vec_counter, 0)] = data.init_val;
-                z_vec_counter += 1;
-                let mut witness = data.witness.clone();
-                if witness.is_empty() {
-                    continue;
-                }
-                let last_val = witness.pop().unwrap();
-                witnesses.extend(witness.iter());
-                final_val.push(last_val.1);
-            }
-        }
-
-        witnesses.sort();
-
-        for w in witnesses {
-            z_vec[(z_vec_counter, 0)] = w.1;
-            // println!("w: {}", w);
-            z_vec_counter += 1;
-        }
-
-        for f in final_val.iter().rev() {
-            z_vec[(z_vec_counter, 0)] = *f;
-            z_vec_counter += 1;
-        }
     }
 
     pub fn generate_proof(

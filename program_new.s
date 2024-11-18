@@ -540,16 +540,24 @@ _ZN16proof_generation4main17h92c5237958f168d4E:
 	.loc	12 28 9 prologue_end
 	#APP
     jal store_register_instances
-	addi	ra, sp, gp
+	addi	zero, zero, 5
+    sw x0, x0_array(4)
+	mul		ra, ra, 2
     sw x1, x1_array(4)
-	mul		sp, gp, tp
+	addi	sp, ra, 10
     sw x2, x2_array(4)
-	mul		sp, ra, t0
-    sw x2, x2_array(8)
-	mul		t2, t2, t2
-    sw x7, x7_array(4)
+	mul		zero, zero, 7
+    sw x0, x0_array(8)
     jal proofGenerator
 	#NO_APP
+	#APP1
+	addi	ra, sp, gp
+	mul		sp, gp, tp
+	mul		sp, ra, t0
+	mul		ra, sp, sp
+	addi	ra, ra, 5
+	addi	gp, sp, ra
+	addi 	ra, gp, gp
 	.loc	12 37 5
 	call	proofGenerator
 	call	_ZN79_$LT$core..result..Result$LT$T$C$E$GT$$u20$as$u20$core..ops..try_trait..Try$GT$6branch17h8c8033d2b111120eE
@@ -5402,14 +5410,14 @@ DW.ref.rust_eh_personality:
 	.section	.debug_line,"",@progbits
 .Lline_table_start0:
     .data
-x0_array:    .space 4   # Array for x0
+x0_array:    .space 12   # Array for x0
 x1_array:    .space 8   # Array for x1
-x2_array:    .space 12   # Array for x2
+x2_array:    .space 8   # Array for x2
 x3_array:    .space 4   # Array for x3
 x4_array:    .space 4   # Array for x4
 x5_array:    .space 4   # Array for x5
 x6_array:    .space 4   # Array for x6
-x7_array:    .space 8   # Array for x7
+x7_array:    .space 4   # Array for x7
 x8_array:    .space 4   # Array for x8
 x9_array:    .space 4   # Array for x9
 x10_array:    .space 4   # Array for x10

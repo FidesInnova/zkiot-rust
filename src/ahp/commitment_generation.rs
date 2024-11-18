@@ -265,22 +265,6 @@ impl CommitmentBuilder {
         // Right index
         let mut _ri = 0;
 
-        let mut index_regs: Vec<(u8, usize, usize)> = Vec::new();
-
-        for (i, gate) in gates.iter().enumerate() {
-            // Set index
-            _inx = 1 + ni + i;
-
-            // Update index
-            (_li, _ri) = Self::get_register_index(&mut regs_data, gate.reg_left, gate.reg_right, gate.des_reg, _inx);
-
-            index_regs.push((gate.des_reg, _li, _ri));
-        }
-
-        for (i, val) in index_regs.iter().enumerate() {
-            println!("{i}: {} {} {}", val.0, val.1, val.2);
-        }
-
         for (_, gate) in gates.iter().enumerate() {
             println_dbg!("Gate Loop: {} ------------", counter);
             
@@ -348,20 +332,21 @@ impl CommitmentBuilder {
         inx: usize
     ) -> (usize, usize) {
         println!("=>> {des} {l_reg} {r_reg}");
+        
         let li = if regs_data.contains_key(&l_reg) {
             let inx_new = *regs_data.get(&l_reg).unwrap();
             regs_data.insert(des, inx);
             inx_new
         } else {
-            l_reg as usize
+            l_reg as usize + 1
         };
 
         let ri = if regs_data.contains_key(&r_reg) {
-            let inx_new = *regs_data.get(&l_reg).unwrap();
+            let inx_new = *regs_data.get(&r_reg).unwrap();
             regs_data.insert(des, inx);
             inx_new
         } else {
-            r_reg as usize
+            r_reg as usize + 1
         };
 
 
@@ -499,3 +484,53 @@ impl CommitmentBuilder {
         }
     }
 }
+
+
+/*
+
+let mut witness_counter = 0;
+        let mut index_reg: Vec<u8> = vec![];
+        let mut index_last: HashMap<u8, usize> = HashMap::new();
+        let mut index_regs: Vec<(u8, usize, usize)> = Vec::new();
+
+        for (ii, gate) in gates.iter().enumerate() {
+            println_dbg!("Loop: {}", ii + 1);
+            let des = gate.des_reg;
+
+            let mut new_add = false;
+            if index_reg.contains(&des) {
+                let inx = index_reg.iter().position(|v| *v == des).unwrap();
+                index_reg.remove(inx);
+                witness_counter += 1;
+            } else {
+                new_add = true;
+            }
+            index_reg.push(des);
+
+            _li = if let Some(i) = index_reg.iter().position(|v| *v == gate.reg_left) {
+                if !new_add {
+                    i + witness_counter + ni + 1
+                } else {
+                    gate.reg_left.into()
+                }
+            } else {
+                gate.reg_left.into()
+            };
+
+            _ri = if let Some(i) = index_reg.iter().position(|v| *v == gate.reg_right) {
+                if !new_add {
+                    i + witness_counter + ni + 1
+                } else {
+                    gate.reg_right.into()
+                }
+            } else {
+                gate.reg_right.into()
+            };
+    
+            println_dbg!("li: {_li}");
+            println_dbg!("ri: {_ri}");
+        }
+        panic!();
+        for (i, val) in index_regs.iter().enumerate() {
+            println!("{i}: {} {} {}", val.0, val.1, val.2);
+        }*/

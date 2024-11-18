@@ -51,35 +51,35 @@ def count_instructions(file_path):
 
     return n_i, n_g
 
-def update_test_values(n_g, n_i, m, n, filename = "class.json"):
-    new_values = {
-        "n_g": n_g,
-        "n_i": n_i,
-        "n": n,
-        "m": m,
-        "row_a": 0,
-        "col_a": 0,
-        "val_a": 0,
-        "row_b": 0,
-        "col_b": 0,
-        "val_b": 0,
-        "row_c": 0,
-        "col_c": 0,
-        "val_c": 0
-    }
+# def update_test_values(n_g, n_i, m, n, filename = "class.json"):
+#     new_values = {
+#         "n_g": n_g,
+#         "n_i": n_i,
+#         "n": n,
+#         "m": m,
+#         "row_a": 0,
+#         "col_a": 0,
+#         "val_a": 0,
+#         "row_b": 0,
+#         "col_b": 0,
+#         "val_b": 0,
+#         "row_c": 0,
+#         "col_c": 0,
+#         "val_c": 0
+#     }
 
-    # Load the existing JSON data
-    with open(filename, 'r') as file:
-        data = json.load(file)
+#     # Load the existing JSON data
+#     with open(filename, 'r') as file:
+#         data = json.load(file)
 
-    # Update the "test" key with new values
-    data['test'] = new_values
+#     # Update the "test" key with new values
+#     data['test'] = new_values
 
-    # Write the updated data back to the JSON file
-    with open(filename, 'w') as file:
-        json.dump(data, file, indent=4)
+#     # Write the updated data back to the JSON file
+#     with open(filename, 'w') as file:
+#         json.dump(data, file, indent=4)
 
-    print("Updated 'test' values in class_table.json")
+#     print("Updated 'test' values in class_table.json")
 
 def find_largest_prime_and_generator(largest_prime):
     if largest_prime:
@@ -119,15 +119,19 @@ def update_rust_constants(p, g, file_path='src/math.rs'):
 
 
 # Specify the path to your file
-file_path = 'program.s'
+# file_path = 'program.s'
 
 # Count the instructions
-n_i, n_g = count_instructions(file_path)
+# n_i, n_g = count_instructions(file_path)
 n_i = 32
 t = n_i + 1
-n = n_i + n_g + 1
-m = ((n**2 - n ) / 2) - ((t**2 - t ) / 2)
+# n = n_i + n_g + 1
+# m = ((n**2 - n ) / 2) - ((t**2 - t ) / 2)
 # m = 2 * n_g
+
+n_g = 4
+n = 37
+m = 8
 
 print(f"n_g: {n_g}\nn_i: {n_i}")
 print(f"n: {n}\nm: {int(m)}")
@@ -139,6 +143,6 @@ prime = find_small_prime(n, m)
 (p, g) = find_largest_prime_and_generator(prime)
 
 
-update_test_values(n_g, n_i, int(m), n)
+# update_test_values(n_g, n_i, int(m), n)
 update_rust_constants(p, g)
 

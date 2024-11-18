@@ -41,14 +41,6 @@ use crate::to_bint;
 use crate::utils::add_random_points;
 use crate::utils::read_json_file;
 
-use lazy_static::lazy_static;
-/// Define the constant modulus for field operations
-
-
-// static S2: LazyLock<u64> =  LazyLock::new(|| get_p());
-// // the S should be JUST u64
-// static S: u64 = *S2;
-// pub const P: u64 = S;
 pub const P: u64 = 1678321;
 
 field!(Mfp, P);
