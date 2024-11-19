@@ -19,7 +19,7 @@ use serde::Serialize;
 use std::io::BufWriter;
 use serde::Deserialize;
 
-use crate::kzg;
+use crate::{kzg, print_dbg, println_dbg};
 use crate::math::Mfp;
 use crate::json_file::write_set;
 use crate::utils::read_json_file;

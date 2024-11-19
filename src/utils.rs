@@ -175,10 +175,12 @@ pub fn gen_rand_not_in_set(set: &HashSet<Mfp>, p: u64) -> Mfp {
 /// `points` vector.
 pub fn push_random_points(points: &mut Vec<Point>, b: u64, set_h: &HashSet<Mfp>, p: u64) {
     let mut rng = thread_rng();
-    for _ in 0..b {
-        let d = gen_rand_not_in_set(set_h, p);
-        let r = Mfp::from(rng.gen_range(0..p));
-        points.push((d, r));
+    for i in 0..b {
+        // let d = gen_rand_not_in_set(set_h, p);
+        // let r = Mfp::from(rng.gen_range(0..p));
+        points.push((Mfp::from(i + 3), Mfp::from(i + 3)));
+        // TODO: Uncomment after debug 
+        // points.push((d, r));
     }
 }
 

@@ -93,9 +93,15 @@ impl ProofGeneration {
         // TODO: Random values were taken from WIKI. After the test is completed, these inserts should be deleted or commented out.
         // Wiki link: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
         // Uncomment and adjust the line below to push random points
-        // push_random_points(&mut points_za, random_b, &vec_to_set(set_h));
-        // push_random_points(&mut points_zb, random_b, &vec_to_set(set_h));
-        // push_random_points(&mut points_zc, random_b, &vec_to_set(set_h));
+        push_random_points(&mut points_za, random_b, &vec_to_set(set_h), P);
+        push_random_points(&mut points_zb, random_b, &vec_to_set(set_h), P);
+        push_random_points(&mut points_zc, random_b, &vec_to_set(set_h), P);
+
+
+        println!("points_za: {:?}", points_za);
+        println!("points_zb: {:?}", points_zb);
+        println!("points_zc: {:?}", points_zc);
+
 
         let poly_z_hat_a = interpolate(&points_za);
         let poly_z_hat_b = interpolate(&points_zb);
@@ -108,20 +114,20 @@ impl ProofGeneration {
     fn compute_x_w_vanishing_interpolation(
         random_b: u64,
         set_h: &Vec<Mfp>,
-        x_vec: &Vec<Mfp>,
-        cz_mat_vec: &Vec<Mfp>,
+        z_vec: &Vec<Mfp>,
         numebr_t_zero: usize,
     ) -> (Poly, Poly, Poly) {
         // Split set_h into two subsets based on index t
         let set_h_1 = &set_h[0..numebr_t_zero].to_vec(); // H[>∣x∣]
         let set_h_2 = &set_h[numebr_t_zero..].to_vec(); // H[<=∣x∣]
 
+
         // Interpolate polynomial for x^(h) over the subset H[>∣x∣]
-        let points = get_points_set(&x_vec[0..numebr_t_zero], set_h_1);
+        let points = get_points_set(&z_vec[..numebr_t_zero], set_h_1);
         let poly_x_hat = interpolate(&points);
+
         // Interpolate polynomial w(h) over the subset H[<=∣x∣]
-        // FIXME:
-        let points = get_points_set(&cz_mat_vec[numebr_t_zero..], set_h_2);
+        let points = get_points_set(&z_vec[numebr_t_zero..], set_h_2);
         let w_hat = interpolate(&points);
 
         // Compute the vanishing polynomial for the subset H[<=∣x∣]
@@ -140,13 +146,16 @@ impl ProofGeneration {
 
         // TODO:
         // Uncomment this line to insert random points for wˉ(h) from the set
-        // push_random_points(&mut points_w, random_b, &vec_to_set(&set_h));
+        push_random_points(&mut points_w, random_b, &vec_to_set(&set_h), P);
         // From wiki: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
-        // points_w.push((Mfp::from(150), Mfp::from(42)));
-        // points_w.push((Mfp::from(80), Mfp::from(180)));
+
+        println!("points_w: {:?}\nlen: {}", points_w, points_w.len());
 
         // Interpolate polynomial for wˉ(h) based on the points_w
         let poly_w_hat = interpolate(&points_w);
+
+        println_dbg!("poly_x_hat");
+        dsp_poly!(poly_x_hat);
 
         (poly_x_hat, poly_w_hat, van_poly_vh1)
     }
@@ -274,16 +283,14 @@ impl ProofGeneration {
     pub fn generate_z_vec(class_data: &ClassDataJson) -> DVector<Mfp> {
         let size = class_data.get_matrix_size();
         let mut z_vec: DVector<Mfp> = DVector::zeros(size);
-        let vals = vec![
-            1, // One
-            7, 11, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // X: Init 0-16
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // X: Init 16-32
-            12, 22, // W: Witneses
-            32, 84, // Y: Last vals
-        ]
-        .iter()
-        .map(|v| Mfp::from(*v))
-        .collect::<Vec<Mfp>>();
+        // let vals = vec![
+        //     1, 0, 126746, 861265, 1299648, 0, 1295552, 1305724, 1, 861281, 0, 1, 861285, 0, 30, 5,
+        //     1305724, 16, 30, 4, 5, 26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 31, 806, 20956,
+        // ];
+
+        let vals = vec![1, 0, 126964, 861265, 1299904, 0, 1295808, 1305980, 1678320, 861281, 0, 1, 861285, 0, 30, 5, 1305980, 16, 30, 4, 5, 26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 31, 806, 20956];
+
+        let vals = vals.iter().map(|v| Mfp::from(*v)).collect::<Vec<Mfp>>();
 
         println!("val len: {}", vals.len());
 
@@ -313,7 +320,6 @@ impl ProofGeneration {
         let (mat_a, mat_b, mat_c) = matrices.clone();
         let z_vec = Self::generate_z_vec(&class_data);
         let points_px = program_params.get_points_px(&set_k);
-        let x_vec = &mat_to_vec(&z_vec)[..numebr_t_zero];
 
         // TODO: Set 'random_b' to a random value in the range 1 to 50
         let random_b = 2;
@@ -332,8 +338,7 @@ impl ProofGeneration {
         let (poly_x_hat, poly_w_hat, van_poly_vh1) = Self::compute_x_w_vanishing_interpolation(
             random_b,
             &set_h,
-            &x_vec.to_vec(),
-            &mat_to_vec(&(&mat_c * &z_vec)),
+            &mat_to_vec(&z_vec),
             numebr_t_zero,
         );
         println_dbg!("w_hat:"); // Output the interpolated polynomial for wˉ(h)
@@ -346,7 +351,8 @@ impl ProofGeneration {
         dsp_poly!(van_poly_vhx);
 
         let poly_ab_c = &poly_z_hat_a * &poly_z_hat_b - &poly_z_hat_c;
-        println_dbg!("{:?} ,,, {:?}", poly_ab_c, van_poly_vhx);
+        println_dbg!("poly_ab_c");
+        dsp_poly!(poly_ab_c);
         let poly_h_0 = div_mod(&poly_ab_c, &van_poly_vhx).0;
         println_dbg!("h0(x):");
         dsp_poly!(poly_h_0);
@@ -379,10 +385,13 @@ impl ProofGeneration {
         let sigma_eta_z_x = Poly::new(vec![eta_a]) * &poly_z_hat_a
             + Poly::new(vec![eta_b]) * &poly_z_hat_b
             + Poly::new(vec![eta_c]) * &poly_z_hat_c;
+        
+        println_dbg!("sigma_eta_z_x");
+        dsp_poly!(sigma_eta_z_x);
 
         // Compute polynomial for r(α,x) ∑ ηM(z^M(x))
         let poly_r = func_u(Some(alpha), None, set_h.len());
-        println_dbg!("r:");
+        println_dbg!("poly_r:");
         dsp_poly!(poly_r);
 
         println_dbg!("r(alpha_2 , x) ∑_m [η_M z^_M(x)]:");
@@ -390,6 +399,8 @@ impl ProofGeneration {
 
         // r(α,x) * ∑_m [η_M ​z^M​(x)]
         let sum_1 = &poly_r * sigma_eta_z_x;
+        println!("sum_1: ");
+        dsp_poly!(sum_1);
 
         // Compute polynomial for Z^(x)
         let poly_z_hat_x = &poly_w_hat * &van_poly_vh1 + poly_x_hat;
@@ -538,6 +549,43 @@ impl ProofGeneration {
             h_3x,
         ];
 
+        // Print each variable with its name
+        println!("poly_w_hat");
+        dsp_poly!(polys_proof[0]);
+
+        println!("poly_z_hat_a");
+        dsp_poly!(polys_proof[1]);
+
+        println!("poly_z_hat_b");
+        dsp_poly!(polys_proof[2]);
+
+        println!("poly_z_hat_c");
+        dsp_poly!(polys_proof[3]);
+
+        println!("poly_h_0");
+        dsp_poly!(polys_proof[4]);
+
+        println!("poly_sx");
+        dsp_poly!(polys_proof[5]);
+
+        println!("g_1x");
+        dsp_poly!(polys_proof[6]);
+
+        println!("h_1x");
+        dsp_poly!(polys_proof[7]);
+
+        println!("g_2x");
+        dsp_poly!(polys_proof[8]);
+
+        println!("h_2x");
+        dsp_poly!(polys_proof[9]);
+
+        println!("g_3x");
+        dsp_poly!(polys_proof[10]);
+
+        println!("h_3x");
+        dsp_poly!(polys_proof[11]);
+
         // TODO: All random (1..P)
         let eta_values = [
             Mfp::from(1),  // eta_w
@@ -585,6 +633,7 @@ impl ProofGeneration {
         let commit_x = compute_all_commitment(&polys_proof, commitment_key);
         println_dbg!("commit_x: {}", dsp_vec!(commit_x));
 
+        let x_vec = &mat_to_vec(&z_vec)[..numebr_t_zero];
         Self::create_proof(
             &polys_proof,
             &sigma,

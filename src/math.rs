@@ -727,7 +727,6 @@ pub fn compute_all_commitment(polys: &[Poly], ck: &Vec<Mfp>) -> Vec<Mfp> {
 #[cfg(test)]
 mod math_test {
     use super::*;
-    use rand::Rng;
 
     #[test]
     fn test_div_val() {

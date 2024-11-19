@@ -60,6 +60,10 @@ impl Commitment {
         let set_h = generate_set(class_data.n, class_data);
         let set_k = generate_set(class_data.m, class_data);
 
+
+        println_dbg!("$p: {}", P);
+        println_dbg!("$g: {}", class_data.g);
+
         println_dbg!("set_h: {}", dsp_vec!(set_h));
         println_dbg!("set_k: {}", dsp_vec!(set_k));
 
@@ -484,53 +488,3 @@ impl CommitmentBuilder {
         }
     }
 }
-
-
-/*
-
-let mut witness_counter = 0;
-        let mut index_reg: Vec<u8> = vec![];
-        let mut index_last: HashMap<u8, usize> = HashMap::new();
-        let mut index_regs: Vec<(u8, usize, usize)> = Vec::new();
-
-        for (ii, gate) in gates.iter().enumerate() {
-            println_dbg!("Loop: {}", ii + 1);
-            let des = gate.des_reg;
-
-            let mut new_add = false;
-            if index_reg.contains(&des) {
-                let inx = index_reg.iter().position(|v| *v == des).unwrap();
-                index_reg.remove(inx);
-                witness_counter += 1;
-            } else {
-                new_add = true;
-            }
-            index_reg.push(des);
-
-            _li = if let Some(i) = index_reg.iter().position(|v| *v == gate.reg_left) {
-                if !new_add {
-                    i + witness_counter + ni + 1
-                } else {
-                    gate.reg_left.into()
-                }
-            } else {
-                gate.reg_left.into()
-            };
-
-            _ri = if let Some(i) = index_reg.iter().position(|v| *v == gate.reg_right) {
-                if !new_add {
-                    i + witness_counter + ni + 1
-                } else {
-                    gate.reg_right.into()
-                }
-            } else {
-                gate.reg_right.into()
-            };
-    
-            println_dbg!("li: {_li}");
-            println_dbg!("ri: {_ri}");
-        }
-        panic!();
-        for (i, val) in index_regs.iter().enumerate() {
-            println!("{i}: {} {} {}", val.0, val.1, val.2);
-        }*/
