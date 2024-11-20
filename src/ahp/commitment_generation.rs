@@ -32,7 +32,6 @@ use crate::math::*;
 use crate::matrices::Matrices;
 use crate::parser::Gate;
 use crate::parser::Instructions;
-use crate::parser::RegData;
 use crate::print_dbg;
 use crate::println_dbg;
 use crate::to_bint;
@@ -59,7 +58,6 @@ impl Commitment {
 
         let set_h = generate_set(class_data.n, class_data);
         let set_k = generate_set(class_data.m, class_data);
-
 
         println_dbg!("$p: {}", P);
         println_dbg!("$g: {}", class_data.g);
@@ -197,6 +195,7 @@ impl CommitmentJson {
         }
     }
 
+    /// Converts a vector of u64 values into a polynomial.
     fn convert_poly(v: &Vec<u64>) -> Poly {
         let mut poly = Poly::from(v.iter().rev().map(|&t| Mfp::from(t)).collect::<Vec<Mfp>>());
         poly.trim();
@@ -204,9 +203,6 @@ impl CommitmentJson {
     }
 
     /// Retrieves the polynomial data as a vector of `Poly` instances.
-    ///
-    /// # Returns
-    /// A vector of `Poly` objects constructed from the polynomial coefficients stored in `polys_px`.
     pub fn get_polys_px(&self) -> Vec<Poly> {
         vec![
             Self::convert_poly(&self.row_a),
@@ -271,12 +267,18 @@ impl CommitmentBuilder {
 
         for (_, gate) in gates.iter().enumerate() {
             println_dbg!("Gate Loop: {} ------------", counter);
-            
+
             // Set index
             _inx = 1 + ni + counter;
 
             // Update index
-            (_li, _ri) = Self::get_register_index(&mut regs_data, gate.reg_left, gate.reg_right, gate.des_reg, _inx);
+            (_li, _ri) = Self::get_register_index(
+                &mut regs_data,
+                gate.reg_left,
+                gate.reg_right,
+                gate.des_reg,
+                _inx,
+            );
 
             // Get left and right values (index is zero if value exists)
             let left_val = Self::get_mfp_value(gate.val_left, &mut _li);
@@ -288,9 +290,8 @@ impl CommitmentBuilder {
             c_mat[(_inx, _inx)] = Mfp::ONE;
             println_dbg!("C[{}, {}] = 1", _inx, _inx);
 
-
             match gate.instr {
-                Instructions::Addi => {
+                Instructions::Add | Instructions::Addi => {
                     println_dbg!("Gate: Add");
                     println_dbg!("A[{}, 0] = 1", _inx);
                     a_mat[(_inx, 0)] = Mfp::ONE;
@@ -328,15 +329,16 @@ impl CommitmentBuilder {
         self.clone()
     }
 
+    /// Retrieves register indices and updates the register data map
     fn get_register_index(
-        regs_data: &mut HashMap<u8, usize>, 
-        l_reg: u8, 
-        r_reg: u8, 
-        des: u8, 
-        inx: usize
+        regs_data: &mut HashMap<u8, usize>,
+        l_reg: u8,
+        r_reg: u8,
+        des: u8,
+        inx: usize,
     ) -> (usize, usize) {
         println!("=>> {des} {l_reg} {r_reg}");
-        
+
         let li = if regs_data.contains_key(&l_reg) {
             let inx_new = *regs_data.get(&l_reg).unwrap();
             regs_data.insert(des, inx);
@@ -352,7 +354,6 @@ impl CommitmentBuilder {
         } else {
             r_reg as usize + 1
         };
-
 
         if !regs_data.contains_key(&des) {
             regs_data.insert(des, inx);
@@ -373,48 +374,7 @@ impl CommitmentBuilder {
         }
     }
 
-    pub fn add_val(
-        regs_data: &mut HashMap<u8, RegData>,
-        gate: &Gate,
-        operator: Instructions,
-        val_counter: &mut usize,
-    ) {
-        if let Some(left_val) = gate.val_left {
-            if let Some(reg) = regs_data.get_mut(&gate.reg_left) {
-                let new_value = match reg.witness.last() {
-                    // FIXME: Correct left and right position
-                    Some(&(_, val)) => Self::apply_operator(val, Mfp::from(left_val), operator),
-                    None => Self::apply_operator(reg.init_val, Mfp::from(left_val), operator),
-                };
-                reg.witness.push((*val_counter, new_value));
-                *val_counter += 1;
-                println!("new_val: {}", new_value);
-            }
-        }
-        if let Some(right_val) = gate.val_right {
-            if let Some(reg) = regs_data.get_mut(&gate.reg_right) {
-                let new_value = match reg.witness.last() {
-                    Some(&(_, val)) => Self::apply_operator(val, Mfp::from(right_val), operator),
-                    None => Self::apply_operator(reg.init_val, Mfp::from(right_val), operator),
-                };
-                reg.witness.push((*val_counter, new_value));
-                *val_counter += 1;
-                println!("new_val: {}", new_value);
-            }
-        }
-    }
-
-    fn apply_operator(l: Mfp, r: Mfp, operator: Instructions) -> Mfp {
-        match operator {
-            Instructions::Addi => l + r,
-            Instructions::Add => l + r,
-            Instructions::Sub => l - r,
-            Instructions::Mul => l * r,
-            Instructions::Div => div_mod_val(l, r),
-            Instructions::Ld => panic!("Invalid operation for Ld gate type"),
-        }
-    }
-
+    /// Generates polynomials from matrix data and updates the commitment structure
     pub fn gen_polynomials(&mut self) -> Self {
         let set_h = &self.commitm.set_h;
         let set_k = &self.commitm.set_k;
@@ -482,6 +442,7 @@ impl CommitmentBuilder {
         self.clone()
     }
 
+    /// Builds a Commitment using the builder pattern from the current state
     pub fn build(&self) -> Commitment {
         Commitment {
             ..self.commitm.clone()

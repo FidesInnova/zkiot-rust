@@ -1,19 +1,23 @@
-	#APP
+#APP
     jal store_register_instances
-	mul 	s2, s2, s3
+mul s2, s2, s3
     sw x18, x18_array(4)
-	addi 	s2, s2, 11
+addi s1, s3, 11
+    sw x9, x9_array(4)
+mul s2, s4, s4
     sw x18, x18_array(8)
-	mul 	s2, s2, s4
+mul s3, s3, s4
+    sw x19, x19_array(4)
+add s1, s2, s3
+    sw x9, x9_array(8)
+add s3, s4, s4
+    sw x19, x19_array(8)
+mul s2, s1, s1
     sw x18, x18_array(12)
-	mul 	s2, s2, s4
-    sw x18, x18_array(16)
+add s1, s2, s2
+    sw x9, x9_array(12)
     jal proofGenerator
-	addi	ra, sp, gp
-	addi	sp, gp, tp
-	mul		s6, ra, t0
-	addi	ra, sp, sp
-	#NOAPP
+#NOAPP
     .data
 x0_array:    .space 4   # Array for x0
 x1_array:    .space 4   # Array for x1
@@ -24,7 +28,7 @@ x5_array:    .space 4   # Array for x5
 x6_array:    .space 4   # Array for x6
 x7_array:    .space 4   # Array for x7
 x8_array:    .space 4   # Array for x8
-x9_array:    .space 4   # Array for x9
+x9_array:    .space 16   # Array for x9
 x10_array:    .space 4   # Array for x10
 x11_array:    .space 4   # Array for x11
 x12_array:    .space 4   # Array for x12
@@ -33,8 +37,8 @@ x14_array:    .space 4   # Array for x14
 x15_array:    .space 4   # Array for x15
 x16_array:    .space 4   # Array for x16
 x17_array:    .space 4   # Array for x17
-x18_array:    .space 20   # Array for x18
-x19_array:    .space 4   # Array for x19
+x18_array:    .space 16   # Array for x18
+x19_array:    .space 12   # Array for x19
 x20_array:    .space 4   # Array for x20
 x21_array:    .space 4   # Array for x21
 x22_array:    .space 4   # Array for x22

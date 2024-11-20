@@ -85,6 +85,7 @@ impl Matrices {
         sp_mat
     }
 
+    /// Generates a square matrix of specified size with ones on the diagonal starting from the t_zero index
     pub fn generate_matrix_c(size: usize, t_zero: usize) -> DMatrix<Mfp> {
         let mut c = DMatrix::<Mfp>::zeros(size, size);
 

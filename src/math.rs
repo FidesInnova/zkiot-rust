@@ -41,7 +41,7 @@ use crate::to_bint;
 use crate::utils::add_random_points;
 use crate::utils::read_json_file;
 
-pub const P: u64 = 1678321;
+pub const P: u64 = 5087281;
 
 field!(Mfp, P);
 

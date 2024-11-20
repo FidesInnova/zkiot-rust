@@ -21,6 +21,7 @@ use crate::math::Mfp;
 use crate::math::Poly;
 use crate::to_bint;
 
+/// Generates a vector of Mfp values based on the setup parameters and a random number
 pub fn setup(max: u64, tau: u64, p: u64, g: u64) -> Vec<Mfp> {
     // Random number 
     let tau = tau % (p - 1);
@@ -35,6 +36,8 @@ pub fn setup(max: u64, tau: u64, p: u64, g: u64) -> Vec<Mfp> {
         .collect()
 }
 
+
+/// Computes the commitment of a polynomial using the provided commitment keys
 pub fn commit(poly_in: &Poly, ck: &[Mfp]) -> Mfp {
     let mut res_poly = Mfp::ZERO;
 

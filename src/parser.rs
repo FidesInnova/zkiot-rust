@@ -24,43 +24,6 @@ use crate::math::Mfp;
 
 
 
-
-#[derive(Debug)]
-enum ZKPRegister {
-    X0,  // Hardwired zero
-    X1,  // Return address (ra)
-    X2,  // Stack pointer (sp)
-    X3,  // Global pointer (gp)
-    X4,  // Thread pointer (tp)
-    X5,  // Temporary register (t0)
-    X6,  // Temporary register (t1)
-    X7,  // Temporary register (t2)
-    X8,  // Platform register (s0)
-    X9,  // Platform register (s1)
-    X10, // Argument register (a0)
-    X11, // Argument register (a1)
-    X12, // Temporary register (a2)
-    X13, // Temporary register (a3)
-    X14, // Temporary register (a4)
-    X15, // Temporary register (a5)
-    X16, // Temporary register (a6)
-    X17, // Temporary register (a7)
-    X18, // Saved register (s2)
-    X19, // Saved register (s3)
-    X20, // Saved register (s4)
-    X21, // Saved register (s5)
-    X22, // Saved register (s6)
-    X23, // Saved register (s7)
-    X24, // Saved register (s8)
-    X25, // Saved register (s9)
-    X26, // Saved register (s10)
-    X27, // Saved register (s11)
-    X28, // Temporary register (t3)
-    X29, // Frame pointer (t4)
-    X30, // Return address (t5)
-    X31, // Integer register (t6)
-}
-
 #[derive(Debug)]
 enum RiscvReg {
     Zero, // x0 - Hardwired zero
@@ -195,6 +158,7 @@ pub fn parse_line(line: &str, index: usize) -> Result<(&str, Vec<&str>)> {
     }
 }
 
+/// Matches a register name to its corresponding u8 identifier, returning None for invalid names
 pub fn match_reg(reg: &str) -> Option<u8> {
     let res = match reg.to_lowercase().as_str() {
         "zero" => 0,
@@ -234,6 +198,7 @@ pub fn match_reg(reg: &str) -> Option<u8> {
     Some(res)
 }
 
+/// Parses a vector of register strings and returns their corresponding u8 values, defaulting to 0 for invalid inputs
 fn register_parser(reg: Vec<&str>) -> (u8, u8, u8) {
     println_dbg!("reg --> {:?}, {:?}, {:?}", reg[0], reg[1], reg[2]);
     
@@ -255,24 +220,13 @@ fn register_parser(reg: Vec<&str>) -> (u8, u8, u8) {
     (ds_reg, left_reg, right_reg)
 }
 
-#[derive(Debug)]
-pub struct RegData {
-    pub init_val: Mfp,
-    pub witness: Vec<(usize, Mfp)>,
-}
-impl RegData {
-    pub fn new(val: Mfp) -> Self {
-        Self {
-            init_val: val,
-            witness: vec![],
-        }
-    }
-}
 
 
+/// Parses specified lines from an opcodes file and constructs a vector of Gate objects based on the parsed data
 pub fn parse_from_lines(line_file: Vec<usize>, opcodes_file: &PathBuf) -> Result<Vec<Gate>> {
     let mut gates = Vec::new();
     
+    // Iterate over each line number specified in line_file
     for line_num in line_file {
         let gates_file = open_file(opcodes_file).context("Failed to open opcodes file")?;
         let line = gates_file.lines().nth(line_num - 1).ok_or_else(|| {
@@ -290,19 +244,24 @@ pub fn parse_from_lines(line_file: Vec<usize>, opcodes_file: &PathBuf) -> Result
         }
         let gate_type = gate_type.unwrap();
 
+        // Retrieve and parse the right constant operand, returning an error if missing
         let constant_right = operands
             .get(2)
             .ok_or_else(|| anyhow!("Missing operand at index 2 for line {}", line_num))?
             .parse::<u64>()
             .ok();
+
+        // Retrieve and parse the left constant operand, returning an error if missing
         let constant_left = operands
             .get(1)
             .ok_or_else(|| anyhow!("Missing operand at index 1 for line {}", line_num))?
             .parse::<u64>()
             .ok();
 
+        // Parse the register data from the operands
         let reg_data = register_parser(operands.clone());
 
+        // Create a new Gate object with the parsed data
         let gate = Gate::new(
             constant_left,
             constant_right,
@@ -354,19 +313,33 @@ mod parser_test {
 
     #[test]
     fn parse_line_func() {
-        let line1 = "40380552:       02f407b3                mul     a1,s0,5";
-        let line2 = "40380552:       02f407b3                add     a1, s0, 5";
-        let line3 = "40380552:       02f407b3                mul     a1  ,  s0  ,  5  ";
-        let line4 = "40380552:       02f407b3                ld      a1  ,  a1  ,  4  ";
+        let line1 = "mul    a1,s0,s2";
+        let line2 = "addi   a1, s0, 5";
+        let line3 = "mul    a1  ,s0,    s2";
+        let line4 = "ld     a1  ,  a1  ,  4  ";
 
         let parse1 = parse_line(line1, 1).unwrap();
         let parse2 = parse_line(line2, 2).unwrap();
         let parse3 = parse_line(line3, 3).unwrap();
         let parse4 = parse_line(line4, 4).unwrap();
 
-        assert_eq!(parse1, ("mul", ["a1", "s0", "5"].to_vec()));
-        assert_eq!(parse2, ("add", ["a1", "s0", "5"].to_vec()));
-        assert_eq!(parse3, ("mul", ["a1", "s0", "5"].to_vec()));
+        assert_eq!(parse1, ("mul", ["a1", "s0", "s2"].to_vec()));
+        assert_eq!(parse2, ("addi", ["a1", "s0", "5"].to_vec()));
+        assert_eq!(parse3, ("mul", ["a1", "s0", "s2"].to_vec()));
         assert_eq!(parse4, ("ld", ["a1", "a1", "4"].to_vec()));
+    }
+
+    #[test]
+    fn test_register_parser() {
+        let test_cases = vec![
+            (vec!["zero", "ra", "sp"], (0, 1, 2)), 
+            (vec!["t6", "s2", "s2"], (31, 18, 18)),
+            (vec!["a0", "a2", "a3"], (10, 12, 13)),
+        ];
+
+        for (input, expected) in test_cases {
+            let result = register_parser(input);
+            assert_eq!(result, expected);
+        }
     }
 }

@@ -171,6 +171,7 @@ impl ClassDataJson {
         (self.n_i + 1).try_into().unwrap()
     }
 
+    /// Retrieves all class data from a specified JSON file and returns it as a HashMap
     pub fn get_all_class_data(path: &str) -> Result<HashMap<u8, ClassDataJson>> {
         let reader = open_file(&PathBuf::from(path))?;
         // Deserialize the JSON into a HashMap
@@ -208,6 +209,7 @@ impl ProgramParamsJson {
         }
     }
 
+    /// Converts a vector of point mappings to u64 values based on a specified key set
     #[allow(warnings)]
     fn to_points_u64(points_px: &Vec<HashMap<Mfp, Mfp>>, set_k: &Vec<Mfp>) -> Vec<Vec<u64>> {
         let mut points_px_t: Vec<Vec<(u64, u64)>> = points_px
@@ -244,6 +246,7 @@ impl ProgramParamsJson {
             .collect()
     }
 
+    /// Constructs matrix A with specified size and number of leading zeros
     fn get_matrix_a(&self, size: usize, number_t_zeros: usize) -> DMatrix<Mfp> {
         let mut mat_a = DMatrix::<Mfp>::zeros(size, size);
 
@@ -254,6 +257,7 @@ impl ProgramParamsJson {
         mat_a
     }
 
+    /// Constructs matrix B from the provided triplet data
     fn get_matrix_b(&self, size: usize) -> DMatrix<Mfp> {
         let mut mat_b = DMatrix::<Mfp>::zeros(size, size);
 
@@ -338,6 +342,7 @@ pub struct DeviceConfigJson {
 }
 
 impl DeviceConfigJson {
+    /// Converts a LineValue range into a vector of usize values
     pub fn convert_lines(lines: LineValue) -> Vec<usize> {
         let LineValue::Range(r) = lines;
         (r.0..=r.1).collect()
