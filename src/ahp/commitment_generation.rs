@@ -249,36 +249,23 @@ impl CommitmentBuilder {
     /// For further details, please refer to the documentation:
     /// [Documentation Link](https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/2-commitment-phase)
     pub fn gen_matrices(&mut self, gates: Vec<Gate>, ni: usize) -> Self {
-        // Initialize matrices A, B, C based on parsed gates
+        // Create copies of matrices A, B, and C
         let a_mat = &mut self.commitm.matrices.a;
         let b_mat = &mut self.commitm.matrices.b;
         let c_mat = &mut self.commitm.matrices.c;
 
-        // Map the registers to last index
+        // Initialize HashMap to track last register indices
         let mut regs_data: HashMap<u8, usize> = HashMap::new();
-        // let mut regs_data_right: HashMap<u8, usize> = HashMap::new();
 
-        let mut _inx = 0;
-        let mut counter = 0;
-        // Left index
-        let mut _li = 0;
-        // Right index
-        let mut _ri = 0;
-
-        for (_, gate) in gates.iter().enumerate() {
+        // Iterate over gates
+        for (counter, gate) in gates.iter().enumerate() {
             println_dbg!("Gate Loop: {} ------------", counter);
 
             // Set index
-            _inx = 1 + ni + counter;
+            let _inx = 1 + ni + counter;
 
             // Update index
-            (_li, _ri) = Self::get_register_index(
-                &mut regs_data,
-                gate.reg_left,
-                gate.reg_right,
-                gate.des_reg,
-                _inx,
-            );
+            let (mut _li, mut _ri) = Self::get_register_index(&mut regs_data, &gate, _inx);
 
             // Get left and right values (index is zero if value exists)
             let left_val = Self::get_mfp_value(gate.val_left, &mut _li);
@@ -289,34 +276,29 @@ impl CommitmentBuilder {
 
             c_mat[(_inx, _inx)] = Mfp::ONE;
             println_dbg!("C[{}, {}] = 1", _inx, _inx);
-
+            
             match gate.instr {
                 Instructions::Add | Instructions::Addi => {
                     println_dbg!("Gate: Add");
                     println_dbg!("A[{}, 0] = 1", _inx);
-                    a_mat[(_inx, 0)] = Mfp::ONE;
-
                     println_dbg!("Left:  B[{}, {}] = {}", _inx, _li, left_val);
-                    b_mat[(_inx, _li)] = left_val;
-
                     println_dbg!("Right: B[{}, {}] = {}", _inx, _ri, right_val);
+
+                    a_mat[(_inx, 0)] = Mfp::ONE;
+                    b_mat[(_inx, _li)] = left_val;
                     b_mat[(_inx, _ri)] = right_val;
                 }
                 Instructions::Mul => {
                     println_dbg!("Gate: Mul");
                     println_dbg!("Left:  A[{}, {}] = {}", _inx, _li, left_val);
-                    a_mat[(_inx, _li)] = left_val;
-
                     println_dbg!("Right: B[{}, {}] = {}", _inx, _ri, right_val);
+                    
+                    a_mat[(_inx, _li)] = left_val;
                     b_mat[(_inx, _ri)] = right_val;
                 }
-                _ => panic!("Invalid gate {:?}", gate.instr),
+                _ => panic!("Invalid instruction: {:?}", gate.instr),
             }
-            counter += 1;
         }
-
-        // Set specific rows in matrix C to zero
-        rows_to_zero(&mut self.commitm.matrices.c, self.commitm.numebr_t_zero);
 
         // Print matrices if the program is compiled in debug mode
         println_dbg!("Mat A:");
@@ -332,32 +314,28 @@ impl CommitmentBuilder {
     /// Retrieves register indices and updates the register data map
     fn get_register_index(
         regs_data: &mut HashMap<u8, usize>,
-        l_reg: u8,
-        r_reg: u8,
-        des: u8,
+        gate: &Gate,
         inx: usize,
     ) -> (usize, usize) {
-        println!("=>> {des} {l_reg} {r_reg}");
+        let l_reg = gate.reg_left;
+        let r_reg = gate.reg_right;
+        let des_reg = gate.des_reg;
 
-        let li = if regs_data.contains_key(&l_reg) {
-            let inx_new = *regs_data.get(&l_reg).unwrap();
-            regs_data.insert(des, inx);
-            inx_new
-        } else {
-            l_reg as usize + 1
-        };
+        println_dbg!("=>> {des_reg} {l_reg} {r_reg}");
 
-        let ri = if regs_data.contains_key(&r_reg) {
-            let inx_new = *regs_data.get(&r_reg).unwrap();
-            regs_data.insert(des, inx);
-            inx_new
-        } else {
-            r_reg as usize + 1
-        };
-
-        if !regs_data.contains_key(&des) {
-            regs_data.insert(des, inx);
+        // Helper function to get the index for a register
+        fn get_index(regs_data: &HashMap<u8, usize>, reg: u8) -> usize {
+            match regs_data.get(&reg) {
+                Some(&index) => index,
+                None => reg as usize + 1,
+            }
         }
+
+        let li = get_index(regs_data, l_reg);
+        let ri = get_index(regs_data, r_reg);
+
+        // Update destination index
+        regs_data.insert(des_reg, inx);
 
         (li, ri)
     }
@@ -447,5 +425,82 @@ impl CommitmentBuilder {
         Commitment {
             ..self.commitm.clone()
         }
+    }
+}
+
+#[cfg(test)]
+mod test_matrices {
+    use super::*;
+    use crate::parser::Instructions::*;
+
+    #[test]
+    fn gen_matrices() {
+        let class_data = ClassDataJson {
+            n_g: 4,
+            n_i: 32,
+            n: 37,
+            m: 8,
+            p: 1678321,
+            g: 11,
+        };
+        let gates = vec![
+            Gate {
+                val_left: None,
+                val_right: Some(5),
+                des_reg: 0,
+                reg_left: 0,
+                reg_right: 0,
+                instr: Addi,
+            },
+            Gate {
+                val_left: None,
+                val_right: Some(2),
+                des_reg: 1,
+                reg_left: 1,
+                reg_right: 0,
+                instr: Mul,
+            },
+            Gate {
+                val_left: None,
+                val_right: Some(10),
+                des_reg: 1,
+                reg_left: 1,
+                reg_right: 0,
+                instr: Addi,
+            },
+            Gate {
+                val_left: None,
+                val_right: Some(7),
+                des_reg: 0,
+                reg_left: 0,
+                reg_right: 0,
+                instr: Mul,
+            },
+        ];
+        let commitment = Commitment::new(class_data).gen_matrices(gates, class_data.n_i as usize);
+
+        // Check matrix A
+        let mat = commitment.commitm.matrices.a;
+        assert_eq!(mat[(33, 0)], Mfp::ONE);
+        assert_eq!(mat[(34, 2)], Mfp::ONE);
+        assert_eq!(mat[(35, 0)], Mfp::ONE);
+        assert_eq!(mat[(36, 33)], Mfp::ONE);
+
+        // Check matrix B
+        let mat = commitment.commitm.matrices.b;
+        assert_eq!(mat[(33, 1)], Mfp::ONE);
+        assert_eq!(mat[(35, 34)], Mfp::ONE);
+
+        assert_eq!(mat[(33, 0)], Mfp::from(5));
+        assert_eq!(mat[(34, 0)], Mfp::from(2));
+        assert_eq!(mat[(35, 0)], Mfp::from(10));
+        assert_eq!(mat[(36, 0)], Mfp::from(7));
+
+        // Check matrix C
+        let mat = commitment.commitm.matrices.c;
+        assert_eq!(mat[(33, 33)], Mfp::ONE);
+        assert_eq!(mat[(34, 34)], Mfp::ONE);
+        assert_eq!(mat[(35, 35)], Mfp::ONE);
+        assert_eq!(mat[(36, 36)], Mfp::ONE);
     }
 }

@@ -256,10 +256,11 @@ impl ProofGeneration {
     pub fn generate_z_vec(class_data: &ClassDataJson) -> DVector<Mfp> {
         let size = class_data.get_matrix_size();
         let mut z_vec: DVector<Mfp> = DVector::zeros(size);
+        
         let vals = vec![
-            1, 0, 128626, 1823714, 1298680, 0, 1294568, 1304756, 5087280, 1823730, 1, 1, 1823734,
+            1, 1, 128626, 1823714, 1298680, 0, 1294568, 1304756, 5087280, 1823730, 1, 1, 1823734,
             0, 30, 5, 1304756, 16, 30, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 14, 16, 12, 28,
-            0, 0, 784,
+            1568, 784, 8
         ];
 
         let vals = vals.iter().map(|v| Mfp::from(*v)).collect::<Vec<Mfp>>();
