@@ -281,8 +281,8 @@ impl CommitmentBuilder {
                 Instructions::Add | Instructions::Addi => {
                     println_dbg!("Gate: Add");
                     println_dbg!("A[{}, 0] = 1", _inx);
-                    println_dbg!("Left:  B[{}, {}] = {}", _inx, _li, left_val);
-                    println_dbg!("Right: B[{}, {}] = {}", _inx, _ri, right_val);
+                    println_dbg!("B[{}, {}] = {}", _inx, _li, left_val);
+                    println_dbg!("B[{}, {}] = {}", _inx, _ri, right_val);
 
                     a_mat[(_inx, 0)] = Mfp::ONE;
                     b_mat[(_inx, _li)] = left_val;
@@ -290,8 +290,8 @@ impl CommitmentBuilder {
                 }
                 Instructions::Mul => {
                     println_dbg!("Gate: Mul");
-                    println_dbg!("Left:  A[{}, {}] = {}", _inx, _li, left_val);
-                    println_dbg!("Right: B[{}, {}] = {}", _inx, _ri, right_val);
+                    println_dbg!("A[{}, {}] = {}", _inx, _li, left_val);
+                    println_dbg!("B[{}, {}] = {}", _inx, _ri, right_val);
                     
                     a_mat[(_inx, _li)] = left_val;
                     b_mat[(_inx, _ri)] = right_val;
