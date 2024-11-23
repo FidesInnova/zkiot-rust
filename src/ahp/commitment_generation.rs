@@ -51,13 +51,15 @@ pub struct Commitment {
 impl Commitment {
     /// Constructor method Generate sets and Initilize matrices
     pub fn new(class_data: ClassData) -> CommitmentBuilder {
-        let set_h_len = class_data.n_g + class_data.n_i + 1;
+        let set_h_len = class_data.n;
         let numebr_t_zero = matrix_t_zeros(&class_data) as u64;
-        let set_k_len = ((set_h_len * set_h_len - set_h_len) / 2)
-            - ((numebr_t_zero * numebr_t_zero - numebr_t_zero) / 2);
+        let set_k_len = class_data.m;
 
         let set_h = generate_set(set_h_len);
         let set_k = generate_set(set_k_len);
+
+        println!("set_h: {}", dsp_vec!(set_h));
+        println!("set_k: {}", dsp_vec!(set_k));
 
         let matrix_size = matrix_size(&class_data);
         let matrices = Matrices::new(matrix_size.try_into().unwrap());
@@ -354,32 +356,29 @@ impl CommitmentBuilder {
     }
 
     pub fn gen_polynomials(&mut self) -> Self {
+        fn print_points(points: &HashMap<Mfp, Mfp>) -> String {
+            let mut ret = String::new();
+            for (a, b) in points {
+                ret += &format!("({}, {}), ", a, b);
+            }
+            ret
+        }
         // Matrix A:
         let mut points_row_p_a = get_matrix_point_row(
             &self.commitm.matrices.a,
             &self.commitm.set_h,
             &self.commitm.set_k,
         );
-        // rowA' = (48, 1), (73, 135), (62, 125), (132, 59), (65, 42), (80, 1)
-        points_row_p_a.insert(Mfp::from(48), Mfp::from(1));
-        points_row_p_a.insert(Mfp::from(73), Mfp::from(135));
-        points_row_p_a.insert(Mfp::from(62), Mfp::from(125));
-        points_row_p_a.insert(Mfp::from(132), Mfp::from(59));
-        points_row_p_a.insert(Mfp::from(65), Mfp::from(42));
-        points_row_p_a.insert(Mfp::from(80), Mfp::from(1));
+        println!("points_row_p_a: {}", print_points(&points_row_p_a));
 
         let mut points_col_p_a = get_matrix_point_col(
             &self.commitm.matrices.a,
             &self.commitm.set_h,
             &self.commitm.set_k,
         );
-        // colA' = (48, 42), (73, 1), (62, 135), (132, 125), (65, 59), (80, 42)
-        points_col_p_a.insert(Mfp::from(48), Mfp::from(42));
-        points_col_p_a.insert(Mfp::from(73), Mfp::from(1));
-        points_col_p_a.insert(Mfp::from(62), Mfp::from(135));
-        points_col_p_a.insert(Mfp::from(132), Mfp::from(125));
-        points_col_p_a.insert(Mfp::from(65), Mfp::from(59));
-        points_col_p_a.insert(Mfp::from(80), Mfp::from(42));
+        println!("points_col_p_a: {}", print_points(&points_col_p_a));
+    
+
 
         let points_val_p_a = get_matrix_point_val(
             &self.commitm.matrices.a,
@@ -388,6 +387,8 @@ impl CommitmentBuilder {
             &points_row_p_a,
             &points_col_p_a,
         );
+        println!("points_val_p_a: {}", print_points(&points_val_p_a));
+
 
         // Matrix B:
         let mut points_row_p_b = get_matrix_point_row(
@@ -395,24 +396,16 @@ impl CommitmentBuilder {
             &self.commitm.set_h,
             &self.commitm.set_k,
         );
-        // rowB' = (73, 59), (62, 1), (132, 42), (65, 135), (80, 59)
-        points_row_p_b.insert(Mfp::from(73), Mfp::from(59));
-        points_row_p_b.insert(Mfp::from(62), Mfp::from(1));
-        points_row_p_b.insert(Mfp::from(132), Mfp::from(42));
-        points_row_p_b.insert(Mfp::from(65), Mfp::from(135));
-        points_row_p_b.insert(Mfp::from(80), Mfp::from(59));
+        println!("points_row_p_b: {}", print_points(&points_row_p_b));
+
 
         let mut points_col_p_b = get_matrix_point_col(
             &self.commitm.matrices.b,
             &self.commitm.set_h,
             &self.commitm.set_k,
         );
-        // colB' = (73, 59), (62, 42), (132, 125), (65, 1), (80, 135)
-        points_col_p_b.insert(Mfp::from(73), Mfp::from(59));
-        points_col_p_b.insert(Mfp::from(62), Mfp::from(42));
-        points_col_p_b.insert(Mfp::from(132), Mfp::from(125));
-        points_col_p_b.insert(Mfp::from(65), Mfp::from(1));
-        points_col_p_b.insert(Mfp::from(80), Mfp::from(135));
+        println!("points_col_p_b: {}", print_points(&points_col_p_b));
+
 
         let points_val_p_b = get_matrix_point_val(
             &self.commitm.matrices.b,
@@ -421,6 +414,8 @@ impl CommitmentBuilder {
             &points_row_p_b,
             &points_col_p_b,
         );
+        println!("points_val_p_b: {}", print_points(&points_val_p_b));
+
 
         // Matrix C
         let mut points_row_p_c = get_matrix_point_row(
@@ -428,28 +423,16 @@ impl CommitmentBuilder {
             &self.commitm.set_h,
             &self.commitm.set_k,
         );
-        // FIXME: Wiki
-        // rowC' = (48, 1), (73, 59), (62, 125), (132, 1), (65, 135), (80, 42)
-        points_row_p_c.insert(Mfp::from(48), Mfp::from(1));
-        points_row_p_c.insert(Mfp::from(73), Mfp::from(59));
-        points_row_p_c.insert(Mfp::from(62), Mfp::from(125));
-        points_row_p_c.insert(Mfp::from(132), Mfp::from(1));
-        points_row_p_c.insert(Mfp::from(65), Mfp::from(135));
-        points_row_p_c.insert(Mfp::from(80), Mfp::from(42));
+        println!("points_row_p_c: {}", print_points(&points_row_p_c));
+
 
         let mut points_col_p_c = get_matrix_point_col(
             &self.commitm.matrices.c,
             &self.commitm.set_h,
             &self.commitm.set_k,
         );
-        // FIXME: Wiki
-        // colC' = (48, 125), (73, 59), (62, 1), (132, 1), (65, 42), (80, 59)
-        points_col_p_c.insert(Mfp::from(48), Mfp::from(125));
-        points_col_p_c.insert(Mfp::from(73), Mfp::from(59));
-        points_col_p_c.insert(Mfp::from(62), Mfp::from(1));
-        points_col_p_c.insert(Mfp::from(132), Mfp::from(1));
-        points_col_p_c.insert(Mfp::from(65), Mfp::from(42));
-        points_col_p_c.insert(Mfp::from(80), Mfp::from(59));
+        println!("points_col_p_c: {}", print_points(&points_col_p_c));
+
 
         let points_val_p_c = get_matrix_point_val(
             &self.commitm.matrices.c,
@@ -458,6 +441,8 @@ impl CommitmentBuilder {
             &points_row_p_c,
             &points_col_p_c,
         );
+        println!("points_val_p_c: {}", print_points(&points_val_p_c));
+
 
         let a_row_px = sigma_yi_li(&points_row_p_a, &self.commitm.set_k);
         println_dbg!("a_row_px: ");
