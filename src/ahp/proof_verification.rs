@@ -228,12 +228,22 @@ impl Verification {
     /// # Returns
     /// Returns true if the equation holds, false otherwise
     fn check_4(&self, beta: &[Mfp], set_h_len: usize) -> bool {
+        println_dbg!("equation 4 ======");
         // Preparing equation values
         let van_poly_vhx = Self::vanishing_poly(set_h_len); // Vanishing polynomial for h
+        println_dbg!("van_poly_vhx: ");
+        dsp_poly!(van_poly_vhx);
+
         let poly_ab_c = &self.data.get_poly(Polys::ZHatA as usize)
             * &self.data.get_poly(Polys::ZHatB as usize)
             - &self.data.get_poly(Polys::ZHatC as usize); // Compute polynomial A * B - C
+
+        println_dbg!("poly_ab_c: ");
+        dsp_poly!(poly_ab_c);
+        
         let poly_h_0 = div_mod(&poly_ab_c, &van_poly_vhx).0; // Divide and get the result
+        println_dbg!("poly_h_0: ");
+        dsp_poly!(poly_h_0);
 
         // Check the fourth verification equation
         Self::check_equation_4(&poly_ab_c, &poly_h_0, &van_poly_vhx, &beta[0])
@@ -274,8 +284,18 @@ impl Verification {
             .map(|(i, &eta)| Poly::from(vec![eta]) * &self.data.get_poly(i).clone())
             .fold(Poly::zero(), |acc, poly| acc + poly);
 
+
+        // Compute polynomial px using eta values
+        let val_commit_poly_px = eta_values
+            .iter()
+            .enumerate()
+            .map(|(i, &eta)| eta * &self.data.get_commits(i).clone())
+            .fold(Mfp::ZERO, |acc, com| acc + com);
+
+
+
         let val_y_p = poly_px.eval(z); // Evaluate polynomial at z
-        let val_commit_poly_px = kzg::commit(&poly_px, ck); // Commit to polynomial px
+
         let mut poly_px_add = poly_px;
         poly_px_add.add_term(-val_y_p, 0); // Adjust polynomial by subtracting evaluated value
         let poly_x_z = Poly::from(vec![Mfp::ONE, Mfp::from(-z)]); // Polynomial for division
@@ -492,6 +512,7 @@ impl Verification {
         // Print evaluated values for debugging
         println_dbg!("eq41: {}", eq41);
         println_dbg!("eq42: {}", eq42);
+        println_dbg!("=================");
 
         // Check if both sides of the equation are equal
         eq41 == eq42
@@ -518,7 +539,7 @@ impl Verification {
         z: Mfp,
     ) -> bool {
         // Print input values for debugging
-        println_dbg!("val_commit_px: {val_commit_poly_px}, val_y_p: {val_y_p}, vk: {vk}, val_commit_poly_qx: {val_commit_poly_qx}");
+        println_dbg!("val_commit_poly_px: {val_commit_poly_px}, val_y_p: {val_y_p}, vk: {vk}, val_commit_poly_qx: {val_commit_poly_qx}");
 
         // Evaluate the first equation component
         let e_1 = e_func(

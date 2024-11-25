@@ -90,9 +90,6 @@ fn main() -> Result<()> {
         .gen_polynomials()
         .build();
 
-    // Generate polynomial commitments
-    let commitment_polys = commitment.get_polynomials_commitment(&setup_json.get_ck());
-
     let _ = ProgramParamsJson::new(&commitment.matrices, &commitment.points_px, classes_data[class_number])
         .store(PROGRAM_PARAMS_PATH)?;
 

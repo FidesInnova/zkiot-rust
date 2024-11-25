@@ -33,6 +33,7 @@ pub fn generate_new_program(
     let input_file = File::open(input_path)?;
     let reader = BufReader::new(input_file);
     let n_g = class_data.n_g;
+    let n_i = class_data.n_i;
 
     // Create output file path
     let output_path = create_output_path(input_path);
@@ -51,7 +52,7 @@ pub fn generate_new_program(
         &mut output_file,
         reader,
         range,
-        n_g.try_into()?,
+        (n_g + n_i + 1).try_into()?,
         add_no_op_number,
     )?;
 
@@ -62,16 +63,17 @@ fn insert_assembly_instructions(
     output_file: &mut File,
     reader: BufReader<File>,
     line_range: (usize, usize),
-    n_g: usize,
+    z_vec_len: usize,
     add_no_op_number: u64,
 ) -> Result<()> {
     // Allocating memory for the generated ASM file!
     let mut space_size = vec![4; 32];
 
+    let mut array_offset_pair: Vec<(usize, usize)> = vec![];
+
     for (num, line) in reader.lines().enumerate() {
         let num = num + 1;
         let instruction = line?;
-
 
         if num == line_range.0 {
             writeln!(output_file, "    jal store_register_instances")?;
@@ -81,43 +83,81 @@ fn insert_assembly_instructions(
 
         if num >= line_range.0 && num <= line_range.1 {
             // Parsing the destination register from the instruction
-            let des_reg = parse_line(&instruction, num)?.1[0];
-            let des_reg_num = match_reg(des_reg).ok_or_else(|| anyhow!("Match register faild"))? as usize;
-            writeln!(output_file, "    sw x{}, x{}_array({})", des_reg_num, des_reg_num, space_size[des_reg_num])?;
+            let parse_line = parse_line(&instruction, num)?;
+
+            let registers = parse_line.1;
+            let des = registers[0];
+            let des_reg_num =
+                match_reg(des).ok_or_else(|| anyhow!("Match register faild"))? as usize;
+            array_offset_pair.push((des_reg_num, space_size[des_reg_num]));
+            
+            let x_reg = &format!("x{}", des_reg_num);
+            writeln!(output_file, "la t0, {x_reg}_array")?;
+            writeln!(output_file, "sw {x_reg}, {}(t0)", space_size[des_reg_num])?;
+
             space_size[des_reg_num] += 4;
         }
 
         if num == line_range.1 {
-            // for _ in 0..add_no_op_number {
-            //     writeln!(output_file, "    nop")?;
-            // }
-            writeln!(output_file, "    jal proofGenerator")?;
+            insert_z_array(output_file)?;
+            insert_z_array_population_code(output_file)?;
+
+            for i in 33..(z_vec_len) {
+                writeln!(output_file, "la a1, x{}_array", array_offset_pair[i - 33].0)?;
+                writeln!(output_file, "lw t0, {}(a1)", array_offset_pair[i - 33].1)?;
+                writeln!(output_file, "sw t0, {}(a0)", i * 4)?;
+            }
+
+            writeln!(output_file, "call proofGenerator")?;
         }
     }
 
-
+    insert_z_array_definition(output_file, z_vec_len)?;
     insert_arrays(output_file, space_size)?;
-
-    insert_store_register_function(output_file, n_g)?;
-
+    insert_store_register_function(output_file)?;
+    
     Ok(())
 }
 
-fn insert_arrays(output_file: &mut File, space_size: Vec<u64>) -> Result<()> {
+fn insert_z_array_population_code(output_file: &mut File) -> Result<()> {
+    for i in 1..=32 {
+        writeln!(output_file, "la a0, z_array")?;
+        writeln!(output_file, "la a1, x{}_array", i - 1)?;
+        writeln!(output_file, "lw t0, 0(a1)")?;
+        writeln!(output_file, "sw t0, {}(a0)", i * 4)?;
+    }
+    Ok(())
+}
+ 
+fn insert_z_array(output_file: &mut File) -> Result<()> {
+    writeln!(output_file, "la a0, z_array")?;
+    writeln!(output_file, "li t0, 1")?;
+    writeln!(output_file, "sw t0, 0(a0)")?;
+    Ok(())
+}
+
+fn insert_z_array_definition(output_file: &mut File, z_vec_len: usize) -> Result<()> {
+    writeln!(output_file, ".section .data")?;
+    writeln!(output_file, ".global z_array")?;
+    writeln!(output_file, "z_array:    .space {}", z_vec_len * 4)?;
+    Ok(())
+}
+
+fn insert_arrays(output_file: &mut File, space_size: Vec<usize>) -> Result<()> {
     writeln!(output_file, "    .data")?;
     for (num, size) in space_size.iter().enumerate() {
-        writeln!(output_file, "x{}_array:    .space {}   # Array for x{}", num, size, num)?;
+        writeln!(
+            output_file,
+            "x{}_array:    .space {}   # Array for x{}",
+            num, size, num
+        )?;
     }
     Ok(())
 }
 
-fn insert_store_register_function(output_file: &mut File, n_g: usize) -> Result<()> {
+fn insert_store_register_function(output_file: &mut File) -> Result<()> {
     // Save register function
-    writeln!(
-        output_file,
-        r#"{}"#,
-        include_str!("../store_registers.asm").replace("SPACE_SIZE", &n_g.to_string())
-    )?;
+    writeln!(output_file, r#"{}"#, include_str!("../store_registers.asm"))?;
     Ok(())
 }
 

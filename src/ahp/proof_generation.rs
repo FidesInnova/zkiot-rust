@@ -257,12 +257,7 @@ impl ProofGeneration {
         let size = class_data.get_matrix_size();
         let mut z_vec: DVector<Mfp> = DVector::zeros(size);
         
-        let vals = vec![
-            1, 
-            1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0,
-            0, 0, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            6, 14, 16, 12, 28, 8, 784, 1568
-        ];
+        let vals = vec![1, 0, 128234, 1823714, 1298680, 0, 1294568, 1304756, 5087280, 1823730, 1, 1, 1823734, 0, 30, 5, 1304756, 16, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 13, 26, 52, 104, 208, 416, 832];
 
         let vals = vals.iter().map(|v| Mfp::from(*v)).collect::<Vec<Mfp>>();
 
@@ -293,6 +288,14 @@ impl ProofGeneration {
         let numebr_t_zero = class_data.get_matrix_t_zeros();
         let matrices = program_params.get_matrices(&class_data);
         let (mat_a, mat_b, mat_c) = matrices.clone();
+
+        println_dbg!("P Mat A:");
+        dsp_mat!(mat_a);
+        println_dbg!("P Mat B:");
+        dsp_mat!(mat_b);
+        println_dbg!("P Mat C:");
+        dsp_mat!(mat_c);
+
         let z_vec = Self::generate_z_vec(&class_data);
         let points_px = program_params.get_points_px(&set_k);
 
@@ -329,7 +332,7 @@ impl ProofGeneration {
         println_dbg!("poly_ab_c");
         dsp_poly!(poly_ab_c);
         let poly_h_0 = div_mod(&poly_ab_c, &van_poly_vhx).0;
-        println_dbg!("h0(x):");
+        println_dbg!("poly_h_0");
         dsp_poly!(poly_h_0);
 
         // Generate a random polynomial
@@ -408,10 +411,9 @@ impl ProofGeneration {
         dsp_poly!(g_1x);
 
         // TODO: Random F - H
-        // let beta_1 = gen_rand_not_in_set(&vec_to_set(&set_h));
-        // let beta_1 = Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(9)).to_string()));
-        // let beta_2 = gen_rand_not_in_set(&vec_to_set(&set_h));
-        // let beta_2 = Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(10)).to_string()));
+        // let beta_1 = poly_sx.eval(Mfp::from(1));
+        // let beta_2 = poly_sx.eval(Mfp::from(2));
+        // let beta_3 = poly_sx.eval(Mfp::from(3));
         let beta_1 = Mfp::from(22);
         let beta_2 = Mfp::from(80);
         let beta_3 = Mfp::from(5);
@@ -608,7 +610,7 @@ impl ProofGeneration {
         let commit_x = compute_all_commitment(&polys_proof, commitment_key);
         println_dbg!("commit_x: {}", dsp_vec!(commit_x));
 
-        let x_vec = &mat_to_vec(&z_vec)[..numebr_t_zero];
+        let x_vec = &mat_to_vec(&z_vec)[1..numebr_t_zero];
         Self::create_proof(
             &polys_proof,
             &sigma,
@@ -955,11 +957,14 @@ impl ProofGenerationJson {
 
     /// Get vector X (Vector X is the first part of vector Z, where Z = [X, W, Y])
     pub fn get_x_vec(&self) -> Vec<Mfp> {
-        self.com1ahp.iter().map(|v| Mfp::from(*v)).collect()
+        let mut x: Vec<Mfp> = self.com1ahp.iter().map(|v| Mfp::from(*v)).collect();
+        x.insert(0, Mfp::ONE);
+        x
     }
 
     /// Get polynomials
-    pub fn get_poly(&self, poly: usize) -> Poly {
+    pub fn get_poly(&self, num: usize) -> Poly {
+        // FIXME:
         let polys = vec![
             &self.p2ahp,
             &self.p3ahp,
@@ -975,7 +980,7 @@ impl ProofGenerationJson {
             &self.p15ahp,
         ];
 
-        let poly_vec = polys[poly]
+        let poly_vec = polys[num]
             .iter()
             .rev()
             .map(|&v| Mfp::from(v))
@@ -983,6 +988,25 @@ impl ProofGenerationJson {
         let mut poly = Poly::from(poly_vec);
         poly.trim();
         poly
+    }
+
+    /// Get commits
+    pub fn get_commits(&self, num: usize) -> Mfp {
+        let commits = vec![
+            &self.com2ahp,
+            &self.com3ahp,
+            &self.com4ahp,
+            &self.com5ahp,
+            &self.com6ahp,
+            &self.com7ahp,
+            &self.com8ahp,
+            &self.com9ahp,
+            &self.com10ahp,
+            &self.com11ahp,
+            &self.com12ahp,
+            &self.com13ahp,
+        ];
+        Mfp::from(*commits[num])
     }
 
     /// Get sigma values

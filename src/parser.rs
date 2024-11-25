@@ -335,6 +335,8 @@ mod parser_test {
             (vec!["zero", "ra", "sp"], (0, 1, 2)), 
             (vec!["t6", "s2", "s2"], (31, 18, 18)),
             (vec!["a0", "a2", "a3"], (10, 12, 13)),
+            (vec!["a0", "0", "a3"], (10, 0, 13)),
+            (vec!["a0", "a2", "1000"], (10, 12, 0)),
         ];
 
         for (input, expected) in test_cases {

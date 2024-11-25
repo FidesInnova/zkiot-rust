@@ -48,8 +48,8 @@ pub fn commit(poly_in: &Poly, ck: &[Mfp]) -> Mfp {
                     continue;
                 }
                 Term::Term(t, _) => {
-                    let exp = Mfp::from(to_bint!(t) * to_bint!(ck[i]));
-                    res_poly += exp;
+                    let mul = Mfp::from(to_bint!(t) * to_bint!(ck[i]));
+                    res_poly += mul;
                 }
             }
         }

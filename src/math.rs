@@ -715,6 +715,8 @@ pub fn div_mod_val(a: Mfp, b: Mfp) -> Mfp {
 pub fn compute_all_commitment(polys: &[Poly], ck: &Vec<Mfp>) -> Vec<Mfp> {
     let mut res = vec![];
 
+    println!("ck in commitment: {:?}", ck);
+
     for poly in polys.iter() {
         let commitment_num = kzg::commit(&poly, &ck);
         res.push(commitment_num);

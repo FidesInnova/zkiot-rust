@@ -80,15 +80,6 @@ impl Commitment {
         }
     }
 
-    /// Generates a commitment based on the AHP commitment generation process.
-    /// For more details, see:
-    /// [AHP Commitment Generation Documentation](https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/2-commitment-phase#id-2-3-ahp-commitment)
-    pub fn get_polynomials_commitment(&self, commitment_key: &Vec<Mfp>) -> Vec<Mfp> {
-        let commitment = compute_all_commitment(&self.polys_px, commitment_key);
-        println_dbg!("com_ahp: {}", dsp_vec!(commitment));
-        commitment
-    }
-
     /// Store in Json file
     pub fn store(&self, path: &str, class_number: u8, class: ClassDataJson) -> Result<()> {
         let file = File::create(path)?;

@@ -8,7 +8,7 @@ register_map = {
     "t1": 0,   # Temporary register
     "t2": 0,   # Temporary register
     "s0": 0,   # Platform register
-    "s1": 0,   # Platform register
+    "s1": 1,   # Platform register
     "a0": 0,  # Argument register
     "a1": 0,  # Argument register
     "a2": 0,  # Temporary register
