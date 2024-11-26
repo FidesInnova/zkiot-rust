@@ -35,7 +35,7 @@ const DEVICE_CONFIG_PATH: &str = "data/device_config.json";
 struct Args {
     /// Path to the program commitment file
     #[arg(required = true)]
-    program_path: String,
+    program_commitment_path: String,
 
     /// Path to the proof file
     #[arg(required = true)]
@@ -51,13 +51,13 @@ fn main() -> Result<()> {
     let args = Args::parse();
 
     // Use the extracted paths
-    let program_path = &args.program_path;
+    let program_commitment_path = &args.program_commitment_path;
     let proof_path = &args.proof_path;
     let setup_path = &args.setup_path;
 
 
     let device_config: DeviceConfigJson = read_json_file(DEVICE_CONFIG_PATH)?;
-    let class_number = device_config.class;
+    let class_number = device_config.info.class;
     
     // Load class data from the JSON file
     let class_data = ClassDataJson::get_class_data("class.json", class_number)
@@ -68,7 +68,7 @@ fn main() -> Result<()> {
         Setup::restore(setup_path).with_context(|| "Error retrieving setup data")?;
         
     // Load commitment data from the commitment file
-    let commitment_json = Commitment::restore(program_path)
+    let commitment_json = Commitment::restore(program_commitment_path)
         .with_context(|| "Error loading commitment data")?;
     
     // Load proof generation data from the proof file

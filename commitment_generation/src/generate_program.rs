@@ -76,7 +76,7 @@ fn insert_assembly_instructions(
         let instruction = line?;
 
         if num == line_range.0 {
-            writeln!(output_file, "    jal store_register_instances")?;
+            writeln!(output_file, "jal store_register_instances")?;
         }
 
         writeln!(output_file, "{}", instruction)?;

@@ -12,17 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::cell::OnceCell;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufWriter;
 use std::iter::repeat_with;
-use std::sync::OnceLock;
 
 use anyhow::Result;
 use ark_ff::Field;
-use nalgebra::DMatrix;
 use nalgebra::DVector;
+use rand::thread_rng;
 use rand::Rng;
 use rustnomial::Evaluable;
 use rustnomial::FreeSizePolynomial;
@@ -30,19 +28,16 @@ use rustnomial::SizedPolynomial;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::ahp::commitment_generation::CommitmentBuilder;
 use crate::dsp_mat;
 use crate::dsp_poly;
 use crate::dsp_vec;
 use crate::json_file::write_set;
 use crate::json_file::write_term;
 use crate::json_file::ClassDataJson;
+use crate::json_file::DeviceInfo;
 use crate::json_file::ProgramParamsJson;
 use crate::kzg;
 use crate::math::*;
-use crate::matrices::Matrices;
-use crate::parser::Gate;
-use crate::parser::Instructions;
 use crate::println_dbg;
 use crate::to_bint;
 use crate::utils::*;
@@ -79,6 +74,32 @@ pub struct ProofGeneration;
 impl ProofGeneration {
     pub fn new() -> Self {
         Self
+    }
+
+    /// Generates a vector Z
+    pub fn generate_z_vec(class_data: &ClassDataJson) -> DVector<Mfp> {
+        let size = class_data.get_matrix_size();
+        let mut z_vec: DVector<Mfp> = DVector::zeros(size);
+        
+        let vals: Vec<u64> = vec![
+            1, 1, 128626, 1823714, 1298680, 0, 1294568, 1304756, 5087280, 1823730, 1, 1, 1823734,
+            0, 30, 5, 1304756, 16, 30, 2, 3, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+            6, 14, 16, 12, 28, 16, 784, 614656, 12544, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000, 102400, 27, 16, 64, 80, 16, 6400, 40960000
+        ];
+
+        assert_eq!(vals.len() as u64, class_data.n_g + class_data.n_i + 1);
+
+        let vals = vals.iter().map(|v| Mfp::from(*v)).collect::<Vec<Mfp>>();
+        println_dbg!("val len: {}", vals.len());
+
+        for (i, z) in vals.iter().enumerate() {
+            z_vec[(i, 0)] = *z;
+        }
+
+        println_dbg!("Mat Z Proof:");
+        dsp_mat!(z_vec);
+
+        z_vec
     }
 
     /// Generates interpolated polynomials from the given matrix and random values
@@ -252,27 +273,6 @@ impl ProofGeneration {
         (r_a_xk, r_b_xk, r_c_xk)
     }
 
-    /// Generates a vector Z
-    pub fn generate_z_vec(class_data: &ClassDataJson) -> DVector<Mfp> {
-        let size = class_data.get_matrix_size();
-        let mut z_vec: DVector<Mfp> = DVector::zeros(size);
-        
-        let vals = vec![1, 0, 128234, 1823714, 1298680, 0, 1294568, 1304756, 5087280, 1823730, 1, 1, 1823734, 0, 30, 5, 1304756, 16, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 13, 26, 52, 104, 208, 416, 832];
-
-        let vals = vals.iter().map(|v| Mfp::from(*v)).collect::<Vec<Mfp>>();
-
-        println_dbg!("val len: {}", vals.len());
-
-        for (i, z) in vals.iter().enumerate() {
-            z_vec[(i, 0)] = *z;
-        }
-
-        println_dbg!("Mat Z Proof:");
-        dsp_mat!(z_vec);
-
-        z_vec
-    }
-
     /// Generates proof values to be used for creating a JSON file later
     pub fn generate_proof(
         &self,
@@ -299,8 +299,10 @@ impl ProofGeneration {
         let z_vec = Self::generate_z_vec(&class_data);
         let points_px = program_params.get_points_px(&set_k);
 
-        // TODO: Set 'random_b' to a random value in the range 1 to 50
-        let random_b = 2;
+        // TODO: Set 'random_b' to a random value
+        let b_max_rand = std::cmp::min(10, class_data.n_g);
+        let random_b = thread_rng().gen_range(1..b_max_rand);
+        // let random_b = 2;
 
         // Generate and interpolate points for matrices az, bz, cz
         let (poly_z_hat_a, poly_z_hat_b, poly_z_hat_c) = Self::generate_oz_interpolations(
@@ -347,17 +349,17 @@ impl ProofGeneration {
         println_dbg!("sigma_1 :	{}", sigma_1);
 
         // TODO:
-        // let alpha = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(0))).to_string()));
-        // let eta_a = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(1))).to_string()));
-        // let eta_b = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(2))).to_string()));
-        // let eta_c = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(3))).to_string()));
+        let alpha = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(0))).to_string()));
+        let eta_a = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(1))).to_string()));
+        let eta_b = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(2))).to_string()));
+        let eta_c = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(3))).to_string()));
 
         // From wiki: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
         //             Step 6
-        let alpha = Mfp::from(10);
-        let eta_a = Mfp::from(2);
-        let eta_b = Mfp::from(30);
-        let eta_c = Mfp::from(100);
+        // let alpha = Mfp::from(10);
+        // let eta_a = Mfp::from(2);
+        // let eta_b = Mfp::from(30);
+        // let eta_c = Mfp::from(100);
 
         // Compute polynomial for ∑ ηz(x)
         let sigma_eta_z_x = Poly::new(vec![eta_a]) * &poly_z_hat_a
@@ -411,12 +413,12 @@ impl ProofGeneration {
         dsp_poly!(g_1x);
 
         // TODO: Random F - H
-        // let beta_1 = poly_sx.eval(Mfp::from(1));
-        // let beta_2 = poly_sx.eval(Mfp::from(2));
-        // let beta_3 = poly_sx.eval(Mfp::from(3));
-        let beta_1 = Mfp::from(22);
-        let beta_2 = Mfp::from(80);
-        let beta_3 = Mfp::from(5);
+        let beta_1 = generate_beta_random(8, &poly_sx, &set_h);
+        let beta_2 = generate_beta_random(9, &poly_sx, &set_h);
+
+        // let beta_1 = Mfp::from(22);
+        // let beta_2 = Mfp::from(80);
+        // let beta_3 = Mfp::from(5);
 
         let (r_a_xk, r_b_xk, r_c_xk) =
             Self::calculate_r_polynomials_with_beta(&points_px, beta_1, &set_h);
@@ -517,7 +519,7 @@ impl ProofGeneration {
             poly_z_hat_b,
             poly_z_hat_c,
             poly_h_0,
-            poly_sx,
+            poly_sx.clone(),
             g_1x,
             h_1x,
             g_2x,
@@ -563,21 +565,26 @@ impl ProofGeneration {
         println_dbg!("h_3x");
         dsp_poly!(polys_proof[11]);
 
-        // TODO: All random (1..P)
-        let eta_values = [
-            Mfp::from(1),  // eta_w
-            Mfp::from(4),  // eta_z_a
-            Mfp::from(10), // eta_z_b
-            Mfp::from(8),  // eta_z_c
-            Mfp::from(32), // eta_h0
-            Mfp::from(45), // eta_s
-            Mfp::from(92), // eta_g1
-            Mfp::from(11), // eta_h1
-            Mfp::from(1),  // eta_g2
-            Mfp::from(5),  // eta_h2
-            Mfp::from(25), // eta_g3
-            Mfp::from(63), // eta_h3
-        ];
+        // TODO: 
+        // let eta_values = [
+        //     Mfp::from(1),  // eta_w
+        //     Mfp::from(4),  // eta_z_a
+        //     Mfp::from(10), // eta_z_b
+        //     Mfp::from(8),  // eta_z_c
+        //     Mfp::from(32), // eta_h0
+        //     Mfp::from(45), // eta_s
+        //     Mfp::from(92), // eta_g1
+        //     Mfp::from(11), // eta_h1
+        //     Mfp::from(1),  // eta_g2
+        //     Mfp::from(5),  // eta_h2
+        //     Mfp::from(25), // eta_g3
+        //     Mfp::from(63), // eta_h3
+        // ];
+
+        let mut eta_values = vec![];
+        for i in 10..=21 {
+            eta_values.push(Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(i)).to_string())))
+        }
 
         let poly_px = eta_values
             .iter()
@@ -590,7 +597,8 @@ impl ProofGeneration {
 
         // TODO:
         // hash(poly_sx(22));
-        let z = Mfp::from(2);
+        let z = Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(22)).to_string()));
+        // let z = Mfp::from(2);
         let val_y_p = poly_px.eval(z);
         println_dbg!("val_y_p {}", val_y_p);
 
@@ -644,10 +652,10 @@ impl ProofGeneration {
         .collect();
 
         // TODO: Random numebrs from Wiki, Comment it after test
-        let coefficients = [5, 0, 101, 17, 0, 1, 20, 0, 0, 3, 115]
-            .iter()
-            .map(|v| Mfp::from(*v))
-            .collect::<Vec<Mfp>>();
+        // let coefficients = [5, 0, 101, 17, 0, 1, 20, 0, 0, 3, 115]
+        //     .iter()
+        //     .map(|v| Mfp::from(*v))
+        //     .collect::<Vec<Mfp>>();
 
         let mut rand_poly = Poly::from(coefficients);
         rand_poly.trim();
@@ -771,11 +779,11 @@ impl ProofGeneration {
     }
 
     /// Store in Json file
-    pub fn store(&self, path: &str, proof_data: Box<[AHPData]>) -> Result<()> {
+    pub fn store(&self, path: &str, proof_data: Box<[AHPData]>, class_number: u8) -> Result<()> {
         let file = File::create(path)?;
         let writer = BufWriter::new(file);
 
-        let proof_json = ProofGenerationJson::new(proof_data);
+        let proof_json = ProofGenerationJson::new(proof_data, class_number);
         serde_json::to_writer(writer, &proof_json)?;
         Ok(())
     }
@@ -790,55 +798,49 @@ impl ProofGeneration {
 /// More Info: [wiki](https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-4-proof-json-file-format)
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ProofGenerationJson {
-    #[serde(rename = "CommitmentID")]
-    commitment_id: String,
+    #[serde(flatten)]
+    info: DeviceInfo,
 
-    #[serde(rename = "DeviceEncodedID")]
-    device_encoded_id: String,
+    // #[serde(rename = "DeviceEncodedID")]
+    // device_encoded_id: String,
 
-    #[serde(rename = "Input")]
-    input: String,
-
-    #[serde(rename = "Output")]
-    output: String,
-
-    #[serde(rename = "COM1AHP")]
+    #[serde(rename = "Com1_AHP_x")]
     com1ahp: Vec<u64>,
 
-    #[serde(rename = "COM2AHP")]
+    #[serde(rename = "Com2_AHP_x")]
     com2ahp: u64,
 
-    #[serde(rename = "COM3AHP")]
+    #[serde(rename = "Com3_AHP_x")]
     com3ahp: u64,
 
-    #[serde(rename = "COM4AHP")]
+    #[serde(rename = "Com4_AHP_x")]
     com4ahp: u64,
 
-    #[serde(rename = "COM5AHP")]
+    #[serde(rename = "Com5_AHP_x")]
     com5ahp: u64,
 
-    #[serde(rename = "COM6AHP")]
+    #[serde(rename = "Com6_AHP_x")]
     com6ahp: u64,
 
-    #[serde(rename = "COM7AHP")]
+    #[serde(rename = "Com7_AHP_x")]
     com7ahp: u64,
 
-    #[serde(rename = "COM8AHP")]
+    #[serde(rename = "Com8_AHP_x")]
     com8ahp: u64,
 
-    #[serde(rename = "COM9AHP")]
+    #[serde(rename = "Com9_AHP_x")]
     com9ahp: u64,
 
-    #[serde(rename = "COM10AHP")]
+    #[serde(rename = "Com10_AHP_x")]
     com10ahp: u64,
 
-    #[serde(rename = "COM11AHP")]
+    #[serde(rename = "Com11_AHP_x")]
     com11ahp: u64,
 
-    #[serde(rename = "COM12AHP")]
+    #[serde(rename = "Com12_AHP_x")]
     com12ahp: u64,
 
-    #[serde(rename = "COM13AHP")]
+    #[serde(rename = "Com13_AHP_x")]
     com13ahp: u64,
 
     #[serde(rename = "P1AHP")]
@@ -891,13 +893,10 @@ pub struct ProofGenerationJson {
 
     #[serde(rename = "P17AHP")]
     p17ahp: u64,
-
-    #[serde(rename = "Protocol")]
-    protocol: String,
 }
 
 impl ProofGenerationJson {
-    pub fn new(proof_data: Box<[AHPData]>) -> Self {
+    pub fn new(proof_data: Box<[AHPData]>, class_number: u8) -> Self {
         let mut commits = vec![];
         let mut polys = vec![];
         let mut sigma = vec![];
@@ -917,10 +916,8 @@ impl ProofGenerationJson {
         let commitment_id = sha2_hash("concat_vals(DeviceConfig.json)");
 
         Self {
-            commitment_id: commitment_id.to_string(),
-            device_encoded_id: "Base64<MAC>".to_owned(),
-            input: "None".to_owned(),
-            output: "None".to_owned(),
+            info: DeviceInfo::new(class_number, &commitment_id.to_string(), "FidesInnova", "test", "1", "2"),
+            // device_encoded_id: "Base64<MAC>".to_owned(),
             com1ahp: x_vec,
             com2ahp: commits[0],
             com3ahp: commits[1],
@@ -951,7 +948,6 @@ impl ProofGenerationJson {
             p15ahp: polys[11].clone(),
             p16ahp: values[0],
             p17ahp: values[1],
-            protocol: "None".to_owned(),
         }
     }
 

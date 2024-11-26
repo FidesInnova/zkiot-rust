@@ -21,6 +21,7 @@ use nalgebra::DVector;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use rand::Rng;
+use rustnomial::Evaluable;
 use rustnomial::SizedPolynomial;
 use sha2::Digest;
 use std::collections::HashMap;
@@ -175,13 +176,21 @@ pub fn gen_rand_not_in_set(set: &HashSet<Mfp>, p: u64) -> Mfp {
 /// `points` vector.
 pub fn push_random_points(points: &mut Vec<Point>, b: u64, set_h: &HashSet<Mfp>, p: u64) {
     let mut rng = thread_rng();
-    for i in 0..b {
-        // let d = gen_rand_not_in_set(set_h, p);
-        // let r = Mfp::from(rng.gen_range(0..p));
-        points.push((Mfp::from(i + 3), Mfp::from(i + 3)));
+    for _i in 0..b {
+        let d = gen_rand_not_in_set(set_h, p);
+        let r = Mfp::from(rng.gen_range(0..p));
+        // points.push((Mfp::from(_i + 3), Mfp::from(_i + 3)));
         // TODO: Uncomment after debug 
-        // points.push((d, r));
+        points.push((d, r));
     }
+}
+
+pub fn generate_beta_random(num: u64, poly_sx: &Poly, set_h: &Vec<Mfp>) -> Mfp {
+    let mut random_number = Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(num)).to_string()));
+    while set_h.contains(&random_number) {
+        random_number += Mfp::ONE;
+    }
+    random_number
 }
 
 /// Generates a random polynomial of a specified degree.

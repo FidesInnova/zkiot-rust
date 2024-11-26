@@ -31,7 +31,9 @@ use crate::math::Mfp;
 use crate::math::Poly;
 use crate::println_dbg;
 use crate::to_bint;
+use crate::utils::generate_beta_random;
 use crate::utils::get_points_set;
+use crate::utils::sha2_hash;
 
 use super::proof_generation::Polys;
 use super::proof_generation::ProofGeneration;
@@ -68,27 +70,37 @@ impl Verification {
         g: u64
     ) -> bool {
         let poly_sx = &self.data.get_poly(Polys::Sx as usize);
-        // TODO:
-        // From wiki: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
-        //             Step 6
-        // let alpha = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(0))).to_string()));
-        // let beta_1 = poly_sx.eval(Mfp::from(1));
-        // let beta_2 = poly_sx.eval(Mfp::from(2));
-        // let beta_3 = poly_sx.eval(Mfp::from(3));
-        // let alpha = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(0))).to_string()));
-        // let eta_a = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(1))).to_string()));
-        // let eta_b = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(2))).to_string()));
-        // let eta_c = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(3))).to_string()));
-        // let z = hash(poly_sx(22));
-        // Randoms:
-        let z = Mfp::from(2);
-        let alpha = Mfp::from(10);
-        let beta = vec![Mfp::from(22), Mfp::from(80), Mfp::from(5)];
-        let eta = vec![Mfp::from(2), Mfp::from(30), Mfp::from(100)];
-        let t = (class_data.n_i + 1) as usize;
         let set_h_len = class_data.n as usize;
         let set_h = generate_set(set_h_len as u64, class_data);
         let set_k_len = class_data.m as usize;
+
+        
+        // Final random numbers must not be in set h
+        let beta_1 = generate_beta_random(8, &poly_sx, &set_h);
+        let beta_2 = generate_beta_random(9, &poly_sx, &set_h);
+        let beta_3 = generate_beta_random(10, &poly_sx, &set_h);
+        
+
+        // TODO:
+        // From wiki: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
+        //             Step 6
+        let alpha = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(0))).to_string()));
+        let eta_a = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(1))).to_string()));
+        let eta_b = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(2))).to_string()));
+        let eta_c = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(3))).to_string()));
+        println!("alpha: {:?} - {}", poly_sx.eval(Mfp::from(0)), alpha);
+
+        // let z = hash(poly_sx(22));
+        // Randoms:
+        
+        let z = Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(22)).to_string()));
+        // let z = Mfp::from(2);
+        let beta = vec![beta_1, beta_2, beta_3];
+        
+        // let beta = vec![Mfp::from(22), Mfp::from(80), Mfp::from(5)];
+
+        let eta = vec![eta_a, eta_b, eta_c];
+        let t = (class_data.n_i + 1) as usize;
 
         // https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/4-proof-verification-phase#id-4-2-ahp-verify
         // All functions need to be executed for debugging purposes, hence they are written this way
@@ -97,7 +109,7 @@ impl Verification {
         res &= self.check_2(&beta, alpha, set_h_len);
         res &= self.check_3(x_vec, alpha, &beta, &eta, &set_h, t);
         res &= self.check_4(&beta, set_h_len);
-        res &= self.check_5((ck, vk), z, Mfp::from(g));
+        res &= self.check_5((ck, vk), z, Mfp::from(g), &poly_sx);
         res
     }
 
@@ -259,23 +271,28 @@ impl Verification {
     ///
     /// # Returns
     /// Returns true if the equation holds, false otherwise
-    fn check_5(&self, (ck, vk): (&[Mfp], Mfp), z: Mfp, g: Mfp) -> bool {
+    fn check_5(&self, (ck, vk): (&[Mfp], Mfp), z: Mfp, g: Mfp, poly_sx: &Poly) -> bool {
         // Preparing equation values
         // TODO: Replace with random values in the range (1..P)
-        let eta_values = vec![
-            Mfp::from(1),  // eta_w
-            Mfp::from(4),  // eta_z_a
-            Mfp::from(10), // eta_z_b
-            Mfp::from(8),  // eta_z_c
-            Mfp::from(32), // eta_h0
-            Mfp::from(45), // eta_s
-            Mfp::from(92), // eta_g1
-            Mfp::from(11), // eta_h1
-            Mfp::from(1),  // eta_g2
-            Mfp::from(5),  // eta_h2
-            Mfp::from(25), // eta_g3
-            Mfp::from(63), // eta_h3
-        ];
+        // let eta_values = vec![
+        //     Mfp::from(1),  // eta_w
+        //     Mfp::from(4),  // eta_z_a
+        //     Mfp::from(10), // eta_z_b
+        //     Mfp::from(8),  // eta_z_c
+        //     Mfp::from(32), // eta_h0
+        //     Mfp::from(45), // eta_s
+        //     Mfp::from(92), // eta_g1
+        //     Mfp::from(11), // eta_h1
+        //     Mfp::from(1),  // eta_g2
+        //     Mfp::from(5),  // eta_h2
+        //     Mfp::from(25), // eta_g3
+        //     Mfp::from(63), // eta_h3
+        // ];
+
+        let mut eta_values = vec![];
+        for i in 10..=21 {
+            eta_values.push(Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(i)).to_string())))
+        }
 
         // Compute polynomial px using eta values
         let poly_px = eta_values

@@ -21,19 +21,11 @@ use zk_iot::{ahp::setup::Setup, json_file::ClassDataJson};
 const CLASS_TABLE: &str = "class.json";
 
 fn main() -> Result<()> {
-    // 
     let mut setup = Setup::default();
     
     // Load class data from the JSON file
     let class_data =
         ClassDataJson::get_all_class_data(CLASS_TABLE).with_context(|| "Error loading class data")?;
-    
-    // TODO: Uncomment the following code when all tests pass 
-    // Random number in range (1-Ng)
-    // let b = thread_rng().gen_range(1..class_data.n_g);
-
-    // Temporary assignment for random number b
-    let b = 2; 
 
     // Create a setup file for each entry in class_data
     for (class_number, metadata) in class_data {

@@ -14,34 +14,22 @@
 
 //! Module for mathematical functions and utilities for finite field operations using the `Mfp` type and polynomials.
 
-#![no_std]
-#![feature(const_refs_to_static)]
-#![feature(const_mut_refs)]
 
-
-use anyhow::Context;
 use ark_ff::Field;
 use ark_ff::Zero;
 use nalgebra::DMatrix;
-use rand::seq::SliceRandom;
-use rand::thread_rng;
 use rustnomial::*;
-use std::cell::LazyCell;
 use std::collections::HashMap;
 use std::ops::Neg;
-use std::sync::LazyLock;
-
-use crate::dsp_poly;
 use crate::field;
 use crate::json_file::ClassDataJson;
-use crate::json_file::DeviceConfigJson;
 use crate::kzg;
 use crate::println_dbg;
 use crate::to_bint;
 use crate::utils::add_random_points;
-use crate::utils::read_json_file;
 
-pub const P: u64 = 5087281;
+pub const P: u64 = 138403841;
+// pub const P: u64 = 2460193;
 
 field!(Mfp, P);
 

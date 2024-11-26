@@ -15,27 +15,16 @@
 
 use anyhow::Result;
 use proof_generation::main_proof_gen;
-use std::arch::{asm, global_asm};
+use std::{arch::{asm, global_asm}, env};
 
-// global_asm!(
-//     ".data",
-//     ".global x18_array",   // Declare x18_array as a global label
-//     "x18_array: .space 20" // Allocate 20 bytes for x18_array
-// );
 
 fn main() -> Result<()> {
-    // // Test
-    // unsafe {
-    //     asm!(
-    //         "addi s2, s2, 12",
-    //         "addi s2, s2, 12",
-    //         "addi s2, s2, 12",
-    //         "addi s2, s2, 12",
-    //     );
-    // }
+    let args: Vec<String> = env::args().collect();
+
 
     // Initiate the proof generation process
-    main_proof_gen()?;
+    main_proof_gen(&args[1])?;
+
 
     Ok(())
 }

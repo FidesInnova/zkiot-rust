@@ -28,7 +28,7 @@ use zk_iot::ahp::{self, setup::Setup};
 
 const PROGRAM_PARAMS_PATH: &str = "data/program_params.json";
 const PROGRAM_COMMITMENT_PATH: &str = "data/program_commitment.json";
-const SETUP_PATH: &str = "data/setup3.json";
+const SETUP_PATH: &str = "data/setup2.json";
 const DEVICE_CONFIG_PATH: &str = "data/device_config.json";
 const CLASS_TABLE: &str = "class.json";
 const PROOF_PATH: &str = "data/proof.json";
@@ -36,24 +36,21 @@ const PROOF_PATH: &str = "data/proof.json";
 
 // Exported for use in assembly
 #[export_name = "proofGenerator"]
-pub fn main_proof_gen() -> Result<()> {
+pub fn main_proof_gen(setup_path: &str) -> Result<()> {
     // Load files
     let device_config: DeviceConfigJson = read_json_file(DEVICE_CONFIG_PATH)?;
-    let class_number = device_config.class;
+    let class_number = device_config.info.class;
 
     // Load class data from the JSON file
     let class_data =
         ClassDataJson::get_class_data(CLASS_TABLE, class_number).with_context(|| "Error loading class data")?;
 
     // Restore setup data from the JSON file
-    let setup_json = Setup::restore(SETUP_PATH).with_context(|| "Error retrieving setup data")?;
+    let setup_json = Setup::restore(setup_path).with_context(|| "Error retrieving setup data")?;
 
     // Load commitment data from the commitment file
     let commitment_json = ahp::commitment_generation::Commitment::restore(PROGRAM_COMMITMENT_PATH)
         .with_context(|| "Error loading commitment data")?;
-
-
-    // TODO: Implement logic to read from registers and potentially generate vector z here
 
     // Load matrices
     let program_params = ProgramParamsJson::restore(PROGRAM_PARAMS_PATH)?;
@@ -69,7 +66,7 @@ pub fn main_proof_gen() -> Result<()> {
 
     // Store the generated proof data in a JSON file
     proof_generation
-        .store(PROOF_PATH, proof_data)
+        .store(PROOF_PATH, proof_data, class_number)
         .with_context(|| "Error storing proof data")?;
     println!("ProofGeneration file generated successfully");
 

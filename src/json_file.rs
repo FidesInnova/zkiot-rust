@@ -72,7 +72,6 @@ pub fn write_term(poly: &Poly) -> Vec<u64> {
     poly
 }
 
-
 /// Adds a new JSON value to an existing JSON file, replacing any existing data.
 ///
 /// # Parameters
@@ -190,8 +189,32 @@ pub struct ProgramParamsJson {
     #[serde(rename = "B")]
     b: Vec<(usize, usize, u64)>,
 
-    /// Values of ranges: [[point_val_a, point_col_a, point_row_a, ...]]
-    points_px: Vec<Vec<u64>>,
+    #[serde(rename = "rA")]
+    r_a: Vec<u64>,
+
+    #[serde(rename = "cA")]
+    c_a: Vec<u64>,
+
+    #[serde(rename = "vA")]
+    v_a: Vec<u64>,
+
+    #[serde(rename = "rB")]
+    r_b: Vec<u64>,
+
+    #[serde(rename = "cB")]
+    c_b: Vec<u64>,
+
+    #[serde(rename = "vB")]
+    v_b: Vec<u64>,
+
+    #[serde(rename = "rC")]
+    r_c: Vec<u64>,
+
+    #[serde(rename = "cC")]
+    c_c: Vec<u64>,
+
+    #[serde(rename = "vC")]
+    v_c: Vec<u64>,
 }
 
 impl ProgramParamsJson {
@@ -202,10 +225,26 @@ impl ProgramParamsJson {
     ) -> Self {
         // store points accordint to set_k
         let set_k = generate_set(class_data.m, class_data);
+
+        // Values of ranges: [[point_val_a, point_col_a, point_row_a, ...]]
+        let points_px = Self::to_points_u64(points_px, &set_k);
+
         Self {
             a: Matrices::to_sparse_column_indices(&matrices.a, class_data.get_matrix_t_zeros()),
             b: Matrices::to_sparse_coordinate_form(&matrices.b),
-            points_px: Self::to_points_u64(points_px, &set_k),
+
+            // val, row, col
+            v_a: points_px[0].clone(),
+            r_a: points_px[1].clone(),
+            c_a: points_px[2].clone(),
+
+            v_b: points_px[3].clone(),
+            r_b: points_px[4].clone(),
+            c_b: points_px[5].clone(),
+
+            v_c: points_px[6].clone(),
+            r_c: points_px[7].clone(),
+            c_c: points_px[8].clone(),
         }
     }
 
@@ -235,15 +274,20 @@ impl ProgramParamsJson {
         }
 
         // Extract the second element (val) from each tuple and return
-        points_px_t
+        let mut points_px_t: Vec<Vec<u64>> = points_px_t
             .iter()
-            .map(|points| {
-                points
-                    .iter()
-                    .map(|(_, val)| *val)
-                    .collect::<Vec<u64>>()
-            })
-            .collect()
+            .map(|points| points.iter().map(|(_, val)| *val).collect::<Vec<u64>>())
+            .collect();
+
+        for v in points_px_t.iter_mut() {
+            if v.len() < set_k.len() {
+                for _ in v.len()..set_k.len() {
+                    v.push(0);
+                }
+            }
+        }
+
+        points_px_t
     }
 
     /// Constructs matrix A with specified size and number of leading zeros
@@ -273,7 +317,19 @@ impl ProgramParamsJson {
     /// # Returns
     /// A vector of hash maps where each map represents a set of points with `Mfp` keys and values.
     pub fn get_points_px(&self, set_k: &Vec<Mfp>) -> Vec<HashMap<Mfp, Mfp>> {
-        self.points_px
+        let points_px = [
+            self.v_a.clone(),
+            self.r_a.clone(),
+            self.c_a.clone(),
+            self.v_b.clone(),
+            self.r_b.clone(),
+            self.c_b.clone(),
+            self.v_c.clone(),
+            self.r_c.clone(),
+            self.c_c.clone(),
+        ];
+
+        points_px
             .iter()
             .map(|points| {
                 points
@@ -330,14 +386,43 @@ pub enum LineValue {
     Range((usize, usize)),
 }
 
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct DeviceConfigJson {
+pub struct DeviceInfo {
     #[serde(rename = "Class")]
     pub class: u8,
+    #[serde(rename = "commitmentID")]
+    pub commitment_id: String,
     pub iot_manufacturer_name: String,
     pub iot_device_name: String,
     pub device_hardware_version: String,
     pub firmware_version: String,
+}
+
+impl DeviceInfo {
+    pub fn new(
+        class: u8,
+        commitment_id: &str,
+        iot_manufacturer_name: &str,
+        iot_device_name: &str,
+        device_hardware_version: &str,
+        firmware_version: &str,
+    ) -> Self {
+        DeviceInfo {
+            class,
+            commitment_id: commitment_id.to_string(),
+            iot_manufacturer_name: iot_manufacturer_name.to_string(),
+            iot_device_name: iot_device_name.to_string(),
+            device_hardware_version: device_hardware_version.to_string(),
+            firmware_version: firmware_version.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct DeviceConfigJson {
+    #[serde(flatten)]
+    pub info: DeviceInfo,
     pub code_block: LineValue,
 }
 

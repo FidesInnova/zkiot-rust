@@ -68,7 +68,7 @@ fn main() -> Result<()> {
     lines_scope.sort();
 
     let device_config: DeviceConfigJson = read_json_file(device_config_path)?;
-    let class_number = &device_config.class;
+    let class_number = &device_config.info.class;
 
     // Restore setup data from the specified JSON file
     let setup_json = Setup::restore(setup_path).with_context(|| "Error retrieving setup data")?;

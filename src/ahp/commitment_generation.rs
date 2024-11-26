@@ -28,6 +28,7 @@ use crate::dsp_vec;
 use crate::json_file::open_file;
 use crate::json_file::write_term;
 use crate::json_file::ClassDataJson;
+use crate::json_file::DeviceInfo;
 use crate::math::*;
 use crate::matrices::Matrices;
 use crate::parser::Gate;
@@ -99,23 +100,8 @@ impl Commitment {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 /// A struct representing a commitment in JSON format, containing points and polynomial data.
 pub struct CommitmentJson {
-    #[serde(rename = "commitmentID")]
-    commitment_id: String,
-
-    #[serde(rename = "IoT_Manufacturer_Name")]
-    iot_manufacturer_name: String,
-
-    #[serde(rename = "IoT_Device_Name")]
-    iot_device_name: String,
-
-    #[serde(rename = "Device_Hardware_Version")]
-    device_hardware_version: String,
-
-    #[serde(rename = "Firmware_Version")]
-    firmware_version: String,
-
-    #[serde(rename = "Class")]
-    class: u8,
+    #[serde(flatten)]
+    pub info: DeviceInfo,
 
     m: u64,
     n: u64,
@@ -151,8 +137,6 @@ pub struct CommitmentJson {
 
     #[serde(rename = "Curve")]
     curve: String,
-
-    #[serde(rename = "PolynomialCommitment")]
     polynomial_commitment: String,
 }
 
@@ -162,12 +146,7 @@ impl CommitmentJson {
         let polys_px_t: Vec<Vec<u64>> = polys_px.iter().map(|p| write_term(p)).collect();
 
         Self {
-            commitment_id: "123456789".to_string(),
-            iot_manufacturer_name: "FidesInnova".to_string(),
-            iot_device_name: "test".to_string(),
-            device_hardware_version: "1".to_string(),
-            firmware_version: "2".to_string(),
-            class: class_number,
+            info: DeviceInfo::new(class_number, "123456789", "FidesInnova", "test", "1", "2"),
             m: class.m,
             n: class.n,
             p: class.p,
@@ -404,7 +383,7 @@ impl CommitmentBuilder {
             points_row_p_c,
             points_col_p_c,
         ];
-
+        
         self.commitm.points_px = points_vector;
         self.commitm.polys_px = polys_pxs;
 
