@@ -13,6 +13,8 @@
 // limitations under the License.
 
 use ark_ff::Field;
+use rand::thread_rng;
+use rand::Rng;
 use rustnomial::Evaluable;
 use rustnomial::FreeSizePolynomial;
 use rustnomial::SizedPolynomial;
@@ -29,6 +31,7 @@ use crate::math::interpolate;
 use crate::math::vanishing_poly;
 use crate::math::Mfp;
 use crate::math::Poly;
+use crate::math::P;
 use crate::println_dbg;
 use crate::to_bint;
 use crate::utils::generate_beta_random;
@@ -78,7 +81,7 @@ impl Verification {
         // Final random numbers must not be in set h
         let beta_1 = generate_beta_random(8, &poly_sx, &set_h);
         let beta_2 = generate_beta_random(9, &poly_sx, &set_h);
-        let beta_3 = generate_beta_random(10, &poly_sx, &set_h);
+        let beta_3 = Mfp::from(thread_rng().gen_range(1..P));
         
 
         // TODO:

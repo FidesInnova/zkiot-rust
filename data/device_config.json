@@ -1,9 +1,9 @@
 {
-    "Class": 9,
+    "Class": 11,
     "commitmentID": "123456789",
     "iot_manufacturer_name": "TrustSense",
     "iot_device_name": "zk-MultiSensor",
     "device_hardware_version": "1.0",
     "firmware_version": "1.0",
-    "code_block": [1, 512]
+    "code_block": [1, 2048]
 }

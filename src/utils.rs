@@ -535,10 +535,10 @@ pub fn sha2_hash(input: &str) -> u64 {
     let mut hasher = sha2::Sha256::new();
     hasher.update(input);
     let result = hasher.finalize();
-    u64::from_le_bytes([
-        result[31], result[30], result[29], result[28], result[27], result[26], result[25],
-        result[24],
-    ])
+    let res = u32::from_le_bytes([
+        result[31], result[30], result[29], result[28],
+    ]);
+    res as u64
 }
 
 /// Concatenates the terms of multiple polynomials into a single vector of `Mfp` values.

@@ -14,21 +14,19 @@
 
 #![no_main]
 
-use std::arch::asm;
 use json_file::ClassDataJson;
 use json_file::DeviceConfigJson;
 use json_file::ProgramParamsJson;
 use utils::read_json_file;
-use zk_iot::parser::Gate;
-use zk_iot::parser::Instructions::*;
 use zk_iot::*;
+use std::fs::File;
+use std::io::{self, BufRead};
 
 use anyhow::{Context, Result};
 use zk_iot::ahp::{self, setup::Setup};
 
 const PROGRAM_PARAMS_PATH: &str = "data/program_params.json";
 const PROGRAM_COMMITMENT_PATH: &str = "data/program_commitment.json";
-const SETUP_PATH: &str = "data/setup2.json";
 const DEVICE_CONFIG_PATH: &str = "data/device_config.json";
 const CLASS_TABLE: &str = "class.json";
 const PROOF_PATH: &str = "data/proof.json";
@@ -55,6 +53,8 @@ pub fn main_proof_gen(setup_path: &str) -> Result<()> {
     // Load matrices
     let program_params = ProgramParamsJson::restore(PROGRAM_PARAMS_PATH)?;
 
+    let z_vec: Vec<u64> = read_vector_from_file();
+
     // .: Proof Generation :.
     let proof_generation = ahp::proof_generation::ProofGeneration::new();
     let proof_data = proof_generation.generate_proof(
@@ -62,6 +62,7 @@ pub fn main_proof_gen(setup_path: &str) -> Result<()> {
         class_data,
         program_params,
         commitment_json,
+        z_vec
     );
 
     // Store the generated proof data in a JSON file
@@ -71,4 +72,26 @@ pub fn main_proof_gen(setup_path: &str) -> Result<()> {
     println!("ProofGeneration file generated successfully");
 
     Ok(())
+}
+
+
+fn read_vector_from_file() -> Vec<u64> {
+    let path = "proof_generation/z_vec.txt";
+    let mut values = vec![];
+    if let Ok(file) = File::open(path) {
+        let reader = io::BufReader::new(file);
+        for line in reader.lines() {
+            if let Ok(line) = line {
+                for value in line.split(',') {
+                    if let Ok(num) = value.trim().parse::<u64>() {
+                        values.push(num);
+                    }
+                }
+            }
+        }
+    } else {
+        panic!("Could not open the file: {}", path);
+    }
+
+    values
 }

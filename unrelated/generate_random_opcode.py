@@ -16,9 +16,10 @@ import random
 import sys
 
 
-range_num = (1, 100)
+range_num = (1, 1000)
+
 register_mapping = [
-    ("z", "z"),
+    ("zero", "x0"),
     ("ra", "x1"),   # Return address
     ("sp", "x2"),   # Stack pointer
     ("gp", "x3"),   # Global pointer
@@ -54,20 +55,35 @@ register_mapping = [
 
 def generate_random_opcode(num_opcodes, file_path):
     # Define possible opcodes
-    opcodes = ['mul', 'add', 'sub', 'div']  # Only include 'mul' and 'addi' for subsequent lines
+    opcodes = ['mul', 'add', 'addi']  # Only include 'mul' and 'addi' for subsequent lines
     
     with open(file_path, 'w') as file:
-        for i in range(11, 12):
-            address = f"{random.randint(0x40000000, 0x4FFFFFFF):08x}"
-            immediate = random.randint(range_num[0], range_num[1])  # Random immediate value
-            file.write(f"{address}:       02f407b3                ld     {register_mapping[i][0]}, {register_mapping[i][0]} ,{immediate}\n")
-        
         # Generate the remaining random opcodes
         for _ in range(1, num_opcodes):
-            address = f"{random.randint(0x40000000, 0x4FFFFFFF):08x}"
             opcode = random.choice(opcodes)
-            immediate = random.randint(range_num[0], range_num[1])  # Random immediate value
-            file.write(f"{address}:       02f407b3                {opcode}    a1, a1 ,{immediate}\n")
+            reg_des = ""
+            reg_lhs = ""
+            reg_rhs = ""
+            
+            if opcode == 'add':
+                reg_des = random.choice(register_mapping)[0]
+                reg_lhs = random.choice(register_mapping)[0]
+                reg_rhs = random.choice(register_mapping)[0]
+                while reg_rhs == reg_lhs:
+                    reg_rhs = random.choice(register_mapping)[0]
+
+            if opcode == 'addi':
+                reg_des = random.choice(register_mapping)[0]
+                reg_lhs = random.choice(register_mapping)[0]
+                reg_rhs = str(random.randint(range_num[0], range_num[1]))
+                
+            if opcode == 'mul':
+                reg_des = random.choice(register_mapping)[0]
+                reg_lhs = random.choice(register_mapping)[0]
+                reg_rhs = random.choice(register_mapping)[0]
+                
+            file.write(f"{opcode:<8}{reg_des}, {reg_lhs}, {reg_rhs}\n")
+
 
 def write_numbers_to_file(count, filename):
     with open(filename, 'w') as file:
@@ -77,8 +93,7 @@ def write_numbers_to_file(count, filename):
 
 # Specify the number of opcodes to generate and the output file path
 num_opcodes = int(sys.argv[1])  # You can change this to generate more or fewer opcodes
-file_path = 'sample.txt' 
-generate_random_opcode(num_opcodes, file_path)
+file_path = 'program.s' 
+generate_random_opcode(num_opcodes + 1, file_path)
 
-write_numbers_to_file(num_opcodes, 'line_num.txt')
 print(f"Generated {num_opcodes} opcodes and saved to '{file_path}'.")

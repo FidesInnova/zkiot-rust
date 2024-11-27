@@ -22,11 +22,6 @@ use zk_iot::ahp::proof_verification::Verification;
 use zk_iot::ahp::setup::Setup;
 use clap::Parser;
 use zk_iot::json_file::ClassDataJson;
-use zk_iot::json_file::DeviceConfigJson;
-use zk_iot::utils::read_json_file;
-
-
-const DEVICE_CONFIG_PATH: &str = "data/device_config.json";
 
 /// A program for proof verification
 #[derive(Parser, Debug)]
@@ -55,9 +50,11 @@ fn main() -> Result<()> {
     let proof_path = &args.proof_path;
     let setup_path = &args.setup_path;
 
+    // Load proof generation data from the proof file
+    let proof_generation = ProofGeneration::restore(proof_path)
+        .with_context(|| "Error loading proof data")?;
 
-    let device_config: DeviceConfigJson = read_json_file(DEVICE_CONFIG_PATH)?;
-    let class_number = device_config.info.class;
+    let class_number = proof_generation.info.class;
     
     // Load class data from the JSON file
     let class_data = ClassDataJson::get_class_data("class.json", class_number)
@@ -70,10 +67,6 @@ fn main() -> Result<()> {
     // Load commitment data from the commitment file
     let commitment_json = Commitment::restore(program_commitment_path)
         .with_context(|| "Error loading commitment data")?;
-    
-    // Load proof generation data from the proof file
-    let proof_generation = ProofGeneration::restore(proof_path)
-        .with_context(|| "Error loading proof data")?;
 
     // .: Verification :.
     let verification = Verification::new(&proof_generation);
@@ -86,5 +79,6 @@ fn main() -> Result<()> {
     );
 
     eprintln!("Verification result: {}", verification_result);
+
     Ok(())
 }

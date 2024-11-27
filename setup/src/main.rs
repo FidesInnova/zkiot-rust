@@ -14,8 +14,7 @@
 
 
 use anyhow::{Result, Context};
-use rand::{thread_rng, Rng};
-use zk_iot::{ahp::setup::Setup, json_file::ClassDataJson};
+use zk_iot::{ahp::setup::Setup, json_file::ClassDataJson, println_dbg};
 
 
 const CLASS_TABLE: &str = "class.json";
@@ -30,8 +29,13 @@ fn main() -> Result<()> {
     // Create a setup file for each entry in class_data
     for (class_number, metadata) in class_data {
         // Calculate the D_AHP value using the formula: D_AHP = 12 * n_g
-        let d_ahp = 12 * metadata.n_g;
-        
+
+        let max_b_random_value = 10;
+        let d_ahp_vec: Vec<u64> = vec![2 * metadata.n + max_b_random_value, 12 * metadata.n_g];
+        let d_ahp = *d_ahp_vec.iter().max().unwrap();
+
+        println_dbg!("pos {class_number} = {:?}", d_ahp_vec.iter().position(|v| *v == d_ahp));
+
         // Generate cryptographic keys for the setup
         setup.generate_keys(d_ahp, metadata.p, metadata.g);
 
