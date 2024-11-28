@@ -12,16 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{collections::HashMap, fs::File, io::BufWriter, path::PathBuf};
-
-use anyhow::Result;
 use ark_ff::Field;
 use nalgebra::DMatrix;
-use rand::{thread_rng, Rng};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{
-    ahp::setup::SetupJson, json_file::{open_file, ClassDataJson}, math::{Mfp, Point}, to_bint
+    math::Mfp, to_bint
 };
 
 #[derive(Debug, Clone)]

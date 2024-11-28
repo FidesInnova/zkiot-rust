@@ -15,7 +15,7 @@
 
 use anyhow::Result;
 use proof_generation::main_proof_gen;
-use std::{arch::{asm, global_asm}, env};
+use std::env;
 
 
 fn main() -> Result<()> {

@@ -18,7 +18,6 @@ use anyhow::Result;
 use ark_ff::Field;
 use nalgebra::DMatrix;
 use nalgebra::DVector;
-use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use rand::Rng;
 use rustnomial::Evaluable;
@@ -524,13 +523,13 @@ macro_rules! dsp_poly {
     }};
 }
 
-/// Computes the SHA-256 hash of the given input string and returns the result as a `u64`.
+/// Computes the SHA-256 hash of the given input string and returns the result as a `u32`.
 ///
 /// # Parameters
 /// - `input`: A string slice representing the input to be hashed.
 ///
 /// # Returns
-/// A `u64` value representing the lower 64 bits of the SHA-256 hash.
+/// A `u32` value representing the lower 32 bits of the SHA-256 hash.
 pub fn sha2_hash(input: &str) -> u64 {
     let mut hasher = sha2::Sha256::new();
     hasher.update(input);

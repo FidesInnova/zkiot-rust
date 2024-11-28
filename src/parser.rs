@@ -16,11 +16,10 @@
 //! Module for parsing gate information from text files into `Gate` objects.
 
 use anyhow::{anyhow, Context, Result};
-use serde::{Deserialize, Serialize};
-use std::io::{BufRead, BufReader};
-use std::{fs::File, path::PathBuf};
+use std::io::BufRead;
+use std::path::PathBuf;
 use crate::{json_file::*, println_dbg};
-use crate::math::Mfp;
+
 
 
 
@@ -60,6 +59,7 @@ enum RiscvReg {
     S11,  // x31 - Integer register
 }
 
+
 /// Represents the type of a gate.
 ///
 /// This enum defines the possible types of gates,
@@ -68,10 +68,9 @@ enum RiscvReg {
 pub enum Instructions {
     Add,
     Addi,
-    Sub,
+    // Sub,
     Mul,
-    Div,
-    Ld,
+    // Div,
 }
 
 /// Represents a gate with its parameters.
@@ -276,8 +275,8 @@ pub fn parse_from_lines(line_file: Vec<usize>, opcodes_file: &PathBuf) -> Result
         gates.push(gate);
     }
 
-    println!("Gates:");
-    println!("{:#?}", gates);
+    println_dbg!("Gates:");
+    println_dbg!("{:#?}", gates);
     
     Ok(gates)
 }

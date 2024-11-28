@@ -13,16 +13,14 @@
 // limitations under the License.
 
 use anyhow::{anyhow, Result};
-use std::collections::HashMap;
-use std::f32::RADIX;
-use std::io::{BufReader, Read, Write};
+use std::io::{BufReader, Write};
 use std::{
     fs::{File, OpenOptions},
     io::BufRead,
     path::{Path, PathBuf},
 };
 use zk_iot::json_file::{ClassDataJson, LineValue};
-use zk_iot::parser::{match_reg, parse_from_lines, parse_line};
+use zk_iot::parser::{match_reg, parse_line};
 
 pub fn generate_new_program(
     input_path: &str,
@@ -99,6 +97,7 @@ fn insert_assembly_instructions(
         }
 
         if num == line_range.1 {
+            // insert_addi_0(output_file, add_no_op_number)?;
             insert_z_array(output_file)?;
             insert_z_array_population_code(output_file)?;
 
@@ -116,6 +115,13 @@ fn insert_assembly_instructions(
     insert_arrays(output_file, space_size)?;
     insert_store_register_function(output_file)?;
     
+    Ok(())
+}
+
+fn insert_addi_0(output_file: &mut File, add_no_op_number: u64) -> Result<()> {
+    for _ in 0..add_no_op_number {
+        writeln!(output_file, "addi s1, s1, 0")?;
+    }
     Ok(())
 }
 

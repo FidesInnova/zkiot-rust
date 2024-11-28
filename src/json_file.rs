@@ -33,7 +33,6 @@ use std::path::PathBuf;
 use crate::math::generate_set;
 use crate::math::Mfp;
 use crate::math::Poly;
-use crate::matrices;
 use crate::matrices::Matrices;
 use crate::to_bint;
 use crate::utils::read_json_file;

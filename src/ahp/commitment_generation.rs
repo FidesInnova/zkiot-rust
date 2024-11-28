@@ -17,15 +17,12 @@ use ark_ff::Field;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::fs::File;
 use std::io::BufWriter;
-use std::path::PathBuf;
 
 use crate::dsp_mat;
 use crate::dsp_poly;
 use crate::dsp_vec;
-use crate::json_file::open_file;
 use crate::json_file::write_term;
 use crate::json_file::ClassDataJson;
 use crate::json_file::DeviceInfo;
@@ -33,9 +30,7 @@ use crate::math::*;
 use crate::matrices::Matrices;
 use crate::parser::Gate;
 use crate::parser::Instructions;
-use crate::print_dbg;
 use crate::println_dbg;
-use crate::to_bint;
 use crate::utils::*;
 
 #[derive(Debug, Clone)]
