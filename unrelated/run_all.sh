@@ -35,6 +35,7 @@ fi
 # set p number 
 # create a file if not exist at root
 
+python3 unrelated/z_vec.py
 
 export RUSTFLAGS=""
 # Build and Run

@@ -21,44 +21,81 @@ use std::path::PathBuf;
 use crate::{json_file::*, println_dbg};
 
 
-
-
-#[derive(Debug)]
-enum RiscvReg {
-    Zero, // x0 - Hardwired zero
-    Ra,   // x1 - Return address
-    Sp,   // x2 - Stack pointer
-    Gp,   // x3 - Global pointer
-    Tp,   // x4 - Thread pointer
-    T0,   // x5 - Temporary register
-    T1,   // x6 - Temporary register
-    T2,   // x7 - Temporary register
-    S0,   // x8 - Saved register
-    S1,   // x9 - Saved register
-    A0,   // x10 - Argument register
-    A1,   // x11 - Argument register
-    T3,   // x12 - Temporary register
-    T4,   // x13 - Temporary register
-    T5,   // x14 - Temporary register
-    T6,   // x15 - Temporary register
-    A2,   // x16 - Temporary register
-    A3,   // x17 - Temporary register
-    A4,   // x18 - Saved register
-    A5,   // x19 - Saved register
-    A6,   // x20 - Saved register
-    A7,   // x21 - Saved register
-    S2,   // x22 - Saved register
-    S3,   // x23 - Saved register
-    S4,   // x24 - Saved register
-    S5,   // x25 - Saved register
-    S6,   // x26 - Saved register
-    S7,   // x27 - Saved register
-    S8,   // x28 - Saved register
-    S9,   // x29 - Saved register
-    S10,  // x30 - Temporary register
-    S11,  // x31 - Integer register
+#[derive(Eq, Hash, PartialEq, Debug, Clone, Copy)]
+pub enum RiscvReg {
+    Zero = 0, // x0 - Hardwired zero
+    Ra = 1,   // x1 - Return address
+    Sp = 2,   // x2 - Stack pointer
+    Gp = 3,   // x3 - Global pointer
+    Tp = 4,   // x4 - Thread pointer
+    T0 = 5,   // x5 - Temporary register
+    T1 = 6,   // x6 - Temporary register
+    T2 = 7,   // x7 - Temporary register
+    S0 = 8,   // x8 - Saved register
+    S1 = 9,   // x9 - Saved register
+    A0 = 10,  // x10 - Argument register
+    A1 = 11,  // x11 - Argument register
+    T3 = 12,  // x12 - Temporary register
+    T4 = 13,  // x13 - Temporary register
+    T5 = 14,  // x14 - Temporary register
+    T6 = 15,  // x15 - Temporary register
+    A2 = 16,  // x16 - Argument register
+    A3 = 17,  // x17 - Argument register
+    A4 = 18,  // x18 - Saved register
+    A5 = 19,  // x19 - Saved register
+    A6 = 20,  // x20 - Saved register
+    A7 = 21,  // x21 - Saved register
+    S2 = 22,  // x22 - Saved register
+    S3 = 23,  // x23 - Saved register
+    S4 = 24,  // x24 - Saved register
+    S5 = 25,  // x25 - Saved register
+    S6 = 26,  // x26 - Saved register
+    S7 = 27,  // x27 - Saved register
+    S8 = 28,  // x28 - Saved register
+    S9 = 29,  // x29 - Saved register
+    S10 = 30, // x30 - Temporary register
+    S11 = 31, // x31 - Integer register
 }
 
+impl From<u8> for RiscvReg {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => RiscvReg::Zero,
+            1 => RiscvReg::Ra,
+            2 => RiscvReg::Sp,
+            3 => RiscvReg::Gp,
+            4 => RiscvReg::Tp,
+            5 => RiscvReg::T0,
+            6 => RiscvReg::T1,
+            7 => RiscvReg::T2,
+            8 => RiscvReg::S0,
+            9 => RiscvReg::S1,
+            10 => RiscvReg::A0,
+            11 => RiscvReg::A1,
+            12 => RiscvReg::T3,
+            13 => RiscvReg::T4,
+            14 => RiscvReg::T5,
+            15 => RiscvReg::T6,
+            16 => RiscvReg::A2,
+            17 => RiscvReg::A3,
+            18 => RiscvReg::A4,
+            19 => RiscvReg::A5,
+            20 => RiscvReg::A6,
+            21 => RiscvReg::A7,
+            22 => RiscvReg::S2,
+            23 => RiscvReg::S3,
+            24 => RiscvReg::S4,
+            25 => RiscvReg::S5,
+            26 => RiscvReg::S6,
+            27 => RiscvReg::S7,
+            28 => RiscvReg::S8,
+            29 => RiscvReg::S9,
+            30 => RiscvReg::S10,
+            31 => RiscvReg::S11,
+            _ => panic!("Invalid RiscvReg value: {}", value)
+        }
+    }
+}
 
 /// Represents the type of a gate.
 ///
@@ -89,9 +126,9 @@ pub enum Instructions {
 pub struct Gate {
     pub val_left: Option<u64>,
     pub val_right: Option<u64>,
-    pub des_reg: u8,
-    pub reg_left: u8,
-    pub reg_right: u8,
+    pub des_reg: RiscvReg,
+    pub reg_left: RiscvReg,
+    pub reg_right: RiscvReg,
     pub instr: Instructions,
 }
 
@@ -114,9 +151,9 @@ impl Gate {
     pub fn new(
         val_left: Option<u64>,
         val_right: Option<u64>,
-        des_reg: u8,
-        reg_left: u8,
-        reg_right: u8,
+        des_reg: RiscvReg,
+        reg_left: RiscvReg,
+        reg_right: RiscvReg,
         gate_type: Instructions,
     ) -> Self {
         Self {
@@ -159,7 +196,9 @@ pub fn parse_line(line: &str, index: usize) -> Result<(&str, Vec<&str>)> {
 
 /// Matches a register name to its corresponding u8 identifier, returning None for invalid names
 pub fn match_reg(reg: &str) -> Option<u8> {
-    let res = match reg.to_lowercase().as_str() {
+    let val = reg.to_lowercase();
+
+    let res = match val.as_str() {
         "zero" => 0,
         "ra" => 1,   // x1 - Return address
         "sp" => 2,   // x2 - Stack pointer
@@ -192,7 +231,8 @@ pub fn match_reg(reg: &str) -> Option<u8> {
         "t4" => 29,  // x29 - Frame pointer
         "t5" => 30,  // x30 - Return address
         "t6" => 31,  // x31 - Integer register
-        _ => return None,
+        _ if val.parse::<u64>().is_ok() => return None,
+        _ => panic!("Unknow register or value: {}", val),
     };
     Some(res)
 }
@@ -264,9 +304,9 @@ pub fn parse_from_lines(line_file: Vec<usize>, opcodes_file: &PathBuf) -> Result
         let gate = Gate::new(
             constant_left,
             constant_right,
-            reg_data.0,
-            reg_data.1,
-            reg_data.2,
+            reg_data.0.into(),
+            reg_data.1.into(),
+            reg_data.2.into(),
             gate_type,
         );
 

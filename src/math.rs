@@ -28,7 +28,7 @@ use crate::println_dbg;
 use crate::to_bint;
 use crate::utils::add_random_points;
 
-pub const P: u64 = 272760833;
+pub const P: u64 = 1678321;
 // pub const P: u64 = 2460193;
 
 field!(Mfp, P);
@@ -515,10 +515,24 @@ pub fn m_k(
 ) -> Poly {
     let mut poly_res = Poly::from(vec![Mfp::ZERO]);
 
+    let mut catch: HashMap<Mfp, Poly> = HashMap::new();
+
+    // let mut final_time = std::time::Duration::new(0, 0);
+
     for (k, val) in points_val {
         let poly_val = Poly::from(vec![*val]);
-        let poly_x = func_u(None, Some(points_row[k]), set_h_len);
-        let poly_y = func_u(None, Some(points_col[k]), set_h_len);
+
+        // let timer = std::time::Instant::now();
+
+        let poly_x = catch.entry(points_row[k]).or_insert_with(|| {
+            func_u(None, Some(points_row[k]), set_h_len)
+        }).clone();
+
+        let poly_y = catch.entry(points_col[k]).or_insert_with(|| {
+            func_u(None, Some(points_col[k]), set_h_len)
+        }).clone();
+
+        // final_time += timer.elapsed();
 
         match eval_order {
             EvalOrder::XK => {
@@ -531,6 +545,8 @@ pub fn m_k(
             }
         }
     }
+
+    // eprintln!("== timer_in: {:?}", final_time);
 
     poly_res
 }
@@ -565,8 +581,11 @@ pub fn sigma_rk_mk(
     eval_order: &EvalOrder,
 ) -> Poly {
     let mut res = Poly::from(vec![Mfp::ZERO]);
+    // eprintln!("START:");
     for h in set_h {
+        // eprintln!("h: {}", h);
         let mut p_r_alphak = func_u(Some(alpha), Some(*h), set_h.len());
+        let timer = std::time::Instant::now();
         let mut p_m_kx = m_k(
             h,
             points_val,
@@ -575,6 +594,7 @@ pub fn sigma_rk_mk(
             set_h.len(),
             eval_order,
         );
+        // eprintln!("time2 : {:?}", timer.elapsed());
         p_r_alphak.trim();
         p_m_kx.trim();
         let mul_poly = p_r_alphak * p_m_kx;

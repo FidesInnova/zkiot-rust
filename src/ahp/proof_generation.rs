@@ -385,7 +385,7 @@ impl ProofGeneration {
 
         let (r_a_kx, r_b_kx, r_c_kx) =
             Self::calculate_r_polynomials_with_alpha(&points_px, alpha, &set_h);
-
+        
         // ∑_m [η_M r_M(α,x)] * z^(x)
         let sum_2 = Poly::new(vec![eta_a]) * &r_a_kx
             + Poly::new(vec![eta_b]) * &r_b_kx

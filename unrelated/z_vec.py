@@ -15,7 +15,7 @@
 p = 4294967296
 p = 18446744073709551615
 
-p = 272760833
+p = 1678321
 
 def write_vector_to_file(vector, filename):
     with open(filename, 'w') as file:

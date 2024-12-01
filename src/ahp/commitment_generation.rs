@@ -30,6 +30,7 @@ use crate::math::*;
 use crate::matrices::Matrices;
 use crate::parser::Gate;
 use crate::parser::Instructions;
+use crate::parser::RiscvReg;
 use crate::println_dbg;
 use crate::utils::*;
 
@@ -220,7 +221,7 @@ impl CommitmentBuilder {
         let c_mat = &mut self.commitm.matrices.c;
 
         // Initialize HashMap to track last register indices
-        let mut regs_data: HashMap<u8, usize> = HashMap::new();
+        let mut regs_data: HashMap<RiscvReg, usize> = HashMap::new();
 
         // Iterate over gates
         for (counter, gate) in gates.iter().enumerate() {
@@ -261,7 +262,6 @@ impl CommitmentBuilder {
                     a_mat[(_inx, _li)] = left_val;
                     b_mat[(_inx, _ri)] = right_val;
                 }
-                _ => panic!("Invalid instruction: {:?}", gate.instr),
             }
         }
 
@@ -278,7 +278,7 @@ impl CommitmentBuilder {
 
     /// Retrieves register indices and updates the register data map
     fn get_register_index(
-        regs_data: &mut HashMap<u8, usize>,
+        regs_data: &mut HashMap<RiscvReg, usize>,
         gate: &Gate,
         inx: usize,
     ) -> (usize, usize) {
@@ -286,10 +286,10 @@ impl CommitmentBuilder {
         let r_reg = gate.reg_right;
         let des_reg = gate.des_reg;
 
-        println_dbg!("=>> {des_reg} {l_reg} {r_reg}");
+        println_dbg!("=>> {des_reg:?} {l_reg:?} {r_reg:?}");
 
         // Helper function to get the index for a register
-        fn get_index(regs_data: &HashMap<u8, usize>, reg: u8) -> usize {
+        fn get_index(regs_data: &HashMap<RiscvReg, usize>, reg: RiscvReg) -> usize {
             match regs_data.get(&reg) {
                 Some(&index) => index,
                 None => reg as usize + 1,
@@ -412,33 +412,33 @@ mod test_matrices {
             Gate {
                 val_left: None,
                 val_right: Some(5),
-                des_reg: 0,
-                reg_left: 0,
-                reg_right: 0,
+                des_reg: 0.into(),
+                reg_left: 0.into(),
+                reg_right: 0.into(),
                 instr: Addi,
             },
             Gate {
                 val_left: None,
                 val_right: Some(2),
-                des_reg: 1,
-                reg_left: 1,
-                reg_right: 0,
+                des_reg: 1.into(),
+                reg_left: 1.into(),
+                reg_right: 0.into(),
                 instr: Mul,
             },
             Gate {
                 val_left: None,
                 val_right: Some(10),
-                des_reg: 1,
-                reg_left: 1,
-                reg_right: 0,
+                des_reg: 1.into(),
+                reg_left: 1.into(),
+                reg_right: 0.into(),
                 instr: Addi,
             },
             Gate {
                 val_left: None,
                 val_right: Some(7),
-                des_reg: 0,
-                reg_left: 0,
-                reg_right: 0,
+                des_reg: 0.into(),
+                reg_left: 0.into(),
+                reg_right: 0.into(),
                 instr: Mul,
             },
         ];
