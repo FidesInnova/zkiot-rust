@@ -391,8 +391,10 @@ impl Verification {
                     + div_mod_val(*sigma_3, Mfp::from(set_k_len as u64))));
 
         // Print evaluated values for debugging
+        println_dbg!("------------------------------------");
         println_dbg!("eq11: {eq11}");
         println_dbg!("eq12: {eq12}");
+        println_dbg!("------------------------------------");
 
         // Check if both sides of the equation are equal
         eq11 == eq12
@@ -455,8 +457,10 @@ impl Verification {
         println_dbg!("h_2x(beta_2)={} *  van_hx(beta_2)={} + beta2={} * g_2x(beta_2)={} + sigma_2={} / set_h_len={}", h_2x.eval(*beta_2), van_poly_vhx.eval(*beta_2), beta_2, g_2x.eval(*beta_2), sigma_3, set_h_len);
 
         // Print evaluated values for debugging
+        println_dbg!("------------------------------------");
         println_dbg!("eq21: {}", eq21);
         println_dbg!("eq22: {}", eq22);
+        println_dbg!("------------------------------------");
 
         // Check if both sides of the equation are equal
         eq21 == eq22
@@ -500,8 +504,10 @@ impl Verification {
             + div_mod_val(*sigma_1, Mfp::from(set_h_len as u64));
 
         // Print evaluated values for debugging
+        println_dbg!("------------------------------------");
         println_dbg!("eq31: {}", eq31);
         println_dbg!("eq32: {}", eq32);
+        println_dbg!("------------------------------------");
 
         // Check if both sides of the equation are equal
         eq31 == eq32
@@ -530,9 +536,10 @@ impl Verification {
         let eq42 = poly_h_0.eval(*beta_1) * van_poly_vhx.eval(*beta_1);
 
         // Print evaluated values for debugging
+        println_dbg!("------------------------------------");
         println_dbg!("eq41: {}", eq41);
         println_dbg!("eq42: {}", eq42);
-        println_dbg!("=================");
+        println_dbg!("------------------------------------");
 
         // Check if both sides of the equation are equal
         eq41 == eq42
@@ -567,7 +574,6 @@ impl Verification {
             g,
             g,
         );
-        println_dbg!("eq51: {}", e_1);
 
         // Evaluate the second equation component
         let e_2 = e_func(
@@ -575,7 +581,13 @@ impl Verification {
             vk - Mfp::from(to_bint!(g) * to_bint!(z)),
             Mfp::from(g),
         );
+
+
+        // Print evaluated values for debugging
+        println_dbg!("------------------------------------");
+        println_dbg!("eq51: {}", e_1);
         println_dbg!("eq52: {}", e_2);
+        println_dbg!("------------------------------------");
 
         // Check if both evaluated components are equal
         e_1 == e_2

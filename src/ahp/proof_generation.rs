@@ -956,7 +956,7 @@ impl ProofGenerationJson {
 
     /// Get polynomials
     pub fn get_poly(&self, num: usize) -> Poly {
-        // FIXME:
+        // FIXME: input use enum Polys::
         let polys = vec![
             &self.p2ahp,
             &self.p3ahp,
