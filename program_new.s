@@ -1,14 +1,14 @@
 jal store_register_instances
-mul     s1, s1, s1
+mul     s1, a1, a2
 la t0, x9_array
 sw x9, 4(t0)
-mul     s1, s2, s2
+mul     s1, a3, a4
 la t0, x9_array
 sw x9, 8(t0)
-add     s2, s3, s1
+add     s2, s3, s4
 la t0, x18_array
 sw x18, 4(t0)
-add     s2, s4, s5
+add     s2, s5, s6
 la t0, x18_array
 sw x18, 8(t0)
 la a0, z_array

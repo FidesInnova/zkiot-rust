@@ -17,6 +17,7 @@ use ark_ff::Field;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::BufWriter;
 
@@ -220,8 +221,12 @@ impl CommitmentBuilder {
         let b_mat = &mut self.commitm.matrices.b;
         let c_mat = &mut self.commitm.matrices.c;
 
+        //  FIXME: Currently broken and not working
         // Initialize HashMap to track last register indices
         let mut regs_data: HashMap<RiscvReg, usize> = HashMap::new();
+
+        // Vector to store pairs of left and right register indices for each gate
+        let reg_index_pairs = Self::process_gates(&gates, ni);
 
         // Iterate over gates
         for (counter, gate) in gates.iter().enumerate() {
@@ -230,8 +235,9 @@ impl CommitmentBuilder {
             // Set index
             let _inx = 1 + ni + counter;
 
-            // Update index
-            let (mut _li, mut _ri) = Self::get_register_index(&mut regs_data, &gate, _inx);
+            // Get index
+            let (mut _li, mut _ri) = reg_index_pairs[counter];
+            // let (mut _li, mut _ri) = Self::get_register_index(&mut regs_data, gate, _inx);
 
             // Get left and right values (index is zero if value exists)
             let left_val = Self::get_mfp_value(gate.val_left, &mut _li);
@@ -242,7 +248,7 @@ impl CommitmentBuilder {
 
             c_mat[(_inx, _inx)] = Mfp::ONE;
             println_dbg!("C[{}, {}] = 1", _inx, _inx);
-            
+
             match gate.instr {
                 Instructions::Add | Instructions::Addi => {
                     println_dbg!("Gate: Add");
@@ -258,7 +264,7 @@ impl CommitmentBuilder {
                     println_dbg!("Gate: Mul");
                     println_dbg!("A[{}, {}] = {}", _inx, _li, left_val);
                     println_dbg!("B[{}, {}] = {}", _inx, _ri, right_val);
-                    
+
                     a_mat[(_inx, _li)] = left_val;
                     b_mat[(_inx, _ri)] = right_val;
                 }
@@ -276,6 +282,100 @@ impl CommitmentBuilder {
         self.clone()
     }
 
+    fn process_gates(gates: &Vec<Gate>, ni: usize) -> Vec<(usize, usize)> {
+        let mut reg_index_pairs: Vec<(usize, usize)> = vec![];
+        let mut reg_pairs: Vec<(RiscvReg, RiscvReg, RiscvReg)> = vec![];
+        let mut w: Vec<(RiscvReg, usize)> = vec![];
+        let mut y: Vec<(RiscvReg, usize)> = vec![];
+        let mut tmp_z = vec![];
+
+        // Helper function to compute indices
+        fn get_index(
+            tmp_z: &[(RiscvReg, usize)],
+            reg: RiscvReg,
+            inx: usize,
+            counter: usize,
+            des_reg: RiscvReg,
+            reg_set: &HashSet<RiscvReg>,
+        ) -> usize {
+            tmp_z[..=counter]
+                .iter()
+                .rposition(|(tmp_reg, tmp_inx)| {
+                    *tmp_reg == reg
+                        && (*tmp_inx != inx || *tmp_reg != des_reg)
+                        && reg_set.contains(tmp_reg)
+                })
+                .map_or_else(|| reg as usize + 1, |pos| pos + 33)
+        }
+
+        // Process each gate and update w and y vectors
+        for (counter, gate) in gates.iter().enumerate() {
+            let index = 1 + ni + counter;
+            let des_reg = gate.des_reg;
+
+            // Update `w` and `y` based on the current destination register
+            if let Some(pos) = y.iter().position(|(reg, _)| *reg == des_reg) {
+                let tmp = y.remove(pos);
+                w.push(tmp);
+            }
+            y.push((des_reg, index));
+
+            // Log the current state of w and y
+            println_dbg!("i: {counter} -- {w:?} + {y:?}");
+
+            // Combine `w` and `y` into `tmp_z`
+            tmp_z = [w.clone(), y.clone()].concat();
+        }
+
+        // Update `tmp_z` indices
+        let mut tmp_z2 = tmp_z.clone();
+        for (i, pair) in tmp_z2.iter_mut().enumerate() {
+            pair.1 = i + 33;
+        }
+        tmp_z = tmp_z2;
+        println_dbg!("tmp_z: {tmp_z:?}");
+
+        // Set to track unique destination registers
+        let mut reg_set = HashSet::new();
+
+        // Process gates again to compute register index pairs
+        for (counter, gate) in gates.iter().enumerate() {
+            let index = 1 + ni + counter;
+            reg_set.insert(gate.des_reg);
+
+            println_dbg!("inx: {index}");
+            println_dbg!("set: {:?}", reg_set);
+
+            let left_index = get_index(
+                &tmp_z,
+                gate.reg_left,
+                index,
+                counter,
+                gate.des_reg,
+                &reg_set,
+            );
+            let right_index = get_index(
+                &tmp_z,
+                gate.reg_right,
+                index,
+                counter,
+                gate.des_reg,
+                &reg_set,
+            );
+
+            println_dbg!("li = {left_index}, ri = {right_index}");
+
+            // Store the results
+            reg_index_pairs.push((left_index, right_index));
+            reg_pairs.push((gate.des_reg, gate.reg_left, gate.reg_right));
+        }
+
+        // print the final register index pairs
+        println_dbg!("vec: {:?}", reg_index_pairs);
+        reg_index_pairs
+    }
+
+
     /// Retrieves register indices and updates the register data map
     fn get_register_index(
         regs_data: &mut HashMap<RiscvReg, usize>,
@@ -287,6 +387,7 @@ impl CommitmentBuilder {
         let des_reg = gate.des_reg;
 
         println_dbg!("=>> {des_reg:?} {l_reg:?} {r_reg:?}");
+
 
         // Helper function to get the index for a register
         fn get_index(regs_data: &HashMap<RiscvReg, usize>, reg: RiscvReg) -> usize {
@@ -378,7 +479,19 @@ impl CommitmentBuilder {
             points_row_p_c,
             points_col_p_c,
         ];
-        
+
+        println!("val_A: {:?}", points_vector[0]);
+        println!("row_A: {:?}", points_vector[1]);
+        println!("col_A: {:?}", points_vector[2]);
+
+        println!("val_B: {:?}", points_vector[3]);
+        println!("row_B: {:?}", points_vector[4]);
+        println!("col_B: {:?}", points_vector[5]);
+
+        println!("val_C: {:?}", points_vector[6]);
+        println!("row_C: {:?}", points_vector[7]);
+        println!("col_C: {:?}", points_vector[8]);
+
         self.commitm.points_px = points_vector;
         self.commitm.polys_px = polys_pxs;
 

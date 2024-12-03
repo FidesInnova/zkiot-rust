@@ -178,9 +178,9 @@ pub fn push_random_points(points: &mut Vec<Point>, b: u64, set_h: &HashSet<Mfp>,
     for _i in 0..b {
         let d = gen_rand_not_in_set(set_h, p);
         let r = Mfp::from(rng.gen_range(0..p));
-        // points.push((Mfp::from(_i + 3), Mfp::from(_i + 3)));
+        points.push((Mfp::from(_i + 3), Mfp::from(_i + 3)));
         // TODO: Uncomment after debug 
-        points.push((d, r));
+        // points.push((d, r));
     }
 }
 
