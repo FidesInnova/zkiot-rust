@@ -283,98 +283,85 @@ impl CommitmentBuilder {
     }
 
     fn process_gates(gates: &Vec<Gate>, ni: usize) -> Vec<(usize, usize)> {
+        // Vector to store pairs of left and right register indices for each gate
         let mut reg_index_pairs: Vec<(usize, usize)> = vec![];
+
         let mut reg_pairs: Vec<(RiscvReg, RiscvReg, RiscvReg)> = vec![];
+
         let mut w: Vec<(RiscvReg, usize)> = vec![];
         let mut y: Vec<(RiscvReg, usize)> = vec![];
+
         let mut tmp_z = vec![];
 
-        // Helper function to compute indices
-        fn get_index(
-            tmp_z: &[(RiscvReg, usize)],
-            reg: RiscvReg,
-            inx: usize,
-            counter: usize,
-            des_reg: RiscvReg,
-            reg_set: &HashSet<RiscvReg>,
-        ) -> usize {
-            tmp_z[..=counter]
-                .iter()
-                .rposition(|(tmp_reg, tmp_inx)| {
-                    *tmp_reg == reg
-                        && (*tmp_inx != inx || *tmp_reg != des_reg)
-                        && reg_set.contains(tmp_reg)
-                })
-                .map_or_else(|| reg as usize + 1, |pos| pos + 33)
-        }
-
-        // Process each gate and update w and y vectors
         for (counter, gate) in gates.iter().enumerate() {
-            let index = 1 + ni + counter;
+            let _inx = 1 + ni + counter;
             let des_reg = gate.des_reg;
-
-            // Update `w` and `y` based on the current destination register
-            if let Some(pos) = y.iter().position(|(reg, _)| *reg == des_reg) {
-                let tmp = y.remove(pos);
-                w.push(tmp);
+            match y.iter().position(|v| v.0 == des_reg) {
+                Some(pos) => {
+                    let tmp = y.remove(pos);
+                    w.push(tmp);
+                    y.push((des_reg, _inx));
+                }
+                None => {
+                    y.push((des_reg, _inx));
+                }
             }
-            y.push((des_reg, index));
-
-            // Log the current state of w and y
             println_dbg!("i: {counter} -- {w:?} + {y:?}");
 
-            // Combine `w` and `y` into `tmp_z`
+            w.sort_by(|a, b| a.1.cmp(&b.1));
+            y.sort_by(|a, b| a.1.cmp(&b.1));
             tmp_z = [w.clone(), y.clone()].concat();
         }
-
-        // Update `tmp_z` indices
-        let mut tmp_z2 = tmp_z.clone();
-        for (i, pair) in tmp_z2.iter_mut().enumerate() {
-            pair.1 = i + 33;
-        }
-        tmp_z = tmp_z2;
+        // let mut tmp_z2 = tmp_z.clone();
+        // for (i, _) in tmp_z.iter().enumerate() {
+        //     tmp_z2[i].1 = i + 33;
+        // }
+        // let tmp_z = tmp_z2;
+        // tmp_z.sort_by(|a, b| a.1.cmp(&b.1));
         println_dbg!("tmp_z: {tmp_z:?}");
 
-        // Set to track unique destination registers
         let mut reg_set = HashSet::new();
 
-        // Process gates again to compute register index pairs
         for (counter, gate) in gates.iter().enumerate() {
-            let index = 1 + ni + counter;
+            let _inx = 1 + ni + counter;
+
             reg_set.insert(gate.des_reg);
 
-            println_dbg!("inx: {index}");
+            println_dbg!("inx: {_inx}");
             println_dbg!("set: {:?}", reg_set);
+            fn get_index(
+                tmp_z: &Vec<(RiscvReg, usize)>,
+                reg: RiscvReg,
+                inx: usize,
+                counter: usize,
+                des_reg: RiscvReg,
+                reg_set: &HashSet<RiscvReg>,
+            ) -> usize {
+                match tmp_z[..=counter].iter().rposition(|&v| {
+                    v.0 == reg && (v.1 != inx || v.0 != des_reg) && reg_set.contains(&v.0)
+                }) {
+                    Some(p) => p + 33,
+                    None => reg as usize + 1,
+                }
+            }
 
-            let left_index = get_index(
-                &tmp_z,
-                gate.reg_left,
-                index,
-                counter,
-                gate.des_reg,
-                &reg_set,
-            );
-            let right_index = get_index(
+            let _li = get_index(&tmp_z, gate.reg_left, _inx, counter, gate.des_reg, &reg_set);
+            let _ri = get_index(
                 &tmp_z,
                 gate.reg_right,
-                index,
+                _inx,
                 counter,
                 gate.des_reg,
                 &reg_set,
             );
-
-            println_dbg!("li = {left_index}, ri = {right_index}");
-
-            // Store the results
-            reg_index_pairs.push((left_index, right_index));
+            println_dbg!("li = {_li}, ri = {_ri}");
+            reg_index_pairs.push((_li, _ri));
             reg_pairs.push((gate.des_reg, gate.reg_left, gate.reg_right));
         }
 
-        // print the final register index pairs
         println_dbg!("vec: {:?}", reg_index_pairs);
         reg_index_pairs
     }
-
 
     /// Retrieves register indices and updates the register data map
     fn get_register_index(
@@ -386,8 +373,7 @@ impl CommitmentBuilder {
         let r_reg = gate.reg_right;
         let des_reg = gate.des_reg;
 
-        println_dbg!("=>> {des_reg:?} {l_reg:?} {r_reg:?}");
-
+        // println_dbg!("=>> {des_reg:?} {l_reg:?} {r_reg:?}");
 
         // Helper function to get the index for a register
         fn get_index(regs_data: &HashMap<RiscvReg, usize>, reg: RiscvReg) -> usize {
@@ -410,10 +396,8 @@ impl CommitmentBuilder {
     fn get_mfp_value(val: Option<u64>, index: &mut usize) -> Mfp {
         if let Some(v) = val {
             *index = 0; // Set index to zero if value exists
-            println_dbg!("* index = 0, val = {}", v);
             Mfp::from(v)
         } else {
-            println_dbg!("* index = {:<5}, val = None = 1", *index);
             Mfp::ONE
         }
     }

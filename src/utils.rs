@@ -243,8 +243,11 @@ pub fn add_random_points(
         // TODO:
         // let rand_h = set_h.choose(&mut rng).ok_or(anyhow!("Failed to choose a random element from set_h"))?;
         let rand_h = &set_h[i % set_h.len()];
+        println_dbg!("r: ({}, {})", set_k[i], *rand_h);
         points.insert(set_k[i], *rand_h);
     }
+    
+    println_dbg!();
 
     Ok(())
 }
