@@ -345,17 +345,17 @@ impl ProofGeneration {
         println_dbg!("sigma_1 :	{}", sigma_1);
 
         // TODO:
-        // let alpha = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(0))).to_string()));
-        // let eta_a = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(1))).to_string()));
-        // let eta_b = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(2))).to_string()));
-        // let eta_c = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(3))).to_string()));
+        let alpha = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(0))).to_string()));
+        let eta_a = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(1))).to_string()));
+        let eta_b = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(2))).to_string()));
+        let eta_c = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(3))).to_string()));
 
         // From wiki: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
         //             Step 6
-        let alpha = Mfp::from(10);
-        let eta_a = Mfp::from(2);
-        let eta_b = Mfp::from(30);
-        let eta_c = Mfp::from(100);
+        // let alpha = Mfp::from(10);
+        // let eta_a = Mfp::from(2);
+        // let eta_b = Mfp::from(30);
+        // let eta_c = Mfp::from(100);
 
         // Compute polynomial for ∑ ηz(x)
         let sigma_eta_z_x = Poly::new(vec![eta_a]) * &poly_z_hat_a
@@ -409,11 +409,11 @@ impl ProofGeneration {
         dsp_poly!(g_1x);
 
         // TODO: Random F - H
-        // let beta_1 = generate_beta_random(8, &poly_sx, &set_h);
-        // let beta_2 = generate_beta_random(9, &poly_sx, &set_h);
+        let beta_1 = generate_beta_random(8, &poly_sx, &set_h);
+        let beta_2 = generate_beta_random(9, &poly_sx, &set_h);
 
-        let beta_1 = Mfp::from(22);
-        let beta_2 = Mfp::from(80);
+        // let beta_1 = Mfp::from(22);
+        // let beta_2 = Mfp::from(80);
         // let beta_3 = Mfp::from(5);
 
         let (r_a_xk, r_b_xk, r_c_xk) =
@@ -562,25 +562,25 @@ impl ProofGeneration {
         dsp_poly!(polys_proof[11]);
 
         // TODO: 
-        let eta_values = [
-            Mfp::from(1),  // eta_w
-            Mfp::from(4),  // eta_z_a
-            Mfp::from(10), // eta_z_b
-            Mfp::from(8),  // eta_z_c
-            Mfp::from(32), // eta_h0
-            Mfp::from(45), // eta_s
-            Mfp::from(92), // eta_g1
-            Mfp::from(11), // eta_h1
-            Mfp::from(1),  // eta_g2
-            Mfp::from(5),  // eta_h2
-            Mfp::from(25), // eta_g3
-            Mfp::from(63), // eta_h3
-        ];
+        // let eta_values = [
+        //     Mfp::from(1),  // eta_w
+        //     Mfp::from(4),  // eta_z_a
+        //     Mfp::from(10), // eta_z_b
+        //     Mfp::from(8),  // eta_z_c
+        //     Mfp::from(32), // eta_h0
+        //     Mfp::from(45), // eta_s
+        //     Mfp::from(92), // eta_g1
+        //     Mfp::from(11), // eta_h1
+        //     Mfp::from(1),  // eta_g2
+        //     Mfp::from(5),  // eta_h2
+        //     Mfp::from(25), // eta_g3
+        //     Mfp::from(63), // eta_h3
+        // ];
 
-        // let mut eta_values = vec![];
-        // for i in 10..=21 {
-        //     eta_values.push(Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(i)).to_string())))
-        // }
+        let mut eta_values = vec![];
+        for i in 10..=21 {
+            eta_values.push(Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(i)).to_string())))
+        }
 
         let poly_px = eta_values
             .iter()
@@ -592,9 +592,8 @@ impl ProofGeneration {
         dsp_poly!(poly_px);
 
         // TODO:
-        // hash(poly_sx(22));
-        // let z = Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(22)).to_string()));
-        let z = Mfp::from(2);
+        let z = Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(22)).to_string()));
+        // let z = Mfp::from(2);
         let val_y_p = poly_px.eval(z);
         println_dbg!("val_y_p {}", val_y_p);
 

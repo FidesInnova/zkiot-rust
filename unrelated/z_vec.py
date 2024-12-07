@@ -96,6 +96,43 @@ register_map = {
 #     "t6": 0   # Temporary register
 # }
 
+# register_map = {
+#     "zero": 0,
+#     "ra": 115704,   # Return address
+#     "sp": 90577,   # Stack pointer
+#     "gp": 1127144,   # Global pointer
+#     "tp": 0,   # Thread pointer
+#     "t0": 1121504,   # Temporary register
+#     "t1": 881189,   # Temporary register
+#     "t2": 143856,   # Temporary register
+#     "s0": 90593,   # Platform register
+#     "s1": 1,   # Platform register
+#     "a0": 1,  # Argument register
+#     "a1": 90601,  # Argument register
+#     "a2": 0,  # Temporary register
+#     "a3": 1137328,  # Temporary register
+#     "a4": 5,  # Temporary register
+#     "a5": 1137296,  # Temporary register
+#     "a6": 1137328,  # Temporary register
+#     "a7": 30,  # Temporary register
+#     "s2": 2,  # Saved register
+#     "s3": 3,  # Saved register
+#     "s4": 4,  # Saved register
+#     "s5": 5,  # Saved register
+#     "s6": 0,  # Saved register
+#     "s7": 0,  # Saved register
+#     "s8": 0,  # Saved register
+#     "s9": 0,  # Saved register
+#     "s10": 0, # Saved register
+#     "s11": 0, # Saved register
+#     "t3": 0,  # Temporary register
+#     "t4": 0,  # Frame pointer
+#     "t5": 0,  # Temporary register
+#     "t6": 0   # Temporary register
+# }
+
+
+
 
 def parser(path: str):
     parsed_lines = [] 
