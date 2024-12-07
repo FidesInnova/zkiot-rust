@@ -5,12 +5,12 @@ sw x9, 4(t0)
 mul     s1, a3, a4
 la t0, x9_array
 sw x9, 8(t0)
-add     s2, s3, s4
-la t0, x18_array
-sw x18, 4(t0)
+add     s1, s3, s4
+la t0, x9_array
+sw x9, 12(t0)
 add     s2, s5, s6
 la t0, x18_array
-sw x18, 8(t0)
+sw x18, 4(t0)
 la a0, z_array
 li t0, 1
 sw t0, 0(a0)
@@ -148,11 +148,11 @@ sw t0, 132(a0)
 la a1, x9_array
 lw t0, 8(a1)
 sw t0, 136(a0)
-la a1, x18_array
-lw t0, 4(a1)
+la a1, x9_array
+lw t0, 12(a1)
 sw t0, 140(a0)
 la a1, x18_array
-lw t0, 8(a1)
+lw t0, 4(a1)
 sw t0, 144(a0)
 call proofGenerator
 .section .data
@@ -168,7 +168,7 @@ x5_array:    .space 4   # Array for x5
 x6_array:    .space 4   # Array for x6
 x7_array:    .space 4   # Array for x7
 x8_array:    .space 4   # Array for x8
-x9_array:    .space 12   # Array for x9
+x9_array:    .space 16   # Array for x9
 x10_array:    .space 4   # Array for x10
 x11_array:    .space 4   # Array for x11
 x12_array:    .space 4   # Array for x12
@@ -177,7 +177,7 @@ x14_array:    .space 4   # Array for x14
 x15_array:    .space 4   # Array for x15
 x16_array:    .space 4   # Array for x16
 x17_array:    .space 4   # Array for x17
-x18_array:    .space 12   # Array for x18
+x18_array:    .space 8   # Array for x18
 x19_array:    .space 4   # Array for x19
 x20_array:    .space 4   # Array for x20
 x21_array:    .space 4   # Array for x21

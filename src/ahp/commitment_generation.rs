@@ -283,6 +283,22 @@ impl CommitmentBuilder {
     }
 
     fn process_gates(gates: &Vec<Gate>, ni: usize) -> Vec<(usize, usize)> {
+        fn get_index(
+            tmp_z: &Vec<(RiscvReg, usize)>,
+            reg: RiscvReg,
+            inx: usize,
+            counter: usize,
+            des_reg: RiscvReg,
+            reg_set: &HashSet<RiscvReg>,
+        ) -> usize {
+            match tmp_z[..=counter].iter().rposition(|&v| {
+                v.0 == reg && (v.1 != inx || v.0 != des_reg) && reg_set.contains(&v.0)
+            }) {
+                Some(p) => p + 33,
+                None => reg as usize + 1,
+            }
+        }
+
         // Vector to store pairs of left and right register indices for each gate
         let mut reg_index_pairs: Vec<(usize, usize)> = vec![];
 
@@ -312,12 +328,6 @@ impl CommitmentBuilder {
             y.sort_by(|a, b| a.1.cmp(&b.1));
             tmp_z = [w.clone(), y.clone()].concat();
         }
-        // let mut tmp_z2 = tmp_z.clone();
-        // for (i, _) in tmp_z.iter().enumerate() {
-        //     tmp_z2[i].1 = i + 33;
-        // }
-        // let tmp_z = tmp_z2;
-        // tmp_z.sort_by(|a, b| a.1.cmp(&b.1));
         println_dbg!("tmp_z: {tmp_z:?}");
 
         let mut reg_set = HashSet::new();
@@ -329,22 +339,7 @@ impl CommitmentBuilder {
 
             println_dbg!("inx: {_inx}");
             println_dbg!("set: {:?}", reg_set);
-            fn get_index(
-                tmp_z: &Vec<(RiscvReg, usize)>,
-                reg: RiscvReg,
-                inx: usize,
-                counter: usize,
-                des_reg: RiscvReg,
-                reg_set: &HashSet<RiscvReg>,
-            ) -> usize {
-                match tmp_z[..=counter].iter().rposition(|&v| {
-                    v.0 == reg && (v.1 != inx || v.0 != des_reg) && reg_set.contains(&v.0)
-                }) {
-                    Some(p) => p + 33,
-                    None => reg as usize + 1,
-                }
-            }
-
+            
             let _li = get_index(&tmp_z, gate.reg_left, _inx, counter, gate.des_reg, &reg_set);
             let _ri = get_index(
                 &tmp_z,

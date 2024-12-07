@@ -327,7 +327,7 @@ pub fn get_matrix_point_val(
     col_k: &HashMap<Mfp, Mfp>,
 ) -> HashMap<Mfp, Mfp> {
     let mut res = HashMap::new();
-    let mut c = 0;
+    let mut counter = 0;
     let mat_len = mat.nrows();
 
     let len = set_h.len();
@@ -338,12 +338,12 @@ pub fn get_matrix_point_val(
         for j in 0..mat_len {
             if mat[(i, j)] != Mfp::ZERO {
                 let val = mat[(i, j)];
-                assert!(set_k.get(c).is_some());
-                let k = set_k[c];
+                assert!(set_k.get(counter).is_some());
+                let k = set_k[counter];
                 let div_res = div_mod_val(val, poly_u.eval(row_k[&k]) * poly_u.eval(col_k[&k]));
                 let p2 = div_res;
-                res.insert(set_k[c], p2);
-                c += 1;
+                res.insert(set_k[counter], p2);
+                counter += 1;
             }
         }
     }
@@ -368,19 +368,19 @@ pub fn get_matrix_point_val(
 /// maps the corresponding value in `set_k` to the row value in `set_h`.
 pub fn get_matrix_point_row(mat: &DMatrix<Mfp>, set_h: &[Mfp], set_k: &[Mfp]) -> HashMap<Mfp, Mfp> {
     let mut res = HashMap::new();
-    let mut c = 0;
+    let mut counter = 0;
     let mat_len = mat.nrows();
 
     for i in 0..mat_len {
         for j in 0..mat_len {
             if mat[(i, j)] != Mfp::ZERO {
-                res.insert(set_k[c], set_h[i]);
-                c += 1;
+                res.insert(set_k[counter], set_h[i]);
+                counter += 1;
             }
         }
     }
 
-    add_random_points(&mut res, c, set_h, set_k).unwrap();
+    add_random_points(&mut res, counter, set_h, set_k).unwrap();
 
     res
 }
