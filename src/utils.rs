@@ -607,7 +607,19 @@ pub fn read_json_file<T: serde::de::DeserializeOwned>(path: &str) -> Result<T> {
 }
 
 
-
+/// A macro for printing formatted output to the standard output stream.
+///
+/// This macro behaves like `print!`, but is intended for debugging purposes. 
+/// It will only execute when the `debug_assertions` configuration is enabled.
+///
+/// # Parameters
+/// - `$fmt`: A format string that specifies how to format the output.
+/// - `$arg`: Additional arguments to format according to the format string.
+///
+/// # Example
+/// ```rust
+/// print_dbg!("Value: {}", value);
+/// ```
 #[macro_export]
 macro_rules! print_dbg {
     ($fmt:expr $(, $arg:expr)*) => {
