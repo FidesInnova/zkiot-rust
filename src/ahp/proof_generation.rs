@@ -80,7 +80,7 @@ impl ProofGeneration {
     pub fn generate_z_vec(class_data: &ClassDataJson, z_vec_in: Vec<u64>) -> DVector<Mfp> {
         let size = class_data.get_matrix_size();
         let mut z_vec: DVector<Mfp> = DVector::zeros(size);
-        
+
         assert_eq!(z_vec_in.len() as u64, class_data.n_g + class_data.n_i + 1);
 
         let vals = z_vec_in.iter().map(|v| Mfp::from(*v)).collect::<Vec<Mfp>>();
@@ -274,7 +274,7 @@ impl ProofGeneration {
         class_data: ClassDataJson,
         program_params: ProgramParamsJson,
         commitment_json: CommitmentJson,
-        z_vec: Vec<u64>
+        z_vec: Vec<u64>,
     ) -> Box<[AHPData]> {
         // Generate sets
         let set_h = generate_set(class_data.n, class_data);
@@ -385,7 +385,7 @@ impl ProofGeneration {
 
         let (r_a_kx, r_b_kx, r_c_kx) =
             Self::calculate_r_polynomials_with_alpha(&points_px, alpha, &set_h);
-        
+
         // ∑_m [η_M r_M(α,x)] * z^(x)
         let sum_2 = Poly::new(vec![eta_a]) * &r_a_kx
             + Poly::new(vec![eta_b]) * &r_b_kx
@@ -561,7 +561,7 @@ impl ProofGeneration {
         println_dbg!("h_3x");
         dsp_poly!(polys_proof[11]);
 
-        // TODO: 
+        // TODO:
         let eta_values = [
             Mfp::from(1),  // eta_w
             Mfp::from(4),  // eta_z_a
@@ -666,46 +666,31 @@ impl ProofGeneration {
         val_commit_poly_qx: Mfp,
         x_vec: &Vec<Mfp>,
     ) -> Box<[AHPData]> {
-        let pi_ahp = [
-            AHPData::Array(write_set(x_vec)),                  // COM1AHP
-            AHPData::Commit(to_bint!(commit_x[0])),            // [0]: COM2AHP
-            AHPData::Commit(to_bint!(commit_x[1])),            // [1]: COM3AHP
-            AHPData::Commit(to_bint!(commit_x[2])),            // [2]: COM4AHP
-            AHPData::Commit(to_bint!(commit_x[3])),            // [3]: COM5AHP
-            AHPData::Commit(to_bint!(commit_x[4])),            // [4]: COM6AHP
-            AHPData::Commit(to_bint!(commit_x[5])),            // [5]: COM7AHP
-            AHPData::Commit(to_bint!(commit_x[6])),            // [6]: COM8AHP
-            AHPData::Commit(to_bint!(commit_x[7])),            // [7]: COM9AHP
-            AHPData::Commit(to_bint!(commit_x[8])),            // [8]: COM10AHP
-            AHPData::Commit(to_bint!(commit_x[9])),            // [9]: COM11AHP
-            AHPData::Commit(to_bint!(commit_x[10])),           // [10]: COM12AHP
-            AHPData::Commit(to_bint!(commit_x[11])),           // [11]: COM13AHP
-            AHPData::Sigma(to_bint!(sigma[0])),                // [12]: P1AHP: sigma_1
-            AHPData::Sigma(to_bint!(sigma[1])),                // [21]: P10AHP: sigma_2
-            AHPData::Sigma(to_bint!(sigma[2])),                // [24]: P13AHP: sigma_3
-            AHPData::Value(to_bint!(val_y_p)),                 // [27]: P16AHP: y'
-            AHPData::Value(to_bint!(val_commit_poly_qx)),      // [28]: P17AHP: val_com_qx
-            AHPData::Polynomial(write_term(&polys_proof[0])),  // [13]: P2AHP: w^x
-            AHPData::Polynomial(write_term(&polys_proof[1])),  // [14]: P3AHP: z^a
-            AHPData::Polynomial(write_term(&polys_proof[2])),  // [15]: P4AHP: z^b
-            AHPData::Polynomial(write_term(&polys_proof[3])),  // [16]: P5AHP: z^c
-            AHPData::Polynomial(write_term(&polys_proof[4])),  // [17]: P6AHP: h_0
-            AHPData::Polynomial(write_term(&polys_proof[5])),  // [18]: P7AHP: sx
-            AHPData::Polynomial(write_term(&polys_proof[6])),  // [19]: P8AHP: g_1
-            AHPData::Polynomial(write_term(&polys_proof[7])),  // [20]: P9AHP: h_1
-            AHPData::Polynomial(write_term(&polys_proof[8])),  // [22]: P11AHP: g_2
-            AHPData::Polynomial(write_term(&polys_proof[9])),  // [23]: P12AHP: h_2
-            AHPData::Polynomial(write_term(&polys_proof[10])), // [25]: P14AHP: g_3
-            AHPData::Polynomial(write_term(&polys_proof[11])), // [26]: P15AHP: h_3
-        ];
+        let mut proof_data = Vec::new();
 
-        Box::new(pi_ahp)
+        // Add the first element
+        proof_data.push(AHPData::Array(write_set(x_vec)));
+
+        // Add Commit AHPData for commit_x
+        proof_data.extend(commit_x.iter().map(|commit| AHPData::Commit(to_bint!(*commit))));
+
+        // Add Sigma AHPData
+        proof_data.extend(sigma.iter().map(|sigma| AHPData::Sigma(to_bint!(*sigma))));
+
+        // Add Polynomial AHPData for polys_proof
+        proof_data.extend(polys_proof.iter().map(|poly| AHPData::Polynomial(write_term(poly))));
+
+        // Add Value AHPData
+        proof_data.push(AHPData::Value(to_bint!(val_y_p)));
+        proof_data.push(AHPData::Value(to_bint!(val_commit_poly_qx)));
+
+        Box::from(proof_data)
     }
 
     /// Computes polynomial Fx
     fn generate_poly_fx(
         sigma_3: &mut Mfp,
-        polys_px: &Vec<Poly>,
+        polys_px: &[Poly],
         van_poly_vhx: &Poly,
         eta: &Vec<Mfp>,
         beta: &Vec<Mfp>,
@@ -747,11 +732,11 @@ impl ProofGeneration {
 
     /// Generates polynomial based on input parameters
     fn generate_poly_ax(
-        polys_px: &Vec<Poly>,
+        polys_px: &[Poly],
         beta: Vec<Mfp>,
         van_poly_vhx: &Poly,
         eta: Vec<Mfp>,
-        poly_pi: &Vec<&Poly>,
+        poly_pi: &[&Poly],
     ) -> Poly {
         let val_vhx_beta_1 = van_poly_vhx.eval(beta[0]);
         let val_vhx_beta_2 = van_poly_vhx.eval(beta[1]);
@@ -798,7 +783,6 @@ pub struct ProofGenerationJson {
 
     // #[serde(rename = "DeviceEncodedID")]
     // device_encoded_id: String,
-
     #[serde(rename = "Com1_AHP_x")]
     com1ahp: Vec<u64>,
 
@@ -911,7 +895,14 @@ impl ProofGenerationJson {
         let commitment_id = sha2_hash("concat_vals(DeviceConfig.json)");
 
         Self {
-            info: DeviceInfo::new(class_number, &commitment_id.to_string(), "FidesInnova", "test", "1", "2"),
+            info: DeviceInfo::new(
+                class_number,
+                &commitment_id.to_string(),
+                "FidesInnova",
+                "test",
+                "1",
+                "2",
+            ),
             // device_encoded_id: "Base64<MAC>".to_owned(),
             com1ahp: x_vec,
             com2ahp: commits[0],
@@ -955,23 +946,26 @@ impl ProofGenerationJson {
 
     /// Get polynomials
     pub fn get_poly(&self, num: usize) -> Poly {
-        // FIXME: input use enum Polys::
-        let polys = vec![
-            &self.p2ahp,
-            &self.p3ahp,
-            &self.p4ahp,
-            &self.p5ahp,
-            &self.p6ahp,
-            &self.p7ahp,
-            &self.p8ahp,
-            &self.p9ahp,
-            &self.p11ahp,
-            &self.p12ahp,
-            &self.p14ahp,
-            &self.p15ahp,
-        ];
+        let this_poly = match num {
+            0 => &self.p2ahp,
+            1 => &self.p3ahp,
+            2 => &self.p4ahp,
+            3 => &self.p5ahp,
+            4 => &self.p6ahp,
+            5 => &self.p7ahp,
+            6 => &self.p8ahp,
+            7 => &self.p9ahp,
+            8 => &self.p11ahp,
+            9 => &self.p12ahp,
+            10 => &self.p14ahp,
+            11 => &self.p15ahp,
+            _ => panic!(
+                "Error: Invalid index {}. Expected a value between 0 and 11.",
+                num
+            ),
+        };
 
-        let poly_vec = polys[num]
+        let poly_vec = this_poly
             .iter()
             .rev()
             .map(|&v| Mfp::from(v))
@@ -983,21 +977,24 @@ impl ProofGenerationJson {
 
     /// Get commits
     pub fn get_commits(&self, num: usize) -> Mfp {
-        let commits = vec![
-            &self.com2ahp,
-            &self.com3ahp,
-            &self.com4ahp,
-            &self.com5ahp,
-            &self.com6ahp,
-            &self.com7ahp,
-            &self.com8ahp,
-            &self.com9ahp,
-            &self.com10ahp,
-            &self.com11ahp,
-            &self.com12ahp,
-            &self.com13ahp,
-        ];
-        Mfp::from(*commits[num])
+        Mfp::from(*match num {
+            0 => &self.com2ahp,
+            1 => &self.com3ahp,
+            2 => &self.com4ahp,
+            3 => &self.com5ahp,
+            4 => &self.com6ahp,
+            5 => &self.com7ahp,
+            6 => &self.com8ahp,
+            7 => &self.com9ahp,
+            8 => &self.com10ahp,
+            9 => &self.com11ahp,
+            10 => &self.com12ahp,
+            11 => &self.com13ahp,
+            _ => panic!(
+                "Error: Invalid index {}. Expected a value between 0 and 11.",
+                num
+            ),
+        })
     }
 
     /// Get sigma values

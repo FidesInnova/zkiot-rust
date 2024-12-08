@@ -141,7 +141,7 @@ impl Verification {
         let van_poly_vkx = Self::vanishing_poly(set_k_len);
         let van_poly_vhx = Self::vanishing_poly(set_h_len);
 
-        let (pi_a, pi_b, pi_c) = ProofGeneration::compute_polys_pi(beta[0], beta[1], &polys_px);
+        let (pi_a, pi_b, pi_c) = ProofGeneration::compute_polys_pi(beta[0], beta[1], polys_px);
         let polys_pi = vec![&pi_a, &pi_b, &pi_c];
 
         let poly_a_x = Self::generate_poly_ax(polys_px, beta, &van_poly_vhx, eta, &polys_pi);
@@ -279,7 +279,7 @@ impl Verification {
     fn check_5(&self, (ck, vk): (&[Mfp], Mfp), z: Mfp, g: Mfp, poly_sx: &Poly) -> bool {
         // Preparing equation values
         // TODO: Replace with random values in the range (1..P)
-        let eta_values = vec![
+        let eta_values = [
             Mfp::from(1),  // eta_w
             Mfp::from(4),  // eta_z_a
             Mfp::from(10), // eta_z_b
@@ -311,7 +311,7 @@ impl Verification {
         let val_commit_poly_px = eta_values
             .iter()
             .enumerate()
-            .map(|(i, &eta)| eta * &self.data.get_commits(i).clone())
+            .map(|(i, &eta)| eta * self.data.get_commits(i).clone())
             .fold(Mfp::ZERO, |acc, com| acc + com);
 
 
@@ -607,11 +607,11 @@ impl Verification {
     /// # Returns
     /// Returns the generated polynomial ax.
     fn generate_poly_ax(
-        polys_px: &Vec<Poly>,
+        polys_px: &[Poly],
         beta: &[Mfp],
         van_poly_vhx: &Poly,
         eta: &[Mfp],
-        poly_pi: &Vec<&Poly>,
+        poly_pi: &[&Poly],
     ) -> Poly {
         // Evaluate the vanishing polynomial at beta[0] and beta[1]
         let val_vhx_beta_1 = van_poly_vhx.eval(beta[0]);
