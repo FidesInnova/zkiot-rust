@@ -628,6 +628,20 @@ macro_rules! print_dbg {
     }
 }
 
+
+/// A macro for printing formatted output followed by a newline to the standard output stream.
+///
+/// This macro behaves like `println!`, but is intended for debugging purposes. 
+/// It will only execute when the `debug_assertions` configuration is enabled.
+///
+/// # Parameters
+/// - `$fmt`: A format string that specifies how to format the output.
+/// - `$arg`: Additional arguments to format according to the format string.
+///
+/// # Example
+/// ```rust
+/// println_dbg!("Debugging value: {}", value);
+/// ```
 #[macro_export]
 macro_rules! println_dbg {
     () => {
