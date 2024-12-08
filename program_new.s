@@ -1,16 +1,16 @@
 jal store_register_instances
-mul s2, s2, s3
-la t0, x18_array
-sw x18, 4(t0)
-addi s1, s3, 11
-la t0, x9_array
-sw x9, 4(t0)
-mul s2, s4, s4
-la t0, x18_array
-sw x18, 8(t0)
-mul s3, s3, s4
-la t0, x19_array
-sw x19, 4(t0)
+addi zero zero 5
+la t0, x0_array
+sw x0, 4(t0)
+mul  ra ra s1
+la t0, x1_array
+sw x1, 4(t0)
+addi ra ra 10
+la t0, x1_array
+sw x1, 8(t0)
+mul  zero zero s2
+la t0, x0_array
+sw x0, 8(t0)
 la a0, z_array
 li t0, 1
 sw t0, 0(a0)
@@ -142,25 +142,25 @@ la a0, z_array
 la a1, x31_array
 lw t0, 0(a1)
 sw t0, 128(a0)
-la a1, x18_array
+la a1, x0_array
 lw t0, 4(a1)
 sw t0, 132(a0)
-la a1, x9_array
+la a1, x1_array
 lw t0, 4(a1)
 sw t0, 136(a0)
-la a1, x18_array
+la a1, x1_array
 lw t0, 8(a1)
 sw t0, 140(a0)
-la a1, x19_array
-lw t0, 4(a1)
+la a1, x0_array
+lw t0, 8(a1)
 sw t0, 144(a0)
 call proofGenerator
 .section .data
 .global z_array
 z_array:    .space 148
     .data
-x0_array:    .space 4   # Array for x0
-x1_array:    .space 4   # Array for x1
+x0_array:    .space 12   # Array for x0
+x1_array:    .space 12   # Array for x1
 x2_array:    .space 4   # Array for x2
 x3_array:    .space 4   # Array for x3
 x4_array:    .space 4   # Array for x4
@@ -168,7 +168,7 @@ x5_array:    .space 4   # Array for x5
 x6_array:    .space 4   # Array for x6
 x7_array:    .space 4   # Array for x7
 x8_array:    .space 4   # Array for x8
-x9_array:    .space 8   # Array for x9
+x9_array:    .space 4   # Array for x9
 x10_array:    .space 4   # Array for x10
 x11_array:    .space 4   # Array for x11
 x12_array:    .space 4   # Array for x12
@@ -177,8 +177,8 @@ x14_array:    .space 4   # Array for x14
 x15_array:    .space 4   # Array for x15
 x16_array:    .space 4   # Array for x16
 x17_array:    .space 4   # Array for x17
-x18_array:    .space 12   # Array for x18
-x19_array:    .space 8   # Array for x19
+x18_array:    .space 4   # Array for x18
+x19_array:    .space 4   # Array for x19
 x20_array:    .space 4   # Array for x20
 x21_array:    .space 4   # Array for x21
 x22_array:    .space 4   # Array for x22
