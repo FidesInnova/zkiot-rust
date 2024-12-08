@@ -184,6 +184,20 @@ pub fn push_random_points(points: &mut Vec<Point>, b: u64, set_h: &HashSet<Mfp>,
     }
 }
 
+/// Generates a random number based on a given polynomial and a set of existing values.
+///
+/// # Parameters
+/// - `num`: A `u64` value used as input to evaluate the polynomial.
+/// - `poly_sx`: A reference to a `Poly` object that will be evaluated with the input `num`.
+/// - `set_h`: A reference to a vector of `Mfp` values that represents a set of existing values.
+///
+/// # Returns
+/// - An `Mfp` value that is guaranteed to be unique within the provided `set_h`.
+///
+/// # Description
+/// This function evaluates the polynomial `poly_sx` at the point `num`, hashes the result,
+/// and uses it to generate a random number. If the generated number already exists in the
+/// `set_h`, it increments the number by one and checks again until a unique number is found.
 pub fn generate_beta_random(num: u64, poly_sx: &Poly, set_h: &Vec<Mfp>) -> Mfp {
     let mut random_number = Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(num)).to_string()));
     while set_h.contains(&random_number) {
