@@ -25,7 +25,6 @@ pub struct Matrices {
     pub a: DMatrix<Mfp>,
     pub b: DMatrix<Mfp>,
     pub c: DMatrix<Mfp>,
-    // pub z: DMatrix<Mfp>,
     pub size: usize,
 }
 
