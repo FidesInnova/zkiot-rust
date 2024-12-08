@@ -57,6 +57,21 @@ pub enum RiscvReg {
     T6 = 31,  // x31 - Temporary register
 }
 
+/// Converts a `u8` value into a `RiscvReg` enum variant.
+///
+/// This implementation of the `From<u8>` trait allows for easy conversion from a `u8`
+/// representation of a register to the corresponding `RiscvReg` variant.
+///
+/// # Parameters
+/// - `value`: A `u8` representing the register number. It should be in the range of 0 to 31,
+///   corresponding to the defined registers in the `RiscvReg` enum.
+///
+/// # Returns
+/// - A `RiscvReg` variant corresponding to the provided `u8` value.
+///
+/// # Panics
+/// This function will panic if the provided `value` is not in the range of valid register numbers
+/// (0 to 31).
 impl From<u8> for RiscvReg {
     fn from(value: u8) -> Self {
         match value {
