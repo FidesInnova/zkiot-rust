@@ -21,6 +21,21 @@ use std::path::PathBuf;
 use crate::{json_file::*, println_dbg};
 
 
+/// An enumeration representing the registers in the RISC-V architecture.
+///
+/// Each variant corresponds to a specific register, with its associated number
+/// defined as per the RISC-V specification. The values are also assigned to
+/// their respective register names for clarity.
+///
+/// # Variants
+/// - `Zero`: x0 - Hardwired zero, always reads as zero.
+/// - `Ra`: x1 - Return address register, used to store the return address for function calls.
+/// - `Sp`: x2 - Stack pointer, points to the top of the stack.
+/// - `Gp`: x3 - Global pointer, used for accessing global variables.
+/// - `Tp`: x4 - Thread pointer, points to thread-local storage.
+/// - `T0` to `T6`: Temporary registers (x5 to x31), used for intermediate values.
+/// - `S0` to `S11`: Saved registers (x8 to x27), used to save values across function calls.
+/// - `A0` to `A7`: Argument registers (x10 to x17), used to pass arguments to functions.
 #[derive(Eq, Hash, PartialEq, Debug, Clone, Copy)]
 pub enum RiscvReg {
     Zero = 0, // x0 - Hardwired zero
