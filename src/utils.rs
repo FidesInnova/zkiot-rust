@@ -266,6 +266,16 @@ pub fn add_random_points(
     Ok(())
 }
 
+/// Prints the values associated with keys in a given HashMap.
+///
+/// # Parameters
+/// - `points`: A reference to a `HashMap` where keys and values are of type `Mfp`.
+/// - `set_k`: A slice of `Mfp` values representing the keys to look up in the `points` HashMap.
+///
+/// # Description
+/// This function iterates over the provided `set_k` slice and checks if each key exists in the
+/// `points` HashMap. If a key is found, it prints the key and its corresponding value. If a key
+/// is not found, it prints that the key maps to `None`.
 pub fn print_hashmap(points: &HashMap<Mfp, Mfp>, set_k: &[Mfp]) {
     for k in set_k.iter() {
         if let Some(val) = points.get(k) {
