@@ -584,6 +584,22 @@ pub fn concat_polys(polys: &[&Poly]) -> Vec<Mfp> {
     result
 }
 
+/// Reads a JSON file and deserializes its contents into a specified type.
+///
+/// # Parameters
+/// - `path`: A string slice that holds the path to the JSON file to be read.
+///
+/// # Type Parameters
+/// - `T`: The type into which the JSON data will be deserialized. It must implement the `DeserializeOwned` trait from `serde`.
+///
+/// # Returns
+/// - A `Result<T>` which, on success, contains the deserialized data of type `T`. 
+///   On failure, it returns an error.
+///
+/// # Description
+/// This function opens a JSON file at the specified path, reads its contents, and deserializes
+/// the JSON data into an instance of the specified type `T`. If any errors occur during file
+/// opening or deserialization, they are propagated as a `Result::Err`.
 pub fn read_json_file<T: serde::de::DeserializeOwned>(path: &str) -> Result<T> {
     let reader = crate::json_file::open_file(&std::path::PathBuf::from(path))?;
     let setup_json: T = serde_json::from_reader(reader)?;
