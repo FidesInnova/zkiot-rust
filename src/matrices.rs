@@ -33,7 +33,6 @@ impl Matrices {
         let a = DMatrix::<Mfp>::zeros(size, size);
         let b = DMatrix::<Mfp>::zeros(size, size);
         let c = DMatrix::<Mfp>::zeros(size, size);
-        // let z = DMatrix::<Mfp>::zeros(size, 1);
 
         Self { a, b, c, size }
     }
