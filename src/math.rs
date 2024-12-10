@@ -516,15 +516,14 @@ pub fn m_k(
     let mut poly_res = Poly::from(vec![Mfp::ZERO]);
 
     let mut catch: HashMap<Mfp, Poly> = HashMap::new();
-    let mut catch_1: HashMap<Mfp, Poly> = HashMap::new();
-    let mut catch_2: HashMap<Mfp, Mfp> = HashMap::new();
 
-    // let mut final_time = std::time::Duration::new(0, 0);
+    let mut final_time = std::time::Duration::new(0, 0);
 
     for (k, h) in points_val {
         let poly_val = Poly::from(vec![*h]);
 
-        // let timer = std::time::Instant::now();
+
+        let timer = std::time::Instant::now();
 
         let poly_x = catch.entry(points_row[k]).or_insert_with(|| {
             func_u(None, Some(points_row[k]), set_h_len)
@@ -534,7 +533,7 @@ pub fn m_k(
             func_u(None, Some(points_col[k]), set_h_len)
         }).clone();
 
-        // final_time += timer.elapsed();
+        final_time += timer.elapsed();
 
         match eval_order {
             EvalOrder::XK => {
@@ -546,9 +545,10 @@ pub fn m_k(
                 poly_res += poly_val * res_poly_x * poly_y;
             }
         }
+
     }
 
-    // eprintln!("== timer_in: {:?}", final_time);
+    eprintln!("== timer_in: {:?}", final_time);
 
     poly_res
 }
