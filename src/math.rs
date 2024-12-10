@@ -548,7 +548,7 @@ pub fn m_k(
 
     }
 
-    eprintln!("== timer_in: {:?}", final_time);
+    // eprintln!("== timer_in: {:?}", final_time);
 
     poly_res
 }
