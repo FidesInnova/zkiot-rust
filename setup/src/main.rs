@@ -30,8 +30,7 @@ fn main() -> Result<()> {
     for (class_number, metadata) in class_data {
         // Calculate the D_AHP value using the formula: D_AHP = 12 * n_g
 
-        let max_b_random_value = 10;
-        let d_ahp_vec: Vec<u64> = vec![2 * metadata.n + max_b_random_value, 12 * metadata.n_g];
+        let d_ahp_vec: Vec<u64> = vec![3 * metadata.n_g + 2 * metadata.n_i + 1, 12 * metadata.n_g];
         let d_ahp = *d_ahp_vec.iter().max().unwrap();
 
         println_dbg!("pos {class_number} = {:?}", d_ahp_vec.iter().position(|v| *v == d_ahp));

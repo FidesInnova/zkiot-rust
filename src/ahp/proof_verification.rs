@@ -258,12 +258,16 @@ impl Verification {
         println_dbg!("poly_ab_c: ");
         dsp_poly!(poly_ab_c);
         
-        let poly_h_0 = div_mod(&poly_ab_c, &van_poly_vhx).0; // Divide and get the result
+        let poly_h_0 = div_mod(&poly_ab_c, &van_poly_vhx); // Divide and get the result
+        
+        // Ensure this division has no remainders
+        assert!(poly_h_0.1.is_zero(), "Verify panic: The remainder of the division for poly_h_0 should be zero");
+
         println_dbg!("poly_h_0: ");
-        dsp_poly!(poly_h_0);
+        dsp_poly!(poly_h_0.0);
 
         // Check the fourth verification equation
-        Self::check_equation_4(&poly_ab_c, &poly_h_0, &van_poly_vhx, &beta[0])
+        Self::check_equation_4(&poly_ab_c, &poly_h_0.0, &van_poly_vhx, &beta[0])
     }
 
     /// Checks the fifth verification equation

@@ -28,7 +28,7 @@ use crate::println_dbg;
 use crate::to_bint;
 use crate::utils::add_random_points;
 
-pub const P: u64 = 1678321;
+pub const P: u64 = 138403841;
 // pub const P: u64 = 2460193;
 
 field!(Mfp, P);
@@ -516,11 +516,13 @@ pub fn m_k(
     let mut poly_res = Poly::from(vec![Mfp::ZERO]);
 
     let mut catch: HashMap<Mfp, Poly> = HashMap::new();
+    let mut catch_1: HashMap<Mfp, Poly> = HashMap::new();
+    let mut catch_2: HashMap<Mfp, Mfp> = HashMap::new();
 
     // let mut final_time = std::time::Duration::new(0, 0);
 
-    for (k, val) in points_val {
-        let poly_val = Poly::from(vec![*val]);
+    for (k, h) in points_val {
+        let poly_val = Poly::from(vec![*h]);
 
         // let timer = std::time::Instant::now();
 
@@ -547,6 +549,44 @@ pub fn m_k(
     }
 
     // eprintln!("== timer_in: {:?}", final_time);
+
+    poly_res
+}
+
+fn poly_func_u(x: Option<Mfp>, y: Option<Mfp>, degree: usize) -> Poly {
+    let mut poly_res = Poly::from(vec![Mfp::ZERO]);
+    
+    match (x, y) {
+        (None, Some(y)) => {
+            for k in 0..degree {
+                let mut poly_x = Poly::new(vec![]);
+                poly_x.add_term(Mfp::ONE, degree - 1 - k);
+                let poly_y = Poly::new(vec![exp_mod(to_bint!(y), k as u64)]);
+                poly_res += poly_x * poly_y;
+            }
+            poly_res.trim()
+        },
+        (Some(x), None) => {
+            for k in 0..degree {
+                let term_x = exp_mod(to_bint!(x), (degree - 1 - k) as u64);
+                let poly_x = Poly::new(vec![term_x]);
+                let mut poly_y = Poly::new(vec![]);
+                poly_y.add_term(Mfp::ONE, k);
+                poly_res += poly_x * poly_y;
+            }
+            poly_res.trim()
+        },
+        (Some(x), Some(y)) => {
+            let mut result = Mfp::ZERO;
+
+            for k in 0..degree {
+                result += exp_mod(to_bint!(x), (degree - 1 - k) as u64) * exp_mod(to_bint!(y), k as u64); 
+            }
+
+            poly_res = Poly::new(vec![result]);
+        },
+        (None, None) => panic!("Both x and y cannot be None"),
+    }
 
     poly_res
 }
@@ -581,11 +621,11 @@ pub fn sigma_rk_mk(
     eval_order: &EvalOrder,
 ) -> Poly {
     let mut res = Poly::from(vec![Mfp::ZERO]);
-    // eprintln!("START:");
+    eprintln!("START:");
     for h in set_h {
         // eprintln!("h: {}", h);
-        let mut p_r_alphak = func_u(Some(alpha), Some(*h), set_h.len());
         let timer = std::time::Instant::now();
+        let mut p_r_alphak = func_u(Some(alpha), Some(*h), set_h.len());
         let mut p_m_kx = m_k(
             h,
             points_val,
@@ -594,7 +634,7 @@ pub fn sigma_rk_mk(
             set_h.len(),
             eval_order,
         );
-        // eprintln!("time2 : {:?}", timer.elapsed());
+        eprintln!("time2 : {:?}", timer.elapsed());
         p_r_alphak.trim();
         p_m_kx.trim();
         let mul_poly = p_r_alphak * p_m_kx;

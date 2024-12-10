@@ -329,7 +329,15 @@ impl ProofGeneration {
         let poly_ab_c = &poly_z_hat_a * &poly_z_hat_b - &poly_z_hat_c;
         println_dbg!("poly_ab_c");
         dsp_poly!(poly_ab_c);
-        let poly_h_0 = div_mod(&poly_ab_c, &van_poly_vhx).0;
+        let poly_h_0 = div_mod(&poly_ab_c, &van_poly_vhx);
+
+        println!("rem poly_h_0:");
+        dsp_poly!(poly_h_0.1);
+
+        // Ensure this division has no remainders
+        assert!(poly_h_0.1.is_zero(), "Proof panic: The remainder of the division for poly_h_0 should be zero");
+        
+        let poly_h_0 = poly_h_0.0;
         println_dbg!("poly_h_0");
         dsp_poly!(poly_h_0);
 

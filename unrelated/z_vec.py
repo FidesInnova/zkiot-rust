@@ -15,7 +15,7 @@
 p = 4294967296
 p = 18446744073709551615
 
-p = 1678321
+p = 138403841
 
 def write_vector_to_file(vector, filename):
     with open(filename, 'w') as file:
@@ -24,77 +24,77 @@ def write_vector_to_file(vector, filename):
 
 
 
-# register_map = {
-#     "zero": 0,
-#     "ra": 1,   # Return address
-#     "sp": 2,   # Stack pointer
-#     "gp": 3,   # Global pointer
-#     "tp": 4,   # Thread pointer
-#     "t0": 5,   # Temporary register
-#     "t1": 6,   # Temporary register
-#     "t2": 7,   # Temporary register
-#     "s0": 8,   # Platform register
-#     "s1": 9,   # Platform register
-#     "a0": 10,  # Argument register
-#     "a1": 11,  # Argument register
-#     "a2": 12,  # Temporary register
-#     "a3": 13,  # Temporary register
-#     "a4": 14,  # Temporary register
-#     "a5": 15,  # Temporary register
-#     "a6": 16,  # Temporary register
-#     "a7": 17,  # Temporary register
-#     "s2": 18,  # Saved register
-#     "s3": 19,  # Saved register
-#     "s4": 20,  # Saved register
-#     "s5": 21,  # Saved register
-#     "s6": 22,  # Saved register
-#     "s7": 23,  # Saved register
-#     "s8": 24,  # Saved register
-#     "s9": 25,  # Saved register
-#     "s10": 26, # Saved register
-#     "s11": 27, # Saved register
-#     "t3": 28,  # Temporary register
-#     "t4": 29,  # Frame pointer
-#     "t5": 30,  # Temporary register
-#     "t6": 31   # Temporary register
-# }
-
-
-
 register_map = {
-    "zero": 7,
-    "ra": 11,   # Return address
-    "sp": 0,   # Stack pointer
-    "gp": 1,   # Global pointer
-    "tp": 0,   # Thread pointer
-    "t0": 1,   # Temporary register
-    "t1": 0,   # Temporary register
-    "t2": 0,   # Temporary register
-    "s0": 0,   # Platform register
-    "s1": 2,   # Platform register
-    "a0": 0,  # Argument register
-    "a1": 0,  # Argument register
-    "a2": 0,  # Temporary register
-    "a3": 0,  # Temporary register
-    "a4": 0,  # Temporary register
-    "a5": 0,  # Temporary register
-    "a6": 0,  # Temporary register
-    "a7": 0,  # Temporary register
-    "s2": 7,  # Saved register
-    "s3": 0,  # Saved register
-    "s4": 0,  # Saved register
-    "s5": 0,  # Saved register
-    "s6": 0,  # Saved register
-    "s7": 0,  # Saved register
-    "s8": 0,  # Saved register
-    "s9": 0,  # Saved register
-    "s10": 0, # Saved register
-    "s11": 0, # Saved register
-    "t3": 0,  # Temporary register
-    "t4": 0,  # Frame pointer
-    "t5": 0,  # Temporary register
-    "t6": 0   # Temporary register
+    "zero": 0,
+    "ra": 1,   # Return address
+    "sp": 2,   # Stack pointer
+    "gp": 3,   # Global pointer
+    "tp": 4,   # Thread pointer
+    "t0": 5,   # Temporary register
+    "t1": 6,   # Temporary register
+    "t2": 7,   # Temporary register
+    "s0": 8,   # Platform register
+    "s1": 9,   # Platform register
+    "a0": 10,  # Argument register
+    "a1": 11,  # Argument register
+    "a2": 12,  # Temporary register
+    "a3": 13,  # Temporary register
+    "a4": 14,  # Temporary register
+    "a5": 15,  # Temporary register
+    "a6": 16,  # Temporary register
+    "a7": 17,  # Temporary register
+    "s2": 18,  # Saved register
+    "s3": 19,  # Saved register
+    "s4": 20,  # Saved register
+    "s5": 21,  # Saved register
+    "s6": 22,  # Saved register
+    "s7": 23,  # Saved register
+    "s8": 24,  # Saved register
+    "s9": 25,  # Saved register
+    "s10": 26, # Saved register
+    "s11": 27, # Saved register
+    "t3": 28,  # Temporary register
+    "t4": 29,  # Frame pointer
+    "t5": 30,  # Temporary register
+    "t6": 31   # Temporary register
 }
+
+
+
+# register_map = {
+#     "zero": 7,
+#     "ra": 11,   # Return address
+#     "sp": 0,   # Stack pointer
+#     "gp": 1,   # Global pointer
+#     "tp": 0,   # Thread pointer
+#     "t0": 1,   # Temporary register
+#     "t1": 0,   # Temporary register
+#     "t2": 0,   # Temporary register
+#     "s0": 0,   # Platform register
+#     "s1": 2,   # Platform register
+#     "a0": 0,  # Argument register
+#     "a1": 0,  # Argument register
+#     "a2": 0,  # Temporary register
+#     "a3": 0,  # Temporary register
+#     "a4": 0,  # Temporary register
+#     "a5": 0,  # Temporary register
+#     "a6": 0,  # Temporary register
+#     "a7": 0,  # Temporary register
+#     "s2": 7,  # Saved register
+#     "s3": 0,  # Saved register
+#     "s4": 0,  # Saved register
+#     "s5": 0,  # Saved register
+#     "s6": 0,  # Saved register
+#     "s7": 0,  # Saved register
+#     "s8": 0,  # Saved register
+#     "s9": 0,  # Saved register
+#     "s10": 0, # Saved register
+#     "s11": 0, # Saved register
+#     "t3": 0,  # Temporary register
+#     "t4": 0,  # Frame pointer
+#     "t5": 0,  # Temporary register
+#     "t6": 0   # Temporary register
+# }
 
 # register_map = {
 #     "zero": 0,
