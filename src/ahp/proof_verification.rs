@@ -260,11 +260,11 @@ impl Verification {
         
         let poly_h_0 = div_mod(&poly_ab_c, &van_poly_vhx); // Divide and get the result
         
-        // Ensure this division has no remainders
-        assert!(poly_h_0.1.is_zero(), "Verify panic: The remainder of the division for poly_h_0 should be zero");
-
         println_dbg!("poly_h_0: ");
         dsp_poly!(poly_h_0.0);
+
+        // Ensure this division has no remainders
+        assert!(poly_h_0.1.is_zero(), "Verify panic: The remainder of the division for poly_h_0 should be zero");
 
         // Check the fourth verification equation
         Self::check_equation_4(&poly_ab_c, &poly_h_0.0, &van_poly_vhx, &beta[0])

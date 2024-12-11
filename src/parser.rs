@@ -137,7 +137,7 @@ pub enum Instructions {
     Addi,
     // Sub,
     Mul,
-    // Div,
+    Div,
 }
 
 /// Represents a gate with its parameters.
@@ -152,7 +152,7 @@ pub enum Instructions {
 /// # Description
 /// This struct is used to define a gate. It includes the indices for the
 /// left and right inputs, optional values for these inputs, and the type of gate being used.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Gate {
     pub val_left: Option<u64>,
     pub val_right: Option<u64>,

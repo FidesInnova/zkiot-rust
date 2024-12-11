@@ -91,6 +91,31 @@ impl Commitment {
     }
 
 
+    pub fn process_gates(gates: Vec<Gate>) -> Vec<Gate> {
+        let mut gate_res = vec![];
+        for gate in gates.clone() {
+            match gate.instr {
+                Instructions::Div => {
+                    let des = gate.des_reg;
+                    let lhs = gate.reg_left;
+                    let rhs = gate.reg_right;
+
+                    let add_to_gate = vec![
+                        Gate::new(gate.val_left, gate.val_right, des, lhs, rhs, Instructions::Mul),
+                        Gate::new(gate.val_left, gate.val_right, des, lhs, rhs, Instructions::Mul),
+                        Gate::new(gate.val_left, gate.val_right, des, lhs, rhs, Instructions::Mul),
+                        Gate::new(gate.val_left, gate.val_right, des, lhs, rhs, Instructions::Add)
+                    ];
+
+                    gate_res.extend(add_to_gate.iter());
+                }
+                _ => gate_res.push(gate.clone())
+            }
+        }
+        gate_res
+    }
+
+
     /// Store in Json file
     pub fn store(&self, path: &str, class_number: u8, class: ClassDataJson) -> Result<()> {
         let file = File::create(path)?;
@@ -239,7 +264,7 @@ impl CommitmentBuilder {
         let mut regs_data: HashMap<RiscvReg, usize> = HashMap::new();
 
         // Vector to store pairs of left and right register indices for each gate
-        let reg_index_pairs = Self::process_gates(&gates, ni);
+        let reg_index_pairs = Self::generate_gate_index(&gates, ni);
 
         // Iterate over gates
         for (counter, gate) in gates.iter().enumerate() {
@@ -281,6 +306,7 @@ impl CommitmentBuilder {
                     a_mat[(_inx, _li)] = left_val;
                     b_mat[(_inx, _ri)] = right_val;
                 }
+                _ => {}
             }
         }
 
@@ -294,8 +320,9 @@ impl CommitmentBuilder {
 
         self.clone()
     }
+    
 
-    fn process_gates(gates: &Vec<Gate>, ni: usize) -> Vec<(usize, usize)> {
+    fn generate_gate_index(gates: &Vec<Gate>, ni: usize) -> Vec<(usize, usize)> {
         fn get_index(
             tmp_z: &Vec<(RiscvReg, usize)>,
             reg: RiscvReg,

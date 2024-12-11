@@ -35,9 +35,10 @@ const PROOF_PATH: &str = "data/proof.json";
 // Exported for use in assembly
 #[export_name = "proofGenerator"]
 pub fn main_proof_gen(setup_path: &str) -> Result<()> {
-    // Load files
-    let device_config: DeviceConfigJson = read_json_file(DEVICE_CONFIG_PATH)?;
-    let class_number = device_config.info.class;
+    // Load commitment data from the commitment file
+    let commitment_json = ahp::commitment_generation::Commitment::restore(PROGRAM_COMMITMENT_PATH)
+        .with_context(|| "Error loading commitment data")?;
+    let class_number = commitment_json.info.class;
 
     // Load class data from the JSON file
     let class_data =
@@ -45,10 +46,6 @@ pub fn main_proof_gen(setup_path: &str) -> Result<()> {
 
     // Restore setup data from the JSON file
     let setup_json = Setup::restore(setup_path).with_context(|| "Error retrieving setup data")?;
-
-    // Load commitment data from the commitment file
-    let commitment_json = ahp::commitment_generation::Commitment::restore(PROGRAM_COMMITMENT_PATH)
-        .with_context(|| "Error loading commitment data")?;
 
     // Load matrices
     let program_params = ProgramParamsJson::restore(PROGRAM_PARAMS_PATH)?;

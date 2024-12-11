@@ -28,7 +28,7 @@ use crate::println_dbg;
 use crate::to_bint;
 use crate::utils::add_random_points;
 
-pub const P: u64 = 138403841;
+pub const P: u64 = 1678321;
 // pub const P: u64 = 2460193;
 
 field!(Mfp, P);

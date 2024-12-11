@@ -97,7 +97,7 @@ fn insert_assembly_instructions(
         }
 
         if num == line_range.1 {
-            // insert_addi_0(output_file, add_no_op_number)?;
+            insert_addi_0(output_file, add_no_op_number)?;
             insert_z_array(output_file)?;
             insert_z_array_population_code(output_file)?;
 
