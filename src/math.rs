@@ -21,6 +21,7 @@ use nalgebra::DMatrix;
 use rustnomial::*;
 use std::collections::HashMap;
 use std::ops::Neg;
+use crate::dsp_poly;
 use crate::field;
 use crate::json_file::ClassDataJson;
 use crate::kzg;
@@ -28,7 +29,7 @@ use crate::println_dbg;
 use crate::to_bint;
 use crate::utils::add_random_points;
 
-pub const P: u64 = 1678321;
+pub const P: u64 = 270592001;
 // pub const P: u64 = 2460193;
 
 field!(Mfp, P);
@@ -517,27 +518,22 @@ pub fn m_k(
 
     let mut catch: HashMap<Mfp, Poly> = HashMap::new();
 
-    let mut final_time = std::time::Duration::new(0, 0);
-
     for (k, h) in points_val {
         let poly_val = Poly::from(vec![*h]);
 
-
-        let timer = std::time::Instant::now();
-
+        // let timer = std::time::Instant::now();
         let poly_x = catch.entry(points_row[k]).or_insert_with(|| {
-            func_u(None, Some(points_row[k]), set_h_len)
+            poly_func_u(None, Some(points_row[k]), set_h_len)
         }).clone();
-
+        
         let poly_y = catch.entry(points_col[k]).or_insert_with(|| {
-            func_u(None, Some(points_col[k]), set_h_len)
+            poly_func_u(None, Some(points_col[k]), set_h_len)
         }).clone();
-
-        final_time += timer.elapsed();
+        // final_time += timer.elapsed();
 
         match eval_order {
             EvalOrder::XK => {
-                let res_poly_y = poly_y.eval(*num);
+                let res_poly_y =  poly_y.eval(*num);
                 poly_res += poly_val * res_poly_y * poly_x;
             }
             EvalOrder::KX => {
@@ -548,33 +544,28 @@ pub fn m_k(
 
     }
 
-    // eprintln!("== timer_in: {:?}", final_time);
 
     poly_res
 }
 
 fn poly_func_u(x: Option<Mfp>, y: Option<Mfp>, degree: usize) -> Poly {
-    let mut poly_res = Poly::from(vec![Mfp::ZERO]);
-    
+    let mut vec_poly: Vec<Mfp> = Vec::with_capacity(degree);
+
+    let mut current_power = Mfp::ONE;
     match (x, y) {
         (None, Some(y)) => {
-            for k in 0..degree {
-                let mut poly_x = Poly::new(vec![]);
-                poly_x.add_term(Mfp::ONE, degree - 1 - k);
-                let poly_y = Poly::new(vec![exp_mod(to_bint!(y), k as u64)]);
-                poly_res += poly_x * poly_y;
+            for _ in 0..degree {
+                vec_poly.push(current_power);
+                current_power = current_power * y;
             }
-            poly_res.trim()
+            Poly::from(vec_poly)
         },
         (Some(x), None) => {
-            for k in 0..degree {
-                let term_x = exp_mod(to_bint!(x), (degree - 1 - k) as u64);
-                let poly_x = Poly::new(vec![term_x]);
-                let mut poly_y = Poly::new(vec![]);
-                poly_y.add_term(Mfp::ONE, k);
-                poly_res += poly_x * poly_y;
+            for _ in 0..degree {
+                vec_poly.push(current_power);
+                current_power = current_power * x;
             }
-            poly_res.trim()
+            Poly::from(vec_poly)
         },
         (Some(x), Some(y)) => {
             let mut result = Mfp::ZERO;
@@ -583,12 +574,10 @@ fn poly_func_u(x: Option<Mfp>, y: Option<Mfp>, degree: usize) -> Poly {
                 result += exp_mod(to_bint!(x), (degree - 1 - k) as u64) * exp_mod(to_bint!(y), k as u64); 
             }
 
-            poly_res = Poly::new(vec![result]);
+            Poly::new(vec![result])
         },
         (None, None) => panic!("Both x and y cannot be None"),
     }
-
-    poly_res
 }
 
 /// Computes the polynomial sum for `sigma_rkx_mkx` based on the provided set `H`, `alpha`, and points.
@@ -621,10 +610,10 @@ pub fn sigma_rk_mk(
     eval_order: &EvalOrder,
 ) -> Poly {
     let mut res = Poly::from(vec![Mfp::ZERO]);
-    eprintln!("START:");
+    // eprintln!("START:");
     for h in set_h {
         // eprintln!("h: {}", h);
-        let timer = std::time::Instant::now();
+        // let timer = std::time::Instant::now();
         let mut p_r_alphak = func_u(Some(alpha), Some(*h), set_h.len());
         let mut p_m_kx = m_k(
             h,
@@ -634,7 +623,7 @@ pub fn sigma_rk_mk(
             set_h.len(),
             eval_order,
         );
-        eprintln!("time2 : {:?}", timer.elapsed());
+        // eprintln!("time2 : {:?}", timer.elapsed());
         p_r_alphak.trim();
         p_m_kx.trim();
         let mul_poly = p_r_alphak * p_m_kx;

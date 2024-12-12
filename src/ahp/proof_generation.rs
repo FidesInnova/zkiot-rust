@@ -331,7 +331,7 @@ impl ProofGeneration {
         dsp_poly!(poly_ab_c);
         let poly_h_0 = div_mod(&poly_ab_c, &van_poly_vhx);
 
-        println!("rem poly_h_0:");
+        println_dbg!("rem poly_h_0:");
         dsp_poly!(poly_h_0.1);
 
         // Ensure this division has no remainders

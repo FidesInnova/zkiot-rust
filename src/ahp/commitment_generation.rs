@@ -264,7 +264,7 @@ impl CommitmentBuilder {
         let mut regs_data: HashMap<RiscvReg, usize> = HashMap::new();
 
         // Vector to store pairs of left and right register indices for each gate
-        let reg_index_pairs = Self::generate_gate_index(&gates, ni);
+        // let reg_index_pairs = Self::generate_gate_index(&gates, ni);
 
         // Iterate over gates
         for (counter, gate) in gates.iter().enumerate() {
@@ -274,8 +274,8 @@ impl CommitmentBuilder {
             let _inx = 1 + ni + counter;
 
             // Get index
-            let (mut _li, mut _ri) = reg_index_pairs[counter];
-            // let (mut _li, mut _ri) = Self::get_register_index(&mut regs_data, gate, _inx);
+            // let (mut _li, mut _ri) = reg_index_pairs[counter];
+            let (mut _li, mut _ri) = Self::get_register_index(&mut regs_data, gate, _inx);
 
             // Get left and right values (index is zero if value exists)
             let left_val = Self::get_mfp_value(gate.val_left, &mut _li);
@@ -499,17 +499,17 @@ impl CommitmentBuilder {
             points_col_p_c,
         ];
 
-        println!("val_A: {:?}", points_vector[0]);
-        println!("row_A: {:?}", points_vector[1]);
-        println!("col_A: {:?}", points_vector[2]);
+        println_dbg!("val_A: {:?}", points_vector[0]);
+        println_dbg!("row_A: {:?}", points_vector[1]);
+        println_dbg!("col_A: {:?}", points_vector[2]);
 
-        println!("val_B: {:?}", points_vector[3]);
-        println!("row_B: {:?}", points_vector[4]);
-        println!("col_B: {:?}", points_vector[5]);
+        println_dbg!("val_B: {:?}", points_vector[3]);
+        println_dbg!("row_B: {:?}", points_vector[4]);
+        println_dbg!("col_B: {:?}", points_vector[5]);
 
-        println!("val_C: {:?}", points_vector[6]);
-        println!("row_C: {:?}", points_vector[7]);
-        println!("col_C: {:?}", points_vector[8]);
+        println_dbg!("val_C: {:?}", points_vector[6]);
+        println_dbg!("row_C: {:?}", points_vector[7]);
+        println_dbg!("col_C: {:?}", points_vector[8]);
 
         self.commitm.points_px = points_vector;
         self.commitm.polys_px = polys_pxs;

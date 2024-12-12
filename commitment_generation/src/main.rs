@@ -84,13 +84,15 @@ fn main() -> Result<()> {
     // Get the class number based on the length of the gates
     let class_number = &get_class_number(gates.len());
 
+    println_dbg!("class: {}", class_number);
+    
     // Ensure that the P in use is correct
     assert_eq!(
         classes_data[class_number].p,
         math::P,
         "Assertion failed: Expected P to be {}, but found {} for class number {}",
-        math::P,
         classes_data[class_number].p,
+        math::P,
         class_number
     );
 
@@ -131,7 +133,6 @@ fn main() -> Result<()> {
 }
 
 fn get_class_number(len: usize) -> u8 {
-    eprintln!("len: {}", len);
     if len == 1 {
         return 1;
     }

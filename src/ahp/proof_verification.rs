@@ -91,7 +91,7 @@ impl Verification {
         // let eta_a = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(1))).to_string()));
         // let eta_b = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(2))).to_string()));
         // let eta_c = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(3))).to_string()));
-        // println!("alpha: {:?} - {}", poly_sx.eval(Mfp::from(0)), alpha);
+        // println_dbg!("alpha: {:?} - {}", poly_sx.eval(Mfp::from(0)), alpha);
 
         let alpha = Mfp::from(10);
         let eta_a = Mfp::from(2);
@@ -431,23 +431,23 @@ impl Verification {
         set_h_len: usize,
     ) -> bool {
         // Print names of the arguments
-        println!("poly_r:");
+        println_dbg!("poly_r:");
         dsp_poly!(poly_r);
         
-        println!("h_2x:");
+        println_dbg!("h_2x:");
         dsp_poly!(h_2x);
         
-        println!("g_2x:");
+        println_dbg!("g_2x:");
         dsp_poly!(g_2x);
         
-        println!("van_poly_vhx:");
+        println_dbg!("van_poly_vhx:");
         dsp_poly!(van_poly_vhx);
         
         // Print Mfp values directly (assuming you have a way to print Mfp)
-        println!("beta_2: {}", beta_2); // Replace with appropriate printing method for Mfp
-        println!("sigma_2: {}", sigma_2); // Replace with appropriate printing method for Mfp
-        println!("sigma_3: {}", sigma_3); // Replace with appropriate printing method for Mfp
-        println!("set_h_len: {}", set_h_len);
+        println_dbg!("beta_2: {}", beta_2); // Replace with appropriate printing method for Mfp
+        println_dbg!("sigma_2: {}", sigma_2); // Replace with appropriate printing method for Mfp
+        println_dbg!("sigma_3: {}", sigma_3); // Replace with appropriate printing method for Mfp
+        println_dbg!("set_h_len: {}", set_h_len);
         
         // Evaluate the left-hand side of the equation
         let eq21 = poly_r.eval(*beta_2) * sigma_3;
