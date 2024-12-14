@@ -190,7 +190,7 @@ impl ProofGeneration {
             &EvalOrder::KX,
         );
 
-        println_dbg!("Poly ∑ r(alpha_2=10, k) * A^(k,x): A_h");
+        println_dbg!("Poly ∑ r(alpha_2=10, k) * A^(k,x): ");
         dsp_poly!(r_a_kx);
 
         // ∑ r(alpha_2=10, k) * B^(k,x)
@@ -374,7 +374,7 @@ impl ProofGeneration {
         dsp_poly!(sigma_eta_z_x);
 
         // Compute polynomial for r(α,x) ∑ ηM(z^M(x))
-        let poly_r = func_u(Some(alpha), None, set_h.len());
+        let poly_r = poly_func_u(Some(alpha), None, set_h.len());
         println_dbg!("poly_r:");
         dsp_poly!(poly_r);
 

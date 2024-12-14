@@ -25,7 +25,7 @@ use crate::kzg;
 use crate::math::div_mod;
 use crate::math::div_mod_val;
 use crate::math::e_func;
-use crate::math::func_u;
+use crate::math::poly_func_u;
 use crate::math::generate_set;
 use crate::math::interpolate;
 use crate::math::vanishing_poly;
@@ -171,7 +171,7 @@ impl Verification {
     fn check_2(&self, beta: &[Mfp], alpha: Mfp, set_h_len: usize) -> bool {
         // Preparing equation values
         let van_poly_vhx = Self::vanishing_poly(set_h_len); // Vanishing polynomial for h
-        let poly_r = func_u(Some(alpha), None, set_h_len); // Compute polynomial r
+        let poly_r = poly_func_u(Some(alpha), None, set_h_len); // Compute polynomial r
 
         // Check the second verification equation
         Self::check_equation_2(
@@ -210,7 +210,7 @@ impl Verification {
         // Preparing equation values
 
         let van_poly_vhx = Self::vanishing_poly(set_h.len()); // Vanishing polynomial for h
-        let poly_r = func_u(Some(alpha), None, set_h.len()); // Compute polynomial r
+        let poly_r = poly_func_u(Some(alpha), None, set_h.len()); // Compute polynomial r
         let sum_1 = self.gen_poly_sigma(&eta, &poly_r); // Generate sigma polynomial
         let set_h_1 = &set_h[0..t_zero].to_vec(); // Subset of H
 

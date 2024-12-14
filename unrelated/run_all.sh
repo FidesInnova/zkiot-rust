@@ -32,10 +32,8 @@ if [ "$options" = "--release" ]; then
   dir="release"
 fi
 
-# set p number 
-# create a file if not exist at root
-
-python3 unrelated/z_vec.py
+# set p number
+./unrelated/z_vec 14071103489
 
 export RUSTFLAGS=""
 # Build and Run

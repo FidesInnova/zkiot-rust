@@ -20,6 +20,7 @@ use ark_ff::Zero;
 use nalgebra::DMatrix;
 use rustnomial::*;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::ops::Neg;
 use crate::dsp_poly;
 use crate::field;
@@ -29,7 +30,7 @@ use crate::println_dbg;
 use crate::to_bint;
 use crate::utils::add_random_points;
 
-pub const P: u64 = 270592001;
+pub const P: u64 = 14071103489;
 // pub const P: u64 = 2460193;
 
 field!(Mfp, P);
@@ -63,51 +64,6 @@ pub fn exp_mod(a: u64, b: u64) -> Mfp {
     Mfp::from(a).pow([b])
 }
 
-/// Constructs a polynomial of the form u(x , y) = (x^degree - y^degree) / (x - y),
-/// where either `x` or `y` is provided as an option.
-///
-/// # Parameters
-/// - `x`: An optional value in the finite field `Mfp`. Only one of `x` or `y` should be `Some`.
-/// - `y`: An optional value in the finite field `Mfp`. Only one of `x` or `y` should be `Some`.
-/// - `degree`: The degree of the polynomial, of type `usize`.
-///
-/// # Returns
-/// Returns the result of the polynomial division as a `Poly` object.
-///
-/// # Panics
-/// The function panics if both `x` and `y` are either `None` or `Some`.
-/// This ensures that exactly one of the parameters is provided.
-pub fn func_u(x: Option<Mfp>, y: Option<Mfp>, degree: usize) -> Poly {
-    if x.is_none() && y.is_none() {
-        panic!("At least one of x or y must be Some.");
-    }
-
-    let mut numerator = Poly::new(vec![]);
-    let mut denominator = Poly::new(vec![]);
-
-    if let Some(x) = x {
-        numerator.add_term(exp_mod(to_bint!(x), degree as u64), 0);
-        numerator.add_term(-Mfp::ONE, degree);
-
-        denominator.add_term(x, 0);
-        denominator.add_term(-Mfp::ONE, 1);
-    }
-    if let Some(y) = y {
-        numerator.add_term(-exp_mod(to_bint!(y), degree as u64), 0);
-        numerator.add_term(Mfp::ONE, degree);
-
-        denominator.add_term(-y, 0);
-        denominator.add_term(Mfp::ONE, 1);
-    }
-    if numerator.degree() == denominator.degree() && denominator.degree() == Degree::Num(0) {
-        let div_res = div_mod_val(
-            numerator.terms_as_vec().get(0).unwrap().0,
-            denominator.terms_as_vec().get(0).unwrap().0,
-        );
-        return Poly::from(vec![div_res]);
-    }
-    div_mod(&numerator, &denominator).0
-}
 
 /// Divides one polynomial by another and returns the quotient and remainder.
 ///
@@ -518,6 +474,8 @@ pub fn m_k(
 
     let mut catch: HashMap<Mfp, Poly> = HashMap::new();
 
+    eprintln!("val len: {}", points_val.len());
+
     for (k, h) in points_val {
         let poly_val = Poly::from(vec![*h]);
 
@@ -548,12 +506,50 @@ pub fn m_k(
     poly_res
 }
 
-fn poly_func_u(x: Option<Mfp>, y: Option<Mfp>, degree: usize) -> Poly {
-    let mut vec_poly: Vec<Mfp> = Vec::with_capacity(degree);
 
-    let mut current_power = Mfp::ONE;
+pub fn m_k_2(
+    num: &Mfp,
+    points_val: &HashMap<Mfp, Mfp>,
+    points_row: &HashMap<Mfp, Mfp>,
+    points_col: &HashMap<Mfp, Mfp>,
+    catch: &HashMap<Mfp, Poly>,
+    eval_order: &EvalOrder,
+) -> Poly {
+    let mut poly_res = Poly::from(vec![Mfp::ZERO]);
+    let mut _poly_val = Poly::from(vec![Mfp::ZERO]);
+
+    for (set_k_items, value) in points_val {
+        _poly_val = Poly::from(vec![*value]);
+
+        // Retrieve corresponding row and column points
+        let point_row = &points_row[set_k_items];
+        let point_col = &points_col[set_k_items];
+
+        // Access precomputed values from catch
+        let poly_x = &catch[point_row];
+        let poly_y = &catch[point_col];
+
+        poly_res += match eval_order {
+            EvalOrder::XK => {
+                let res_poly_y = poly_y.eval(*num);
+                _poly_val * res_poly_y * poly_x
+            }
+            EvalOrder::KX => {
+                let res_poly_x = poly_x.eval(*num);
+                _poly_val * res_poly_x * poly_y
+            }
+        }
+    }
+
+    poly_res
+}
+
+// u(x, y) = (x^n - y^n)/(x - y) = x^(n-1)+x^(n-2)y+x^(n-3)y^2+x^(n-4)y^3+ ... +y^(n-1)
+pub fn poly_func_u(x: Option<Mfp>, y: Option<Mfp>, degree: usize) -> Poly {
     match (x, y) {
         (None, Some(y)) => {
+            let mut vec_poly: Vec<Mfp> = Vec::with_capacity(degree);
+            let mut current_power = Mfp::ONE;
             for _ in 0..degree {
                 vec_poly.push(current_power);
                 current_power = current_power * y;
@@ -561,6 +557,8 @@ fn poly_func_u(x: Option<Mfp>, y: Option<Mfp>, degree: usize) -> Poly {
             Poly::from(vec_poly)
         },
         (Some(x), None) => {
+            let mut vec_poly: Vec<Mfp> = Vec::with_capacity(degree);
+            let mut current_power = Mfp::ONE;
             for _ in 0..degree {
                 vec_poly.push(current_power);
                 current_power = current_power * x;
@@ -611,24 +609,36 @@ pub fn sigma_rk_mk(
 ) -> Poly {
     let mut res = Poly::from(vec![Mfp::ZERO]);
     // eprintln!("START:");
+
+    let mut catch: HashMap<Mfp, Poly> = HashMap::with_capacity(points_row.len() + points_col.len());
+    let unique_keys: HashSet<_> = points_row.values().chain(points_col.values()).collect();
+
+    // Precompute func_u results for unique keys
+    for &key in unique_keys {
+        catch.entry(key).or_insert_with(|| poly_func_u(None, Some(key), set_h.len()));
+    }
+
     for h in set_h {
         // eprintln!("h: {}", h);
-        // let timer = std::time::Instant::now();
-        let mut p_r_alphak = func_u(Some(alpha), Some(*h), set_h.len());
-        let mut p_m_kx = m_k(
+        let mut p_r_xk = poly_func_u(Some(alpha), Some(*h), set_h.len());
+        let timer = std::time::Instant::now();
+        let mut p_m_kx = m_k_2(
             h,
             points_val,
             points_row,
             points_col,
-            set_h.len(),
+            &catch,
             eval_order,
         );
-        // eprintln!("time2 : {:?}", timer.elapsed());
-        p_r_alphak.trim();
+
+        eprintln!("time2 : {:?}", timer.elapsed());
+        p_r_xk.trim();
         p_m_kx.trim();
-        let mul_poly = p_r_alphak * p_m_kx;
-        res += mul_poly;
+        
+        // sigma
+        res += p_r_xk * p_m_kx;
     }
+    
     res
 }
 
@@ -818,27 +828,27 @@ mod math_test {
     fn test_func_u() {
         assert_eq!(
             Poly::new(vec![Mfp::from(1)]),
-            func_u(Some(Mfp::from(1)), Some(Mfp::from(0)), 100)
+            poly_func_u(Some(Mfp::from(1)), Some(Mfp::from(0)), 100)
         );
         assert_eq!(
             Poly::new(vec![Mfp::from(1)]),
-            func_u(Some(Mfp::from(0)), Some(Mfp::from(1)), 100)
+            poly_func_u(Some(Mfp::from(0)), Some(Mfp::from(1)), 100)
         );
         assert_eq!(
             Poly::new(vec![Mfp::from(70)]),
-            func_u(Some(Mfp::from(10)), Some(Mfp::from(1)), 5)
+            poly_func_u(Some(Mfp::from(10)), Some(Mfp::from(1)), 5)
         );
         assert_eq!(
             Poly::new(vec![Mfp::from(53)]),
-            func_u(Some(Mfp::from(123)), Some(Mfp::from(321)), 10)
+            poly_func_u(Some(Mfp::from(123)), Some(Mfp::from(321)), 10)
         );
         assert_eq!(
             Poly::new(vec![Mfp::from(99)]),
-            func_u(Some(Mfp::from(2838193)), Some(Mfp::from(9728224)), 50)
+            poly_func_u(Some(Mfp::from(2838193)), Some(Mfp::from(9728224)), 50)
         );
         assert_eq!(
             Poly::new(vec![Mfp::from(63)]),
-            func_u(Some(Mfp::from(!1)), Some(Mfp::from(!0)), 10)
+            poly_func_u(Some(Mfp::from(!1)), Some(Mfp::from(!0)), 10)
         );
     }
 
