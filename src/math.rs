@@ -518,9 +518,9 @@ pub fn m_k_2(
     let mut poly_res = Poly::from(vec![Mfp::ZERO]);
     let mut _poly_val = Poly::from(vec![Mfp::ZERO]);
 
-    for (set_k_items, value) in points_val {
-        _poly_val = Poly::from(vec![*value]);
+    let mut ftime = std::time::Duration::new(0, 0);
 
+    for (set_k_items, value) in points_val {
         // Retrieve corresponding row and column points
         let point_row = &points_row[set_k_items];
         let point_col = &points_col[set_k_items];
@@ -529,18 +529,22 @@ pub fn m_k_2(
         let poly_x = &catch[point_row];
         let poly_y = &catch[point_col];
 
+        let timer = std::time::Instant::now();
         poly_res += match eval_order {
             EvalOrder::XK => {
                 let res_poly_y = poly_y.eval(*num);
-                _poly_val * res_poly_y * poly_x
+                _poly_val = Poly::from(vec![*value * res_poly_y]);
+                _poly_val * poly_x
             }
             EvalOrder::KX => {
                 let res_poly_x = poly_x.eval(*num);
-                _poly_val * res_poly_x * poly_y
+                _poly_val = Poly::from(vec![*value * res_poly_x]);
+                _poly_val * poly_y
             }
-        }
+        };
+        ftime += timer.elapsed();
     }
-
+    eprintln!("timer - in: {:?}", ftime);
     poly_res
 }
 
@@ -617,11 +621,12 @@ pub fn sigma_rk_mk(
     for &key in unique_keys {
         catch.entry(key).or_insert_with(|| poly_func_u(None, Some(key), set_h.len()));
     }
-
+    
     for h in set_h {
-        // eprintln!("h: {}", h);
         let mut p_r_xk = poly_func_u(Some(alpha), Some(*h), set_h.len());
+
         let timer = std::time::Instant::now();
+        // this part is expensive
         let mut p_m_kx = m_k_2(
             h,
             points_val,
@@ -630,8 +635,9 @@ pub fn sigma_rk_mk(
             &catch,
             eval_order,
         );
-
+        // ----------------------
         eprintln!("time2 : {:?}", timer.elapsed());
+
         p_r_xk.trim();
         p_m_kx.trim();
         
@@ -770,10 +776,89 @@ pub fn compute_all_commitment(polys: &[Poly], ck: &Vec<Mfp>) -> Vec<Mfp> {
     res
 }
 
+use rustfft::{FftPlanner, num_complex::Complex};
+
+fn polynomial_multiply(poly1: &Poly, poly2: &Poly) -> Vec<Mfp> {
+    let n = match (poly1.degree(), poly2.degree()) {
+        (Degree::Num(p1deg), Degree::Num(p2deg)) => p1deg + p2deg,
+        _ => 0,
+    };
+    let m = n.next_power_of_two(); // For FFT, we need to round up to the nearest power of two
+
+    // Create complex arrays for FFT
+    let mut a = vec![Complex::new(0.0, 0.0); m];
+    let mut b = vec![Complex::new(0.0, 0.0); m];
+
+
+    // Fill the arrays with the coefficients of the polynomials
+    if let Degree::Num(deg) = poly1.degree() {
+        for i in 0..=deg {
+            match poly1.term_with_degree(i) {
+                Term::ZeroTerm => {
+                    continue;
+                }
+                Term::Term(t, _) => {
+                    a[i] = Complex::new(to_bint!(t) as f64, 0.0);
+                }
+            }
+        }
+    }
+    if let Degree::Num(deg) = poly2.degree() {
+        for i in 0..=deg {
+            match poly2.term_with_degree(i) {
+                Term::ZeroTerm => {
+                    continue;
+                }
+                Term::Term(t, _) => {
+                    a[i] = Complex::new(to_bint!(t) as f64, 0.0);
+                }
+            }
+        }
+    }
+
+    // Create FFT planner
+    let mut planner = FftPlanner::new();
+    let fft = planner.plan_fft_forward(m);
+    let ifft = planner.plan_fft_inverse(m);
+
+    // Perform FFT
+    fft.process(&mut a);
+    fft.process(&mut b);
+
+    // Multiply in the frequency domain
+    let mut c = vec![Complex::new(0.0, 0.0); m];
+    for i in 0..m {
+        c[i] = a[i] * b[i];
+    }
+
+    // Perform inverse FFT
+    ifft.process(&mut c);
+
+    // Normalize and extract coefficients
+    let mut result = vec![Mfp::ZERO; n];
+    for i in 0..n {
+        result[i] = div_mod_val(Mfp::from(c[i].re as u64), Mfp::from(m as u64)); // Divide by m for normalization
+    }
+
+    result
+}
+
 
 #[cfg(test)]
 mod math_test {
     use super::*;
+    #[test]
+    fn test_poly_mul() {
+        let a = Poly::from(vec![Mfp::ONE, Mfp::ZERO]);
+        let b = Poly::from(vec![Mfp::from(2), Mfp::ONE]);
+
+        dsp_poly!(a);
+        dsp_poly!(b);
+
+        let c = polynomial_multiply(&a, &b);
+
+        println!("{:?}",c);
+    }
 
     #[test]
     fn test_div_val() {

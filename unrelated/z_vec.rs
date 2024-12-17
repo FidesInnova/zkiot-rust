@@ -91,19 +91,19 @@ fn main() -> io::Result<()> {
             "addi" => {
                 let (dest, src, imm) = (reg[0].clone(), reg[1].clone(), reg[2].clone());
                 if let (Some(&src_val), Ok(imm_val)) = (register_map.get(src.as_str()), imm.parse::<u64>()) {
-                    register_map.insert(dest, (src_val + imm_val as u128) % p);
+                    register_map.insert(dest, (src_val as u128 + imm_val as u128) % p);
                 }
             }
             "add" => {
                 let (dest, src1, src2) = (reg[0].clone(), reg[1].clone(), reg[2].clone());
                 if let (Some(&val1), Some(&val2)) = (register_map.get(src1.as_str()), register_map.get(src2.as_str())) {
-                    register_map.insert(dest, (val1 + val2) % p);
+                    register_map.insert(dest, (val1 as u128 + val2 as u128) % p);
                 }
             }
             "mul" => {
                 let (dest, src1, src2) = (reg[0].clone(), reg[1].clone(), reg[2].clone());
                 if let (Some(&val1), Some(&val2)) = (register_map.get(src1.as_str()), register_map.get(src2.as_str())) {
-                    register_map.insert(dest, (val1 * val2) % p);
+                    register_map.insert(dest, (val1 as u128 * val2 as u128) % p);
                 }
             }
             _ => {}
