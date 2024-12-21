@@ -16,7 +16,7 @@ import random
 import sys
 
 
-range_num = (1, 1000)
+range_num = (1000, 9223372036854775073)
 
 register_mapping = [
     ("zero", "x0"),

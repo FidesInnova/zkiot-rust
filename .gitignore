@@ -4,3 +4,4 @@ Cargo.lock
 report.txt
 t.txt
 zk_iot/
+/myenv

@@ -14,7 +14,6 @@ nalgebra = "0.33.1"
 nalgebra-sparse = "0.10.0"
 num-complex = "0.4.6"
 rand = "0.8.5"
-rayon = "1.10.0"
 rustfft = "6.2.0"
 rustnomial = "0.3.2"
 serde = {version = "1.0", features = ["derive"]}

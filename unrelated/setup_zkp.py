@@ -32,9 +32,10 @@ def is_prime(n):
     return True
 
 def find_large_prime(n, m):
-    max_32_bit = 2**31 - 1
+    # max_32_bit = 2**31 - 1
+    max_64_bit = 2**63 - 1
     m = int(m)
-    for num in range(max_32_bit - (max_32_bit - 1) % (n * m), 1, -(n * m)):
+    for num in range(max_64_bit - (max_64_bit - 1) % (n * m), 1, -(n * m)):
         if is_prime(num):
             return num
     return None
@@ -137,26 +138,32 @@ def update_rust_constants(p, g, file_path='src/math.rs'):
 
 # Count the instructions
 # n_i, n_g = count_instructions(file_path)
-n_i = 32
-t = n_i + 1
 # n = n_i + n_g + 1
 # m = ((n**2 - n ) / 2) - ((t**2 - t ) / 2)
 # m = 2 * n_g
 
-n_g = 4
-n = 37
-m = 8
+# "n_g": 16,
+#         "n_i": 32,
+#         "n": 49,
+#         "m": 32,
+
+n_i = 32
+n_g = 16
+n = 49
+m = 32
+
+
+t = n_i + 1
 
 print(f"n_g: {n_g}\nn_i: {n_i}")
 print(f"n: {n}\nm: {int(m)}")
 
-# prime = find_large_prime(n, m)
-prime = find_small_prime(n, m)
+prime = find_large_prime(n, m)
+# prime = 67649537
 # prime = 4767673
 
 (p, g) = find_largest_prime_and_generator(prime)
 
-
 # update_test_values(n_g, n_i, int(m), n)
-update_rust_constants(p, g)
+# update_rust_constants(p, g)
 

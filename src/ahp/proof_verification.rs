@@ -576,7 +576,7 @@ impl Verification {
 
         // Evaluate the first equation component
         let e_1 = e_func(
-            val_commit_poly_px - Mfp::from(to_bint!(g) * to_bint!(val_y_p)),
+            val_commit_poly_px - Mfp::from(to_bint!(g) as u128 * to_bint!(val_y_p) as u128),
             g,
             g,
         );
@@ -584,7 +584,7 @@ impl Verification {
         // Evaluate the second equation component
         let e_2 = e_func(
             val_commit_poly_qx,
-            vk - Mfp::from(to_bint!(g) * to_bint!(z)),
+            vk - Mfp::from(to_bint!(g) as u128 * to_bint!(z) as u128),
             Mfp::from(g),
         );
 

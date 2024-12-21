@@ -30,7 +30,7 @@ pub fn setup(max: u64, tau: u64, p: u64, g: u64) -> Vec<Mfp> {
     (0..max)
         .map(|_| {
             let current = tmp;
-            tmp = Mfp::from(to_bint!(current) * tau);
+            tmp = Mfp::from(to_bint!(current) as u128 * tau as u128);
             current
         })
         .collect()
@@ -48,7 +48,7 @@ pub fn commit(poly_in: &Poly, ck: &[Mfp]) -> Mfp {
                     continue;
                 }
                 Term::Term(t, _) => {
-                    let mul = Mfp::from(to_bint!(t) * to_bint!(ck[i]));
+                    let mul = Mfp::from(to_bint!(t) as u128 * to_bint!(ck[i])  as u128);
                     res_poly += mul;
                 }
             }
