@@ -21,6 +21,7 @@ use nalgebra::DMatrix;
 use rustnomial::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::f64::consts::PI;
 use std::ops::Neg;
 use crate::dsp_poly;
 use crate::field;
@@ -30,7 +31,7 @@ use crate::println_dbg;
 use crate::to_bint;
 use crate::utils::add_random_points;
 
-pub const P: u64 = 14071103489;
+pub const P: u64 = 673792001;
 // pub const P: u64 = 2460193;
 
 field!(Mfp, P);
@@ -477,7 +478,6 @@ pub fn m_k(
     eprintln!("val len: {}", points_val.len());
 
     for (k, h) in points_val {
-        let poly_val = Poly::from(vec![*h]);
 
         // let timer = std::time::Instant::now();
         let poly_x = catch.entry(points_row[k]).or_insert_with(|| {
@@ -489,14 +489,14 @@ pub fn m_k(
         }).clone();
         // final_time += timer.elapsed();
 
-        match eval_order {
+        poly_res += match eval_order {
             EvalOrder::XK => {
                 let res_poly_y =  poly_y.eval(*num);
-                poly_res += poly_val * res_poly_y * poly_x;
+                poly_x * (*h * res_poly_y)
             }
             EvalOrder::KX => {
                 let res_poly_x = poly_x.eval(*num);
-                poly_res += poly_val * res_poly_x * poly_y;
+                poly_y * (*h * res_poly_x)
             }
         }
 
@@ -516,7 +516,6 @@ pub fn m_k_2(
     eval_order: &EvalOrder,
 ) -> Poly {
     let mut poly_res = Poly::from(vec![Mfp::ZERO]);
-    let mut _poly_val = Poly::from(vec![Mfp::ZERO]);
 
     let mut ftime = std::time::Duration::new(0, 0);
 
@@ -533,13 +532,13 @@ pub fn m_k_2(
         poly_res += match eval_order {
             EvalOrder::XK => {
                 let res_poly_y = poly_y.eval(*num);
-                _poly_val = Poly::from(vec![*value * res_poly_y]);
-                _poly_val * poly_x
+                let mul_poly = Poly::from(vec![(*value * res_poly_y)]);
+                poly_x * &mul_poly
             }
             EvalOrder::KX => {
                 let res_poly_x = poly_x.eval(*num);
-                _poly_val = Poly::from(vec![*value * res_poly_x]);
-                _poly_val * poly_y
+                let mul_poly = Poly::from(vec![(*value * res_poly_x)]);
+                poly_y * &mul_poly
             }
         };
         ftime += timer.elapsed();
@@ -642,7 +641,7 @@ pub fn sigma_rk_mk(
         p_m_kx.trim();
         
         // sigma
-        res += p_r_xk * p_m_kx;
+        res += poly_multiply(&p_r_xk, &p_m_kx, 3);
     }
     
     res
@@ -776,73 +775,89 @@ pub fn compute_all_commitment(polys: &[Poly], ck: &Vec<Mfp>) -> Vec<Mfp> {
     res
 }
 
-use rustfft::{FftPlanner, num_complex::Complex};
-
-fn polynomial_multiply(poly1: &Poly, poly2: &Poly) -> Vec<Mfp> {
-    let n = match (poly1.degree(), poly2.degree()) {
-        (Degree::Num(p1deg), Degree::Num(p2deg)) => p1deg + p2deg,
-        _ => 0,
-    };
-    let m = n.next_power_of_two(); // For FFT, we need to round up to the nearest power of two
-
-    // Create complex arrays for FFT
-    let mut a = vec![Complex::new(0.0, 0.0); m];
-    let mut b = vec![Complex::new(0.0, 0.0); m];
+use rustnomial::{Polynomial, SizedPolynomial, Term};
 
 
-    // Fill the arrays with the coefficients of the polynomials
-    if let Degree::Num(deg) = poly1.degree() {
-        for i in 0..=deg {
-            match poly1.term_with_degree(i) {
-                Term::ZeroTerm => {
-                    continue;
-                }
-                Term::Term(t, _) => {
-                    a[i] = Complex::new(to_bint!(t) as f64, 0.0);
-                }
-            }
+pub fn poly_multiply(poly1: &Poly, poly2: &Poly, root: u64) -> Poly {
+    let p: Vec<Mfp> = ntt_multiply(
+        poly1.terms.iter().map(|&v| to_bint!(v)).collect(),
+        poly2.terms.iter().map(|&v| to_bint!(v)).collect(),
+        P,
+        root
+    ).into_iter()
+    .map(Mfp::from)
+    .collect();
+
+    Poly::from(p)
+}
+
+
+fn ntt(poly: &mut Vec<u64>, n: usize, root: u64, mod_p: u64) {
+    let mut j = 0;
+    for i in 1..n {
+        let mut bit = n >> 1;
+        while j & bit != 0 {
+            j ^= bit;
+            bit >>= 1;
         }
-    }
-    if let Degree::Num(deg) = poly2.degree() {
-        for i in 0..=deg {
-            match poly2.term_with_degree(i) {
-                Term::ZeroTerm => {
-                    continue;
-                }
-                Term::Term(t, _) => {
-                    a[i] = Complex::new(to_bint!(t) as f64, 0.0);
-                }
-            }
+        j ^= bit;
+        if i < j {
+            poly.swap(i, j);
         }
     }
 
-    // Create FFT planner
-    let mut planner = FftPlanner::new();
-    let fft = planner.plan_fft_forward(m);
-    let ifft = planner.plan_fft_inverse(m);
-
-    // Perform FFT
-    fft.process(&mut a);
-    fft.process(&mut b);
-
-    // Multiply in the frequency domain
-    let mut c = vec![Complex::new(0.0, 0.0); m];
-    for i in 0..m {
-        c[i] = a[i] * b[i];
+    let mut length = 2;
+    while length <= n {
+        let w_len = mod_exp(root, (mod_p - 1) / length as u64, mod_p);
+        for i in (0..n).step_by(length) {
+            let mut w = 1;
+            for j in 0..length / 2 {
+                let u = poly[i + j];
+                let v = (poly[i + j + length / 2] * w) % mod_p;
+                poly[i + j] = (u + v) % mod_p;
+                poly[i + j + length / 2] = (u + mod_p - v) % mod_p;
+                w = (w * w_len) % mod_p;
+            }
+        }
+        length *= 2;
     }
+}
 
-    // Perform inverse FFT
-    ifft.process(&mut c);
-
-    // Normalize and extract coefficients
-    let mut result = vec![Mfp::ZERO; n];
-    for i in 0..n {
-        result[i] = div_mod_val(Mfp::from(c[i].re as u64), Mfp::from(m as u64)); // Divide by m for normalization
+fn mod_exp(mut base: u64, mut exp: u64, mod_p: u64) -> u64 {
+    let mut result = 1;
+    while exp > 0 {
+        if exp % 2 == 1 {
+            result = (result * base) % mod_p;
+        }
+        base = (base * base) % mod_p;
+        exp /= 2;
     }
-
     result
 }
 
+fn ntt_multiply(poly1: Vec<u64>, poly2: Vec<u64>, mod_p: u64, root: u64) -> Vec<u64> {
+    let len = poly1.len() + poly2.len() - 1;
+    let n = len.next_power_of_two();
+
+    let mut a = poly1;
+    let mut b = poly2;
+    a.resize(n, 0);
+    b.resize(n, 0);
+
+    ntt(&mut a, n, root, mod_p);
+    ntt(&mut b, n, root, mod_p);
+
+    let mut result = vec![0; n];
+    for i in 0..n {
+        result[i] = (a[i] * b[i]) % mod_p;
+    }
+
+    let inv_n = mod_exp(n as u64, mod_p - 2, mod_p);
+    ntt(&mut result, n, mod_exp(root, mod_p - 2, mod_p), mod_p);
+    result.iter_mut().for_each(|x| *x = (*x * inv_n) % mod_p);
+
+    result.into_iter().take(len).collect()
+}
 
 #[cfg(test)]
 mod math_test {
@@ -855,7 +870,7 @@ mod math_test {
         dsp_poly!(a);
         dsp_poly!(b);
 
-        let c = polynomial_multiply(&a, &b);
+        let c = poly_multiply(&a, &b, 3);
 
         println!("{:?}",c);
     }

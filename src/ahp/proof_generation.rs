@@ -154,6 +154,7 @@ impl ProofGeneration {
 
             let w_bar_h =
                 (w_hat.eval(*i) - poly_x_hat.eval(*i)) * invers_val(van_poly_vh1.eval(*i));
+                
             points_w.push((*i, w_bar_h));
         }
 
@@ -382,7 +383,8 @@ impl ProofGeneration {
         dsp_poly!((&poly_r * &sigma_eta_z_x));
 
         // r(α,x) * ∑_m [η_M ​z^M​(x)]
-        let sum_1 = &poly_r * sigma_eta_z_x;
+        // let sum_1 = &poly_r * &sigma_eta_z_x;
+        let sum_1 = poly_multiply(&poly_r, &sigma_eta_z_x, class_data.g);
         println_dbg!("sum_1: ");
         dsp_poly!(sum_1);
 
