@@ -29,9 +29,10 @@ use crate::json_file::ClassDataJson;
 use crate::kzg;
 use crate::println_dbg;
 use crate::to_bint;
+use rustnomial::{Polynomial, SizedPolynomial, Term};
 use crate::utils::add_random_points;
 
-pub const P: u64 = 673792001;
+pub const P: u64 = 6227521;
 // pub const P: u64 = 2460193;
 
 field!(Mfp, P);
@@ -547,7 +548,28 @@ pub fn m_k_2(
     poly_res
 }
 
-// u(x, y) = (x^n - y^n)/(x - y) = x^(n-1)+x^(n-2)y+x^(n-3)y^2+x^(n-4)y^3+ ... +y^(n-1)
+/// Computes the polynomial `u(x, y)` defined as:
+/// u(x, y) = (x^n - y^n) / (x - y) = x^(n-1) + x^(n-2)y + x^(n-3)y^2 + ... + y^(n-1).
+///
+/// This function takes two optional inputs `x` and `y` of type `Option<Mfp>` and computes the
+/// polynomial based on the given inputs:
+/// - If `x` is `None` and `y` is `Some`, it generates the terms `y^k` for `k` in `[0, degree)`.
+/// - If `y` is `None` and `x` is `Some`, it generates the terms `x^k` for `k` in `[0, degree)`.
+/// - If both `x` and `y` are `Some`, it computes the summation of terms
+///   `x^(degree - 1 - k) * y^k` for `k` in `[0, degree)`.
+/// - Panics if both `x` and `y` are `None`.
+///
+/// # Parameters
+/// - `x`: An optional value of type `Mfp` representing the base `x`.
+/// - `y`: An optional value of type `Mfp` representing the base `y`.
+/// - `degree`: The degree of the polynomial.
+///
+/// # Returns
+/// A `Poly` representing the resulting polynomial.
+///
+/// # Panics
+/// Panics if both `x` and `y` are `None`.
+///
 pub fn poly_func_u(x: Option<Mfp>, y: Option<Mfp>, degree: usize) -> Poly {
     match (x, y) {
         (None, Some(y)) => {
@@ -609,6 +631,7 @@ pub fn sigma_rk_mk(
     points_row: &HashMap<Mfp, Mfp>,
     points_col: &HashMap<Mfp, Mfp>,
     eval_order: &EvalOrder,
+    g: u64,
 ) -> Poly {
     let mut res = Poly::from(vec![Mfp::ZERO]);
     // eprintln!("START:");
@@ -641,7 +664,8 @@ pub fn sigma_rk_mk(
         p_m_kx.trim();
         
         // sigma
-        res += poly_multiply(&p_r_xk, &p_m_kx, 3);
+        res += &p_r_xk * &p_m_kx;
+        // res += poly_multiply(&p_r_xk, &p_m_kx, g);
     }
     
     res
@@ -775,9 +799,18 @@ pub fn compute_all_commitment(polys: &[Poly], ck: &Vec<Mfp>) -> Vec<Mfp> {
     res
 }
 
-use rustnomial::{Polynomial, SizedPolynomial, Term};
-
-
+/// Multiplies two polynomials using the Number Theoretic Transform (NTT).
+///
+/// This function performs a polynomial multiplication in the modular arithmetic domain,
+/// efficiently utilizing NTT for fast computation.
+///
+/// # Parameters
+/// - `poly1`: A reference to the first polynomial (`Poly`).
+/// - `poly2`: A reference to the second polynomial (`Poly`).
+/// - `root`: The primitive root used for the NTT computation.
+///
+/// # Returns
+/// A new polynomial (`Poly`) representing the product of the two input polynomials.
 pub fn poly_multiply(poly1: &Poly, poly2: &Poly, root: u64) -> Poly {
     let p: Vec<Mfp> = ntt_multiply(
         poly1.terms.iter().map(|&v| to_bint!(v)).collect(),
@@ -791,7 +824,20 @@ pub fn poly_multiply(poly1: &Poly, poly2: &Poly, root: u64) -> Poly {
     Poly::from(p)
 }
 
-
+/// Performs the in-place Number Theoretic Transform (NTT) on a polynomial.
+///
+/// The NTT is a modular variant of the Fast Fourier Transform (FFT) and is used to efficiently
+/// multiply polynomials in the modular arithmetic domain.
+///
+/// # Parameters
+/// - `poly`: A mutable reference to a vector of polynomial coefficients.
+/// - `n`: The size of the transform, must be a power of two.
+/// - `root`: The primitive root modulo `mod_p` used for the transform.
+/// - `mod_p`: The modulus for the computation.
+///
+/// # Details
+/// - Reorders the coefficients of `poly` using bit-reversal.
+/// - Applies the NTT using the provided root and modulus.
 fn ntt(poly: &mut Vec<u64>, n: usize, root: u64, mod_p: u64) {
     let mut j = 0;
     for i in 1..n {
@@ -823,6 +869,15 @@ fn ntt(poly: &mut Vec<u64>, n: usize, root: u64, mod_p: u64) {
     }
 }
 
+/// Computes modular exponentiation efficiently using the method of repeated squaring.
+///
+/// # Parameters
+/// - `base`: The base of the exponentiation.
+/// - `exp`: The exponent.
+/// - `mod_p`: The modulus.
+///
+/// # Returns
+/// The result of `(base^exp) % mod_p`.
 fn mod_exp(mut base: u64, mut exp: u64, mod_p: u64) -> u64 {
     let mut result = 1;
     while exp > 0 {
@@ -835,6 +890,22 @@ fn mod_exp(mut base: u64, mut exp: u64, mod_p: u64) -> u64 {
     result
 }
 
+/// Multiplies two polynomials using the Number Theoretic Transform (NTT) and modular arithmetic.
+///
+/// # Parameters
+/// - `poly1`: The coefficients of the first polynomial.
+/// - `poly2`: The coefficients of the second polynomial.
+/// - `mod_p`: The modulus for the arithmetic.
+/// - `root`: The primitive root for the NTT.
+///
+/// # Returns
+/// A vector containing the coefficients of the resulting polynomial.
+///
+/// # Details
+/// - Expands both input polynomials to the next power of two.
+/// - Performs NTT on both polynomials.
+/// - Multiplies the transformed coefficients element-wise.
+/// - Applies the inverse NTT and rescales the coefficients by `1/n`.
 fn ntt_multiply(poly1: Vec<u64>, poly2: Vec<u64>, mod_p: u64, root: u64) -> Vec<u64> {
     let len = poly1.len() + poly2.len() - 1;
     let n = len.next_power_of_two();

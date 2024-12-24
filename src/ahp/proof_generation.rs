@@ -179,6 +179,7 @@ impl ProofGeneration {
         points_px: &Vec<HashMap<Mfp, Mfp>>,
         alpha: Mfp,
         set_h: &Vec<Mfp>,
+        g: u64
     ) -> (Poly, Poly, Poly) {
         // ∑ r(alpha_2=10, k) * A^(k,x)
         let r_a_kx = sigma_rk_mk(
@@ -189,6 +190,7 @@ impl ProofGeneration {
             &points_px[1],
             &points_px[2],
             &EvalOrder::KX,
+            g
         );
 
         println_dbg!("Poly ∑ r(alpha_2=10, k) * A^(k,x): ");
@@ -203,6 +205,7 @@ impl ProofGeneration {
             &points_px[4],
             &points_px[5],
             &EvalOrder::KX,
+            g
         );
         println_dbg!("Poly ∑ r(alpha_2=10, k) * B^(k,x): ");
         dsp_poly!(r_b_kx);
@@ -216,6 +219,7 @@ impl ProofGeneration {
             &points_px[7],
             &points_px[8],
             &EvalOrder::KX,
+            g
         );
         println_dbg!("Poly ∑ r(alpha_2=10, k) * C^(k,x): ");
         dsp_poly!(r_c_kx);
@@ -383,8 +387,9 @@ impl ProofGeneration {
         dsp_poly!((&poly_r * &sigma_eta_z_x));
 
         // r(α,x) * ∑_m [η_M ​z^M​(x)]
-        // let sum_1 = &poly_r * &sigma_eta_z_x;
-        let sum_1 = poly_multiply(&poly_r, &sigma_eta_z_x, class_data.g);
+        let sum_1 = &poly_r * &sigma_eta_z_x;
+        // let sum_1 = poly_multiply(&poly_r, &sigma_eta_z_x, class_data.g);
+        // assert_eq!(sum_12, sum_1, "g: {}", class_data.g);
         println_dbg!("sum_1: ");
         dsp_poly!(sum_1);
 
@@ -394,7 +399,7 @@ impl ProofGeneration {
         dsp_poly!(poly_z_hat_x);
 
         let (r_a_kx, r_b_kx, r_c_kx) =
-            Self::calculate_r_polynomials_with_alpha(&points_px, alpha, &set_h);
+            Self::calculate_r_polynomials_with_alpha(&points_px, alpha, &set_h, class_data.g);
 
         // ∑_m [η_M r_M(α,x)] * z^(x)
         let sum_2 = Poly::new(vec![eta_a]) * &r_a_kx

@@ -148,9 +148,9 @@ def update_rust_constants(p, g, file_path='src/math.rs'):
 #         "m": 32,
 
 n_i = 32
-n_g = 16
-n = 49
-m = 32
+n_g = 32
+n = 65
+m = 64
 
 
 t = n_i + 1
@@ -158,9 +158,9 @@ t = n_i + 1
 print(f"n_g: {n_g}\nn_i: {n_i}")
 print(f"n: {n}\nm: {int(m)}")
 
-prime = find_large_prime(n, m)
+# prime = find_large_prime(n, m)
 # prime = 67649537
-# prime = 4767673
+prime = 6227521
 
 (p, g) = find_largest_prime_and_generator(prime)
 
