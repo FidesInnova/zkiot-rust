@@ -1,100 +1,100 @@
 jal store_register_instances
-addi    s2, s5, 2845106346099424344
-la t0, x18_array
-sw x18, 4(t0)
-add     a5, t2, tp
-la t0, x15_array
-sw x15, 4(t0)
-add     ra, s0, t1
-la t0, x1_array
-sw x1, 4(t0)
-addi    tp, s7, 718469309932328845
-la t0, x4_array
-sw x4, 4(t0)
-add     s9, s3, a6
-la t0, x25_array
-sw x25, 4(t0)
-mul     t1, gp, s8
-la t0, x6_array
-sw x6, 4(t0)
-addi    gp, a1, 4421552297041006655
-la t0, x3_array
-sw x3, 4(t0)
-add     gp, a4, s0
-la t0, x3_array
-sw x3, 8(t0)
-add     t3, s0, a4
-la t0, x28_array
-sw x28, 4(t0)
-mul     a3, gp, a6
-la t0, x13_array
-sw x13, 4(t0)
-mul     s8, tp, a0
-la t0, x24_array
-sw x24, 4(t0)
-mul     a2, s7, a7
-la t0, x12_array
-sw x12, 4(t0)
-mul     t0, s9, gp
-la t0, x5_array
-sw x5, 4(t0)
-add     s7, a3, a2
-la t0, x23_array
-sw x23, 4(t0)
-add     tp, t6, s0
-la t0, x4_array
-sw x4, 8(t0)
-mul     t5, gp, s7
-la t0, x30_array
-sw x30, 4(t0)
-addi    a4, s2, 4225963815241395926
+add     s0, s0, t3
+la t0, x8_array
+sw x8, 4(t0)
+addi    a4, t0, 5807396274521203466
 la t0, x14_array
 sw x14, 4(t0)
-mul     t3, gp, s5
-la t0, x28_array
-sw x28, 8(t0)
-add     a0, ra, a3
+mul     a0, t6, a3
 la t0, x10_array
 sw x10, 4(t0)
-addi    a4, t2, 375061832861198008
+addi    a4, t3, 5800899886459459747
 la t0, x14_array
 sw x14, 8(t0)
-mul     s1, a0, t6
+mul     a2, s2, s3
+la t0, x12_array
+sw x12, 4(t0)
+add     t4, zero, a5
+la t0, x29_array
+sw x29, 4(t0)
+add     a3, s8, s4
+la t0, x13_array
+sw x13, 4(t0)
+add     t1, s10, s0
+la t0, x6_array
+sw x6, 4(t0)
+mul     s1, t5, a5
 la t0, x9_array
 sw x9, 4(t0)
-add     a6, t4, a6
-la t0, x16_array
-sw x16, 4(t0)
-addi    ra, s8, 9105073905512089292
-la t0, x1_array
-sw x1, 8(t0)
-addi    s2, zero, 1726352754048906923
+add     s9, t6, t0
+la t0, x25_array
+sw x25, 4(t0)
+addi    s4, a1, 6620184663802920653
+la t0, x20_array
+sw x20, 4(t0)
+addi    s5, a2, 6977963976182333536
+la t0, x21_array
+sw x21, 4(t0)
+addi    tp, s11, 8492817380617060964
+la t0, x4_array
+sw x4, 4(t0)
+mul     t0, s6, s9
+la t0, x5_array
+sw x5, 4(t0)
+mul     s2, a6, t6
+la t0, x18_array
+sw x18, 4(t0)
+addi    t4, s6, 5309771483882675037
+la t0, x29_array
+sw x29, 8(t0)
+mul     t3, t3, s5
+la t0, x28_array
+sw x28, 4(t0)
+add     s7, s3, t6
+la t0, x23_array
+sw x23, 4(t0)
+mul     s5, s7, ra
+la t0, x21_array
+sw x21, 8(t0)
+addi    s5, s4, 5187730598246333161
+la t0, x21_array
+sw x21, 12(t0)
+mul     s2, tp, a0
 la t0, x18_array
 sw x18, 8(t0)
-add     t0, a5, s6
+add     s7, a0, s10
+la t0, x23_array
+sw x23, 8(t0)
+addi    s0, gp, 3869904166746919744
+la t0, x8_array
+sw x8, 8(t0)
+add     a0, zero, s11
+la t0, x10_array
+sw x10, 8(t0)
+add     s0, a4, s2
+la t0, x8_array
+sw x8, 12(t0)
+add     s6, s9, s11
+la t0, x22_array
+sw x22, 4(t0)
+mul     a5, a1, a4
+la t0, x15_array
+sw x15, 4(t0)
+addi    t0, tp, 7113446009798286162
 la t0, x5_array
 sw x5, 8(t0)
-mul     s10, ra, a4
-la t0, x26_array
-sw x26, 4(t0)
-addi    tp, t2, 3901982432653355066
-la t0, x4_array
-sw x4, 12(t0)
-mul     a6, t0, a6
-la t0, x16_array
-sw x16, 8(t0)
-mul     t2, tp, a4
-la t0, x7_array
-sw x7, 4(t0)
-add     a6, t0, a7
-la t0, x16_array
-sw x16, 12(t0)
-add     t3, s7, a1
+mul     s4, a6, a2
+la t0, x20_array
+sw x20, 8(t0)
+addi    s9, t0, 8697050447185008124
+la t0, x25_array
+sw x25, 8(t0)
+add     t5, s1, t3
+la t0, x30_array
+sw x30, 4(t0)
+addi    t3, a1, 5371414431155336994
 la t0, x28_array
-sw x28, 12(t0)
-addi    a4, t2, 6039573898518960603
-la t0, x14_array
-sw x14, 12(t0)
+sw x28, 8(t0)
 la a0, z_array
 li t0, 1
 sw t0, 0(a0)
@@ -226,101 +226,101 @@ la a0, z_array
 la a1, x31_array
 lw t0, 0(a1)
 sw t0, 128(a0)
-la a1, x18_array
+la a1, x8_array
 lw t0, 4(a1)
 sw t0, 132(a0)
-la a1, x15_array
+la a1, x14_array
 lw t0, 4(a1)
 sw t0, 136(a0)
-la a1, x1_array
-lw t0, 4(a1)
-sw t0, 140(a0)
-la a1, x4_array
-lw t0, 4(a1)
-sw t0, 144(a0)
-la a1, x25_array
-lw t0, 4(a1)
-sw t0, 148(a0)
-la a1, x6_array
-lw t0, 4(a1)
-sw t0, 152(a0)
-la a1, x3_array
-lw t0, 4(a1)
-sw t0, 156(a0)
-la a1, x3_array
-lw t0, 8(a1)
-sw t0, 160(a0)
-la a1, x28_array
-lw t0, 4(a1)
-sw t0, 164(a0)
-la a1, x13_array
-lw t0, 4(a1)
-sw t0, 168(a0)
-la a1, x24_array
-lw t0, 4(a1)
-sw t0, 172(a0)
-la a1, x12_array
-lw t0, 4(a1)
-sw t0, 176(a0)
-la a1, x5_array
-lw t0, 4(a1)
-sw t0, 180(a0)
-la a1, x23_array
-lw t0, 4(a1)
-sw t0, 184(a0)
-la a1, x4_array
-lw t0, 8(a1)
-sw t0, 188(a0)
-la a1, x30_array
-lw t0, 4(a1)
-sw t0, 192(a0)
-la a1, x14_array
-lw t0, 4(a1)
-sw t0, 196(a0)
-la a1, x28_array
-lw t0, 8(a1)
-sw t0, 200(a0)
 la a1, x10_array
 lw t0, 4(a1)
-sw t0, 204(a0)
+sw t0, 140(a0)
 la a1, x14_array
 lw t0, 8(a1)
-sw t0, 208(a0)
+sw t0, 144(a0)
+la a1, x12_array
+lw t0, 4(a1)
+sw t0, 148(a0)
+la a1, x29_array
+lw t0, 4(a1)
+sw t0, 152(a0)
+la a1, x13_array
+lw t0, 4(a1)
+sw t0, 156(a0)
+la a1, x6_array
+lw t0, 4(a1)
+sw t0, 160(a0)
 la a1, x9_array
 lw t0, 4(a1)
-sw t0, 212(a0)
-la a1, x16_array
+sw t0, 164(a0)
+la a1, x25_array
 lw t0, 4(a1)
-sw t0, 216(a0)
-la a1, x1_array
+sw t0, 168(a0)
+la a1, x20_array
+lw t0, 4(a1)
+sw t0, 172(a0)
+la a1, x21_array
+lw t0, 4(a1)
+sw t0, 176(a0)
+la a1, x4_array
+lw t0, 4(a1)
+sw t0, 180(a0)
+la a1, x5_array
+lw t0, 4(a1)
+sw t0, 184(a0)
+la a1, x18_array
+lw t0, 4(a1)
+sw t0, 188(a0)
+la a1, x29_array
 lw t0, 8(a1)
-sw t0, 220(a0)
+sw t0, 192(a0)
+la a1, x28_array
+lw t0, 4(a1)
+sw t0, 196(a0)
+la a1, x23_array
+lw t0, 4(a1)
+sw t0, 200(a0)
+la a1, x21_array
+lw t0, 8(a1)
+sw t0, 204(a0)
+la a1, x21_array
+lw t0, 12(a1)
+sw t0, 208(a0)
 la a1, x18_array
 lw t0, 8(a1)
-sw t0, 224(a0)
-la a1, x5_array
+sw t0, 212(a0)
+la a1, x23_array
 lw t0, 8(a1)
+sw t0, 216(a0)
+la a1, x8_array
+lw t0, 8(a1)
+sw t0, 220(a0)
+la a1, x10_array
+lw t0, 8(a1)
+sw t0, 224(a0)
+la a1, x8_array
+lw t0, 12(a1)
 sw t0, 228(a0)
-la a1, x26_array
+la a1, x22_array
 lw t0, 4(a1)
 sw t0, 232(a0)
-la a1, x4_array
-lw t0, 12(a1)
+la a1, x15_array
+lw t0, 4(a1)
 sw t0, 236(a0)
-la a1, x16_array
+la a1, x5_array
 lw t0, 8(a1)
 sw t0, 240(a0)
-la a1, x7_array
-lw t0, 4(a1)
+la a1, x20_array
+lw t0, 8(a1)
 sw t0, 244(a0)
-la a1, x16_array
-lw t0, 12(a1)
+la a1, x25_array
+lw t0, 8(a1)
 sw t0, 248(a0)
-la a1, x28_array
-lw t0, 12(a1)
+la a1, x30_array
+lw t0, 4(a1)
 sw t0, 252(a0)
-la a1, x14_array
-lw t0, 12(a1)
+la a1, x28_array
+lw t0, 8(a1)
 sw t0, 256(a0)
 call proofGenerator
 .section .data
@@ -328,35 +328,35 @@ call proofGenerator
 z_array:    .space 260
     .data
 x0_array:    .space 4   # Array for x0
-x1_array:    .space 12   # Array for x1
+x1_array:    .space 4   # Array for x1
 x2_array:    .space 4   # Array for x2
-x3_array:    .space 12   # Array for x3
-x4_array:    .space 16   # Array for x4
+x3_array:    .space 4   # Array for x3
+x4_array:    .space 8   # Array for x4
 x5_array:    .space 12   # Array for x5
 x6_array:    .space 8   # Array for x6
-x7_array:    .space 8   # Array for x7
-x8_array:    .space 4   # Array for x8
+x7_array:    .space 4   # Array for x7
+x8_array:    .space 16   # Array for x8
 x9_array:    .space 8   # Array for x9
-x10_array:    .space 8   # Array for x10
+x10_array:    .space 12   # Array for x10
 x11_array:    .space 4   # Array for x11
 x12_array:    .space 8   # Array for x12
 x13_array:    .space 8   # Array for x13
-x14_array:    .space 16   # Array for x14
+x14_array:    .space 12   # Array for x14
 x15_array:    .space 8   # Array for x15
-x16_array:    .space 16   # Array for x16
+x16_array:    .space 4   # Array for x16
 x17_array:    .space 4   # Array for x17
 x18_array:    .space 12   # Array for x18
 x19_array:    .space 4   # Array for x19
-x20_array:    .space 4   # Array for x20
-x21_array:    .space 4   # Array for x21
-x22_array:    .space 4   # Array for x22
-x23_array:    .space 8   # Array for x23
-x24_array:    .space 8   # Array for x24
-x25_array:    .space 8   # Array for x25
-x26_array:    .space 8   # Array for x26
+x20_array:    .space 12   # Array for x20
+x21_array:    .space 16   # Array for x21
+x22_array:    .space 8   # Array for x22
+x23_array:    .space 12   # Array for x23
+x24_array:    .space 4   # Array for x24
+x25_array:    .space 12   # Array for x25
+x26_array:    .space 4   # Array for x26
 x27_array:    .space 4   # Array for x27
-x28_array:    .space 16   # Array for x28
-x29_array:    .space 4   # Array for x29
+x28_array:    .space 12   # Array for x28
+x29_array:    .space 12   # Array for x29
 x30_array:    .space 8   # Array for x30
 x31_array:    .space 4   # Array for x31
 .text
