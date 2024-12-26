@@ -1,100 +1,196 @@
 jal store_register_instances
-add     s0, s0, t3
-la t0, x8_array
-sw x8, 4(t0)
-addi    a4, t0, 5807396274521203466
-la t0, x14_array
-sw x14, 4(t0)
-mul     a0, t6, a3
-la t0, x10_array
-sw x10, 4(t0)
-addi    a4, t3, 5800899886459459747
-la t0, x14_array
-sw x14, 8(t0)
-mul     a2, s2, s3
-la t0, x12_array
-sw x12, 4(t0)
-add     t4, zero, a5
-la t0, x29_array
-sw x29, 4(t0)
-add     a3, s8, s4
-la t0, x13_array
-sw x13, 4(t0)
-add     t1, s10, s0
+addi    t1, s1, 421048724785114798
 la t0, x6_array
 sw x6, 4(t0)
-mul     s1, t5, a5
-la t0, x9_array
-sw x9, 4(t0)
-add     s9, t6, t0
-la t0, x25_array
-sw x25, 4(t0)
-addi    s4, a1, 6620184663802920653
-la t0, x20_array
-sw x20, 4(t0)
-addi    s5, a2, 6977963976182333536
-la t0, x21_array
-sw x21, 4(t0)
-addi    tp, s11, 8492817380617060964
-la t0, x4_array
-sw x4, 4(t0)
-mul     t0, s6, s9
-la t0, x5_array
-sw x5, 4(t0)
-mul     s2, a6, t6
-la t0, x18_array
-sw x18, 4(t0)
-addi    t4, s6, 5309771483882675037
-la t0, x29_array
-sw x29, 8(t0)
-mul     t3, t3, s5
-la t0, x28_array
-sw x28, 4(t0)
-add     s7, s3, t6
-la t0, x23_array
-sw x23, 4(t0)
-mul     s5, s7, ra
-la t0, x21_array
-sw x21, 8(t0)
-addi    s5, s4, 5187730598246333161
-la t0, x21_array
-sw x21, 12(t0)
-mul     s2, tp, a0
-la t0, x18_array
-sw x18, 8(t0)
-add     s7, a0, s10
-la t0, x23_array
-sw x23, 8(t0)
-addi    s0, gp, 3869904166746919744
-la t0, x8_array
-sw x8, 8(t0)
-add     a0, zero, s11
-la t0, x10_array
-sw x10, 8(t0)
-add     s0, a4, s2
-la t0, x8_array
-sw x8, 12(t0)
-add     s6, s9, s11
-la t0, x22_array
-sw x22, 4(t0)
-mul     a5, a1, a4
+mul     a5, s1, s2
 la t0, x15_array
 sw x15, 4(t0)
-addi    t0, tp, 7113446009798286162
+add     t2, s4, s3
+la t0, x7_array
+sw x7, 4(t0)
+add     t0, s8, t0
+la t0, x5_array
+sw x5, 4(t0)
+mul     s7, s6, a1
+la t0, x23_array
+sw x23, 4(t0)
+add     t0, s5, s4
 la t0, x5_array
 sw x5, 8(t0)
-mul     s4, a6, a2
+add     a4, a4, s8
+la t0, x14_array
+sw x14, 4(t0)
+add     s11, a1, t1
+la t0, x27_array
+sw x27, 4(t0)
+addi    s4, a2, 4569634987083256839
+la t0, x20_array
+sw x20, 4(t0)
+add     s9, a4, t2
+la t0, x25_array
+sw x25, 4(t0)
+mul     zero, tp, s1
+la t0, x0_array
+sw x0, 4(t0)
+addi    a2, s0, 3911670721291365320
+la t0, x12_array
+sw x12, 4(t0)
+mul     s11, zero, sp
+la t0, x27_array
+sw x27, 8(t0)
+addi    s11, s6, 1073186078556876713
+la t0, x27_array
+sw x27, 12(t0)
+mul     s2, zero, s4
+la t0, x18_array
+sw x18, 4(t0)
+mul     s4, a2, a7
 la t0, x20_array
 sw x20, 8(t0)
-addi    s9, t0, 8697050447185008124
-la t0, x25_array
-sw x25, 8(t0)
-add     t5, s1, t3
+addi    s1, s3, 1237499591061142931
+la t0, x9_array
+sw x9, 4(t0)
+mul     t5, tp, s4
 la t0, x30_array
 sw x30, 4(t0)
-addi    t3, a1, 5371414431155336994
+add     s4, t2, t4
+la t0, x20_array
+sw x20, 12(t0)
+add     s9, a7, t1
+la t0, x25_array
+sw x25, 8(t0)
+addi    t0, s5, 3689671822777245816
+la t0, x5_array
+sw x5, 12(t0)
+mul     s9, s7, t2
+la t0, x25_array
+sw x25, 12(t0)
+add     ra, ra, s8
+la t0, x1_array
+sw x1, 4(t0)
+add     s11, t2, s9
+la t0, x27_array
+sw x27, 16(t0)
+add     t5, s0, a1
+la t0, x30_array
+sw x30, 8(t0)
+mul     s3, s6, zero
+la t0, x19_array
+sw x19, 4(t0)
+add     tp, s0, a4
+la t0, x4_array
+sw x4, 4(t0)
+add     t4, t1, s2
+la t0, x29_array
+sw x29, 4(t0)
+mul     s7, s6, s2
+la t0, x23_array
+sw x23, 8(t0)
+mul     s8, sp, s5
+la t0, x24_array
+sw x24, 4(t0)
+add     s1, gp, s7
+la t0, x9_array
+sw x9, 8(t0)
+mul     a0, t1, s2
+la t0, x10_array
+sw x10, 4(t0)
+add     t5, t1, a3
+la t0, x30_array
+sw x30, 12(t0)
+add     zero, a6, s0
+la t0, x0_array
+sw x0, 8(t0)
+addi    a3, a1, 7686864123185225157
+la t0, x13_array
+sw x13, 4(t0)
+addi    s7, t2, 1552053644760866184
+la t0, x23_array
+sw x23, 12(t0)
+mul     s8, s0, t6
+la t0, x24_array
+sw x24, 8(t0)
+add     s10, s6, s10
+la t0, x26_array
+sw x26, 4(t0)
+add     t3, sp, zero
+la t0, x28_array
+sw x28, 4(t0)
+addi    s11, s3, 3464017135936228490
+la t0, x27_array
+sw x27, 20(t0)
+add     t5, ra, t0
+la t0, x30_array
+sw x30, 16(t0)
+addi    t1, gp, 480930206145011017
+la t0, x6_array
+sw x6, 8(t0)
+mul     ra, a0, a1
+la t0, x1_array
+sw x1, 8(t0)
+add     t1, s4, t3
+la t0, x6_array
+sw x6, 12(t0)
+addi    sp, s6, 3908382964111433875
+la t0, x2_array
+sw x2, 4(t0)
+mul     s1, t0, s7
+la t0, x9_array
+sw x9, 12(t0)
+mul     t4, a2, t1
+la t0, x29_array
+sw x29, 8(t0)
+add     a7, t6, a1
+la t0, x17_array
+sw x17, 4(t0)
+mul     t3, t0, tp
 la t0, x28_array
 sw x28, 8(t0)
+add     a0, t4, s9
+la t0, x10_array
+sw x10, 8(t0)
+mul     zero, s4, s8
+la t0, x0_array
+sw x0, 12(t0)
+mul     s5, tp, s2
+la t0, x21_array
+sw x21, 4(t0)
+add     s1, t4, t0
+la t0, x9_array
+sw x9, 16(t0)
+addi    a6, s0, 7871109544436024473
+la t0, x16_array
+sw x16, 4(t0)
+mul     s4, sp, s5
+la t0, x20_array
+sw x20, 16(t0)
+addi    a1, s11, 4473678069307678971
+la t0, x11_array
+sw x11, 4(t0)
+mul     s9, s0, tp
+la t0, x25_array
+sw x25, 16(t0)
+mul     a5, s0, sp
+la t0, x15_array
+sw x15, 8(t0)
+add     a6, t3, s8
+la t0, x16_array
+sw x16, 8(t0)
+mul     tp, s2, t3
+la t0, x4_array
+sw x4, 8(t0)
+addi    s0, a6, 9200203029518309789
+la t0, x8_array
+sw x8, 4(t0)
+add     a6, s9, s0
+la t0, x16_array
+sw x16, 12(t0)
+add     s3, sp, tp
+la t0, x19_array
+sw x19, 8(t0)
+addi    a3, s4, 1733493398701514818
+la t0, x13_array
+sw x13, 8(t0)
 la a0, z_array
 li t0, 1
 sw t0, 0(a0)
@@ -226,138 +322,234 @@ la a0, z_array
 la a1, x31_array
 lw t0, 0(a1)
 sw t0, 128(a0)
-la a1, x8_array
-lw t0, 4(a1)
-sw t0, 132(a0)
-la a1, x14_array
-lw t0, 4(a1)
-sw t0, 136(a0)
-la a1, x10_array
-lw t0, 4(a1)
-sw t0, 140(a0)
-la a1, x14_array
-lw t0, 8(a1)
-sw t0, 144(a0)
-la a1, x12_array
-lw t0, 4(a1)
-sw t0, 148(a0)
-la a1, x29_array
-lw t0, 4(a1)
-sw t0, 152(a0)
-la a1, x13_array
-lw t0, 4(a1)
-sw t0, 156(a0)
 la a1, x6_array
 lw t0, 4(a1)
+sw t0, 132(a0)
+la a1, x15_array
+lw t0, 4(a1)
+sw t0, 136(a0)
+la a1, x7_array
+lw t0, 4(a1)
+sw t0, 140(a0)
+la a1, x5_array
+lw t0, 4(a1)
+sw t0, 144(a0)
+la a1, x23_array
+lw t0, 4(a1)
+sw t0, 148(a0)
+la a1, x5_array
+lw t0, 8(a1)
+sw t0, 152(a0)
+la a1, x14_array
+lw t0, 4(a1)
+sw t0, 156(a0)
+la a1, x27_array
+lw t0, 4(a1)
 sw t0, 160(a0)
-la a1, x9_array
+la a1, x20_array
 lw t0, 4(a1)
 sw t0, 164(a0)
 la a1, x25_array
 lw t0, 4(a1)
 sw t0, 168(a0)
-la a1, x20_array
+la a1, x0_array
 lw t0, 4(a1)
 sw t0, 172(a0)
-la a1, x21_array
+la a1, x12_array
 lw t0, 4(a1)
 sw t0, 176(a0)
-la a1, x4_array
-lw t0, 4(a1)
+la a1, x27_array
+lw t0, 8(a1)
 sw t0, 180(a0)
-la a1, x5_array
-lw t0, 4(a1)
+la a1, x27_array
+lw t0, 12(a1)
 sw t0, 184(a0)
 la a1, x18_array
 lw t0, 4(a1)
 sw t0, 188(a0)
-la a1, x29_array
-lw t0, 8(a1)
-sw t0, 192(a0)
-la a1, x28_array
-lw t0, 4(a1)
-sw t0, 196(a0)
-la a1, x23_array
-lw t0, 4(a1)
-sw t0, 200(a0)
-la a1, x21_array
-lw t0, 8(a1)
-sw t0, 204(a0)
-la a1, x21_array
-lw t0, 12(a1)
-sw t0, 208(a0)
-la a1, x18_array
-lw t0, 8(a1)
-sw t0, 212(a0)
-la a1, x23_array
-lw t0, 8(a1)
-sw t0, 216(a0)
-la a1, x8_array
-lw t0, 8(a1)
-sw t0, 220(a0)
-la a1, x10_array
-lw t0, 8(a1)
-sw t0, 224(a0)
-la a1, x8_array
-lw t0, 12(a1)
-sw t0, 228(a0)
-la a1, x22_array
-lw t0, 4(a1)
-sw t0, 232(a0)
-la a1, x15_array
-lw t0, 4(a1)
-sw t0, 236(a0)
-la a1, x5_array
-lw t0, 8(a1)
-sw t0, 240(a0)
 la a1, x20_array
 lw t0, 8(a1)
-sw t0, 244(a0)
-la a1, x25_array
-lw t0, 8(a1)
-sw t0, 248(a0)
+sw t0, 192(a0)
+la a1, x9_array
+lw t0, 4(a1)
+sw t0, 196(a0)
 la a1, x30_array
 lw t0, 4(a1)
+sw t0, 200(a0)
+la a1, x20_array
+lw t0, 12(a1)
+sw t0, 204(a0)
+la a1, x25_array
+lw t0, 8(a1)
+sw t0, 208(a0)
+la a1, x5_array
+lw t0, 12(a1)
+sw t0, 212(a0)
+la a1, x25_array
+lw t0, 12(a1)
+sw t0, 216(a0)
+la a1, x1_array
+lw t0, 4(a1)
+sw t0, 220(a0)
+la a1, x27_array
+lw t0, 16(a1)
+sw t0, 224(a0)
+la a1, x30_array
+lw t0, 8(a1)
+sw t0, 228(a0)
+la a1, x19_array
+lw t0, 4(a1)
+sw t0, 232(a0)
+la a1, x4_array
+lw t0, 4(a1)
+sw t0, 236(a0)
+la a1, x29_array
+lw t0, 4(a1)
+sw t0, 240(a0)
+la a1, x23_array
+lw t0, 8(a1)
+sw t0, 244(a0)
+la a1, x24_array
+lw t0, 4(a1)
+sw t0, 248(a0)
+la a1, x9_array
+lw t0, 8(a1)
 sw t0, 252(a0)
+la a1, x10_array
+lw t0, 4(a1)
+sw t0, 256(a0)
+la a1, x30_array
+lw t0, 12(a1)
+sw t0, 260(a0)
+la a1, x0_array
+lw t0, 8(a1)
+sw t0, 264(a0)
+la a1, x13_array
+lw t0, 4(a1)
+sw t0, 268(a0)
+la a1, x23_array
+lw t0, 12(a1)
+sw t0, 272(a0)
+la a1, x24_array
+lw t0, 8(a1)
+sw t0, 276(a0)
+la a1, x26_array
+lw t0, 4(a1)
+sw t0, 280(a0)
+la a1, x28_array
+lw t0, 4(a1)
+sw t0, 284(a0)
+la a1, x27_array
+lw t0, 20(a1)
+sw t0, 288(a0)
+la a1, x30_array
+lw t0, 16(a1)
+sw t0, 292(a0)
+la a1, x6_array
+lw t0, 8(a1)
+sw t0, 296(a0)
+la a1, x1_array
+lw t0, 8(a1)
+sw t0, 300(a0)
+la a1, x6_array
+lw t0, 12(a1)
+sw t0, 304(a0)
+la a1, x2_array
+lw t0, 4(a1)
+sw t0, 308(a0)
+la a1, x9_array
+lw t0, 12(a1)
+sw t0, 312(a0)
+la a1, x29_array
+lw t0, 8(a1)
+sw t0, 316(a0)
+la a1, x17_array
+lw t0, 4(a1)
+sw t0, 320(a0)
 la a1, x28_array
 lw t0, 8(a1)
-sw t0, 256(a0)
+sw t0, 324(a0)
+la a1, x10_array
+lw t0, 8(a1)
+sw t0, 328(a0)
+la a1, x0_array
+lw t0, 12(a1)
+sw t0, 332(a0)
+la a1, x21_array
+lw t0, 4(a1)
+sw t0, 336(a0)
+la a1, x9_array
+lw t0, 16(a1)
+sw t0, 340(a0)
+la a1, x16_array
+lw t0, 4(a1)
+sw t0, 344(a0)
+la a1, x20_array
+lw t0, 16(a1)
+sw t0, 348(a0)
+la a1, x11_array
+lw t0, 4(a1)
+sw t0, 352(a0)
+la a1, x25_array
+lw t0, 16(a1)
+sw t0, 356(a0)
+la a1, x15_array
+lw t0, 8(a1)
+sw t0, 360(a0)
+la a1, x16_array
+lw t0, 8(a1)
+sw t0, 364(a0)
+la a1, x4_array
+lw t0, 8(a1)
+sw t0, 368(a0)
+la a1, x8_array
+lw t0, 4(a1)
+sw t0, 372(a0)
+la a1, x16_array
+lw t0, 12(a1)
+sw t0, 376(a0)
+la a1, x19_array
+lw t0, 8(a1)
+sw t0, 380(a0)
+la a1, x13_array
+lw t0, 8(a1)
+sw t0, 384(a0)
 call proofGenerator
 .section .data
 .global z_array
-z_array:    .space 260
+z_array:    .space 388
     .data
-x0_array:    .space 4   # Array for x0
-x1_array:    .space 4   # Array for x1
-x2_array:    .space 4   # Array for x2
+x0_array:    .space 16   # Array for x0
+x1_array:    .space 12   # Array for x1
+x2_array:    .space 8   # Array for x2
 x3_array:    .space 4   # Array for x3
-x4_array:    .space 8   # Array for x4
-x5_array:    .space 12   # Array for x5
-x6_array:    .space 8   # Array for x6
-x7_array:    .space 4   # Array for x7
-x8_array:    .space 16   # Array for x8
-x9_array:    .space 8   # Array for x9
+x4_array:    .space 12   # Array for x4
+x5_array:    .space 16   # Array for x5
+x6_array:    .space 16   # Array for x6
+x7_array:    .space 8   # Array for x7
+x8_array:    .space 8   # Array for x8
+x9_array:    .space 20   # Array for x9
 x10_array:    .space 12   # Array for x10
-x11_array:    .space 4   # Array for x11
+x11_array:    .space 8   # Array for x11
 x12_array:    .space 8   # Array for x12
-x13_array:    .space 8   # Array for x13
-x14_array:    .space 12   # Array for x14
-x15_array:    .space 8   # Array for x15
-x16_array:    .space 4   # Array for x16
-x17_array:    .space 4   # Array for x17
-x18_array:    .space 12   # Array for x18
-x19_array:    .space 4   # Array for x19
-x20_array:    .space 12   # Array for x20
-x21_array:    .space 16   # Array for x21
-x22_array:    .space 8   # Array for x22
-x23_array:    .space 12   # Array for x23
-x24_array:    .space 4   # Array for x24
-x25_array:    .space 12   # Array for x25
-x26_array:    .space 4   # Array for x26
-x27_array:    .space 4   # Array for x27
+x13_array:    .space 12   # Array for x13
+x14_array:    .space 8   # Array for x14
+x15_array:    .space 12   # Array for x15
+x16_array:    .space 16   # Array for x16
+x17_array:    .space 8   # Array for x17
+x18_array:    .space 8   # Array for x18
+x19_array:    .space 12   # Array for x19
+x20_array:    .space 20   # Array for x20
+x21_array:    .space 8   # Array for x21
+x22_array:    .space 4   # Array for x22
+x23_array:    .space 16   # Array for x23
+x24_array:    .space 12   # Array for x24
+x25_array:    .space 20   # Array for x25
+x26_array:    .space 8   # Array for x26
+x27_array:    .space 24   # Array for x27
 x28_array:    .space 12   # Array for x28
 x29_array:    .space 12   # Array for x29
-x30_array:    .space 8   # Array for x30
+x30_array:    .space 20   # Array for x30
 x31_array:    .space 4   # Array for x31
 .text
 .globl store_register_instances
