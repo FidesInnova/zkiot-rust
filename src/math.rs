@@ -32,7 +32,7 @@ use crate::to_bint;
 use rustnomial::{Polynomial, SizedPolynomial, Term};
 use crate::utils::add_random_points;
 
-pub const P: u64 = 2060801;
+pub const P: u64 = 14056961;
 // pub const P: u64 = 2460193;
 
 field!(Mfp, P);
@@ -251,6 +251,7 @@ pub fn vanishing_poly(set: &Vec<Mfp>) -> Poly {
     for i in set {
         vp *= Poly::new(vec![Mfp::ONE, Mfp::ZERO]) - Poly::new(vec![*i]);
     }
+    
     vp.trim();
     vp
 }
