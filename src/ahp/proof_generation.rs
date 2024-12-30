@@ -677,6 +677,7 @@ impl ProofGeneration {
             33, 14, 34, 0, 37, 12, 0, 0,
         ]
         .iter()
+        .rev()
         .map(|v| Mfp::from(*v))
         .collect::<Vec<Mfp>>();
 
