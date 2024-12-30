@@ -32,7 +32,7 @@ use crate::to_bint;
 use rustnomial::{Polynomial, SizedPolynomial, Term};
 use crate::utils::add_random_points;
 
-pub const P: u64 = 14056961;
+pub const P: u64 = 5087281;
 // pub const P: u64 = 2460193;
 
 field!(Mfp, P);

@@ -154,7 +154,7 @@ impl ProofGeneration {
 
             let w_bar_h =
                 (w_hat.eval(*i) - poly_x_hat.eval(*i)) * invers_val(van_poly_vh1.eval(*i));
-                
+
             points_w.push((*i, w_bar_h));
         }
 
@@ -179,7 +179,7 @@ impl ProofGeneration {
         points_px: &Vec<HashMap<Mfp, Mfp>>,
         alpha: Mfp,
         set_h: &Vec<Mfp>,
-        g: u64
+        g: u64,
     ) -> (Poly, Poly, Poly) {
         // ∑ r(alpha_2=10, k) * A^(k,x)
         let r_a_kx = sigma_rk_mk(
@@ -190,7 +190,7 @@ impl ProofGeneration {
             &points_px[1],
             &points_px[2],
             &EvalOrder::KX,
-            g
+            g,
         );
 
         println_dbg!("Poly ∑ r(alpha_2=10, k) * A^(k,x): ");
@@ -205,7 +205,7 @@ impl ProofGeneration {
             &points_px[4],
             &points_px[5],
             &EvalOrder::KX,
-            g
+            g,
         );
         println_dbg!("Poly ∑ r(alpha_2=10, k) * B^(k,x): ");
         dsp_poly!(r_b_kx);
@@ -219,7 +219,7 @@ impl ProofGeneration {
             &points_px[7],
             &points_px[8],
             &EvalOrder::KX,
-            g
+            g,
         );
         println_dbg!("Poly ∑ r(alpha_2=10, k) * C^(k,x): ");
         dsp_poly!(r_c_kx);
@@ -303,7 +303,7 @@ impl ProofGeneration {
         // let b_max_rand = std::cmp::min(10, class_data.n_g);
         // let random_b = thread_rng().gen_range(1..b_max_rand);
         // println_dbg!("b = {}", random_b);
-        let random_b = 2;
+        let random_b = 0;
 
         // Generate and interpolate points for matrices az, bz, cz
         let (poly_z_hat_a, poly_z_hat_b, poly_z_hat_c) = Self::generate_oz_interpolations(
@@ -340,8 +340,11 @@ impl ProofGeneration {
         dsp_poly!(poly_h_0.1);
 
         // Ensure this division has no remainders
-        assert!(poly_h_0.1.is_zero(), "Proof panic: The remainder of the division for poly_h_0 should be zero");
-        
+        assert!(
+            poly_h_0.1.is_zero(),
+            "Proof panic: The remainder of the division for poly_h_0 should be zero"
+        );
+
         let poly_h_0 = poly_h_0.0;
         println_dbg!("poly_h_0");
         dsp_poly!(poly_h_0);
@@ -661,11 +664,22 @@ impl ProofGeneration {
         .take(degree + 1) // +1 because degree is the highest power
         .collect();
 
+        // // TODO: Random numebrs from Wiki, Comment it after test
+        // let coefficients = [5, 0, 101, 17, 0, 1, 20, 0, 0, 3, 115]
+        //     .iter()
+        //     .map(|v| Mfp::from(*v))
+        //     .collect::<Vec<Mfp>>();
+
         // TODO: Random numebrs from Wiki, Comment it after test
-        let coefficients = [5, 0, 101, 17, 0, 1, 20, 0, 0, 3, 115]
-            .iter()
-            .map(|v| Mfp::from(*v))
-            .collect::<Vec<Mfp>>();
+        let coefficients = [
+            82, 74, 64, 0, 0, 28, 59, 0, 0, 0, 0, 0, 0, 0, 56, 0, 0, 0, 14, 0, 50, 41, 5, 54, 64,
+            0, 55, 69, 71, 12, 0, 0, 0, 0, 44, 0, 0, 0, 0, 0, 25, 0, 0, 41, 27, 0, 0, 8, 34, 58, 0,
+            0, 0, 0, 47, 52, 0, 0, 58, 63, 48, 38, 0, 0, 0, 26, 65, 0, 0, 0, 83, 63, 0, 48, 82, 0,
+            33, 14, 34, 0, 37, 12, 0, 0,
+        ]
+        .iter()
+        .map(|v| Mfp::from(*v))
+        .collect::<Vec<Mfp>>();
 
         let mut rand_poly = Poly::from(coefficients);
         rand_poly.trim();
@@ -687,13 +701,21 @@ impl ProofGeneration {
         proof_data.push(AHPData::Array(write_set(x_vec)));
 
         // Add Commit AHPData for commit_x
-        proof_data.extend(commit_x.iter().map(|commit| AHPData::Commit(to_bint!(*commit))));
+        proof_data.extend(
+            commit_x
+                .iter()
+                .map(|commit| AHPData::Commit(to_bint!(*commit))),
+        );
 
         // Add Sigma AHPData
         proof_data.extend(sigma.iter().map(|sigma| AHPData::Sigma(to_bint!(*sigma))));
 
         // Add Polynomial AHPData for polys_proof
-        proof_data.extend(polys_proof.iter().map(|poly| AHPData::Polynomial(write_term(poly))));
+        proof_data.extend(
+            polys_proof
+                .iter()
+                .map(|poly| AHPData::Polynomial(write_term(poly))),
+        );
 
         // Add Value AHPData
         proof_data.push(AHPData::Value(to_bint!(val_y_p)));

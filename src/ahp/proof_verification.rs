@@ -79,30 +79,31 @@ impl Verification {
 
         
         // Final random numbers must not be in set h
-        // let beta_1 = generate_beta_random(8, &poly_sx, &set_h);
-        // let beta_2 = generate_beta_random(9, &poly_sx, &set_h);
+        let beta_1 = generate_beta_random(8, &poly_sx, &set_h);
+        let beta_2 = generate_beta_random(9, &poly_sx, &set_h);
+        let beta_3 = Mfp::from(5);
         // let beta_3 = Mfp::from(thread_rng().gen_range(1..P));
         
 
         // TODO:
         // From wiki: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
         //             Step 6
-        // let alpha = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(0))).to_string()));
-        // let eta_a = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(1))).to_string()));
-        // let eta_b = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(2))).to_string()));
-        // let eta_c = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(3))).to_string()));
+        let alpha = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(0))).to_string()));
+        let eta_a = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(1))).to_string()));
+        let eta_b = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(2))).to_string()));
+        let eta_c = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(3))).to_string()));
         // println_dbg!("alpha: {:?} - {}", poly_sx.eval(Mfp::from(0)), alpha);
 
-        let alpha = Mfp::from(10);
-        let eta_a = Mfp::from(2);
-        let eta_b = Mfp::from(30);
-        let eta_c = Mfp::from(100);
+        // let alpha = Mfp::from(10);
+        // let eta_a = Mfp::from(2);
+        // let eta_b = Mfp::from(30);
+        // let eta_c = Mfp::from(100);
 
-        // let z = Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(22)).to_string()));
-        let z = Mfp::from(2);
+        let z = Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(22)).to_string()));
+        // let z = Mfp::from(2);
 
-        // let beta = vec![beta_1, beta_2, beta_3];
-        let beta = vec![Mfp::from(22), Mfp::from(80), Mfp::from(5)];
+        let beta = vec![beta_1, beta_2, beta_3];
+        // let beta = vec![Mfp::from(22), Mfp::from(80), Mfp::from(5)];
 
         let eta = vec![eta_a, eta_b, eta_c];
         let t = (class_data.n_i + 1) as usize;
@@ -387,6 +388,15 @@ impl Verification {
         sigma_3: &Mfp,
         set_k_len: usize,
     ) -> bool {
+        println!("h_3x: {:?}", h_3x);
+        println!("g_3x: {:?}", g_3x);
+        println!("van_poly_vkx: {:?}", van_poly_vkx);
+        println!("ax: {:?}", ax);
+        println!("bx: {:?}", bx);
+        println!("beta_3: {:?}", beta_3);
+        println!("sigma_3: {:?}", sigma_3);
+        println!("set_k_len: {}", set_k_len);
+        
         // Evaluate the left-hand side of the equation
         let eq11 = h_3x.eval(*beta_3) * van_poly_vkx.eval(*beta_3);
 
