@@ -284,25 +284,25 @@ impl Verification {
     fn check_5(&self, (ck, vk): (&[Mfp], Mfp), z: Mfp, g: Mfp, poly_sx: &Poly) -> bool {
         // Preparing equation values
         // TODO: Replace with random values in the range (1..P)
-        let eta_values = [
-            Mfp::from(1),  // eta_w
-            Mfp::from(4),  // eta_z_a
-            Mfp::from(10), // eta_z_b
-            Mfp::from(8),  // eta_z_c
-            Mfp::from(32), // eta_h0
-            Mfp::from(45), // eta_s
-            Mfp::from(92), // eta_g1
-            Mfp::from(11), // eta_h1
-            Mfp::from(1),  // eta_g2
-            Mfp::from(5),  // eta_h2
-            Mfp::from(25), // eta_g3
-            Mfp::from(63), // eta_h3
-        ];
+        // let eta_values = [
+        //     Mfp::from(1),  // eta_w
+        //     Mfp::from(4),  // eta_z_a
+        //     Mfp::from(10), // eta_z_b
+        //     Mfp::from(8),  // eta_z_c
+        //     Mfp::from(32), // eta_h0
+        //     Mfp::from(45), // eta_s
+        //     Mfp::from(92), // eta_g1
+        //     Mfp::from(11), // eta_h1
+        //     Mfp::from(1),  // eta_g2
+        //     Mfp::from(5),  // eta_h2
+        //     Mfp::from(25), // eta_g3
+        //     Mfp::from(63), // eta_h3
+        // ];
 
-        // let mut eta_values = vec![];
-        // for i in 10..=21 {
-        //     eta_values.push(Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(i)).to_string())))
-        // }
+        let mut eta_values = vec![];
+        for i in 10..=21 {
+            eta_values.push(Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(i)).to_string())))
+        }
 
         // Compute polynomial px using eta values
         let poly_px = eta_values
@@ -396,7 +396,7 @@ impl Verification {
         println!("beta_3: {:?}", beta_3);
         println!("sigma_3: {:?}", sigma_3);
         println!("set_k_len: {}", set_k_len);
-        
+
         // Evaluate the left-hand side of the equation
         let eq11 = h_3x.eval(*beta_3) * van_poly_vkx.eval(*beta_3);
 
@@ -417,7 +417,6 @@ impl Verification {
     }
 
     /// Checks the second verification equation
-    ///
     /// # Parameters
     /// - `poly_r`: Polynomial r(α, β2)
     /// - `h_2x`: Polynomial h2
