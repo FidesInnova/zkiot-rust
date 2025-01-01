@@ -775,6 +775,8 @@ impl ProofGeneration {
         eta: Vec<Mfp>,
         poly_pi: &[&Poly],
     ) -> Poly {
+        println!("eta: {:?}", eta);
+        
         let val_vhx_beta_1 = van_poly_vhx.eval(beta[0]);
         let val_vhx_beta_2 = van_poly_vhx.eval(beta[1]);
         let beta_mul = val_vhx_beta_2 * val_vhx_beta_1;
