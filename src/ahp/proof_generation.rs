@@ -779,20 +779,20 @@ impl ProofGeneration {
         let val_vhx_beta_2 = van_poly_vhx.eval(beta[1]);
         let beta_mul = val_vhx_beta_2 * val_vhx_beta_1;
 
-        let poly_sig_a = Poly::from(vec![eta[0] * beta_mul]) * &polys_px[2];
-        let poly_sig_b = Poly::from(vec![eta[1] * beta_mul]) * &polys_px[5];
-        let poly_sig_c = Poly::from(vec![eta[2] * beta_mul]) * &polys_px[8];
+        let poly_sigma_a = Poly::from(vec![eta[0] * beta_mul]) * &polys_px[2];
+        let poly_sigma_b = Poly::from(vec![eta[1] * beta_mul]) * &polys_px[5];
+        let poly_sigma_c = Poly::from(vec![eta[2] * beta_mul]) * &polys_px[8];
 
-        println_dbg!("poly_sig_a");
-        dsp_poly!(poly_sig_a);
-        println_dbg!("poly_sig_b");
-        dsp_poly!(poly_sig_b);
-        println_dbg!("poly_sig_c");
-        dsp_poly!(poly_sig_c);
+        println_dbg!("poly_sigma_a");
+        dsp_poly!(poly_sigma_a);
+        println_dbg!("poly_sigma_b");
+        dsp_poly!(poly_sigma_b);
+        println_dbg!("poly_sigma_c");
+        dsp_poly!(poly_sigma_c);
 
-        poly_sig_a * (poly_pi[1] * poly_pi[2])
-            + poly_sig_b * (poly_pi[0] * poly_pi[2])
-            + poly_sig_c * (poly_pi[0] * poly_pi[1])
+        poly_sigma_a * (poly_pi[1] * poly_pi[2])
+            + poly_sigma_b * (poly_pi[0] * poly_pi[2])
+            + poly_sigma_c * (poly_pi[0] * poly_pi[1])
     }
 
     /// Store in Json file
