@@ -141,6 +141,7 @@ impl ProofGeneration {
 
         // Interpolate polynomial w(h) over the subset H[<=∣x∣]
         let points = get_points_set(&z_vec[numebr_t_zero..], set_h_2);
+        println!("points w_hat {:?}", points);
         let w_hat = interpolate(&points);
 
         // Compute the vanishing polynomial for the subset H[<=∣x∣]
@@ -776,7 +777,7 @@ impl ProofGeneration {
         poly_pi: &[&Poly],
     ) -> Poly {
         println!("eta: {:?}", eta);
-        
+
         let val_vhx_beta_1 = van_poly_vhx.eval(beta[0]);
         let val_vhx_beta_2 = van_poly_vhx.eval(beta[1]);
         let beta_mul = val_vhx_beta_2 * val_vhx_beta_1;
