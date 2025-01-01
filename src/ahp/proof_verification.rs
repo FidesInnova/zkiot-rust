@@ -388,11 +388,14 @@ impl Verification {
         sigma_3: &Mfp,
         set_k_len: usize,
     ) -> bool {
-        println!("h_3x: {:?}", h_3x);
-        println!("g_3x: {:?}", g_3x);
-        println!("van_poly_vkx: {:?}", van_poly_vkx);
+        println!("h_3x: ");
+        println!("g_3x: ");
+        println!("van_poly_vkx:");
+        dsp_poly!(van_poly_vkx);
         println!("ax: {:?}", ax);
+        dsp_poly!(ax);
         println!("bx: {:?}", bx);
+        dsp_poly!(bx);
         println!("beta_3: {:?}", beta_3);
         println!("sigma_3: {:?}", sigma_3);
         println!("set_k_len: {}", set_k_len);
