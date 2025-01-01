@@ -111,7 +111,7 @@ impl Verification {
         // https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/4-proof-verification-phase#id-4-2-ahp-verify
         // All functions need to be executed for debugging purposes, hence they are written this way
         let mut res = true;
-        res &= self.check_1(&polys_px, &beta_3, &eta, set_h_len, set_k_len);
+        res &= self.check_1(&polys_px, &beta, &eta, set_h_len, set_k_len);
         res &= self.check_2(&beta, alpha, set_h_len);
         res &= self.check_3(x_vec, alpha, &beta, &eta, &set_h, t);
         res &= self.check_4(&beta, set_h_len);
@@ -133,7 +133,7 @@ impl Verification {
     fn check_1(
         &self,
         polys_px: &Vec<Poly>,
-        beta_3: &Mfp,
+        beta: &[Mfp],
         eta: &[Mfp],
         set_h_len: usize,
         set_k_len: usize,
@@ -154,7 +154,7 @@ impl Verification {
             &van_poly_vkx,
             &poly_a_x,
             &poly_b_x,
-            beta_3,
+            &beta[2],
             &self.data.get_sigma(3),
             set_k_len,
         )
