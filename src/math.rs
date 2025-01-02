@@ -477,7 +477,7 @@ pub fn m_k(
 
     let mut catch: HashMap<Mfp, Poly> = HashMap::new();
 
-    eprintln!("val len: {}", points_val.len());
+    // eprintln!("val len: {}", points_val.len());
 
     for (k, h) in points_val {
 
@@ -545,7 +545,7 @@ pub fn m_k_2(
         };
         ftime += timer.elapsed();
     }
-    eprintln!("timer - in: {:?}", ftime);
+    // eprintln!("timer - in: {:?}", ftime);
     poly_res
 }
 
@@ -659,7 +659,7 @@ pub fn sigma_rk_mk(
             eval_order,
         );
         // ----------------------
-        eprintln!("time2 : {:?}", timer.elapsed());
+        // eprintln!("time2 : {:?}", timer.elapsed());
 
         p_r_xk.trim();
         p_m_kx.trim();
