@@ -81,8 +81,8 @@ impl Verification {
         // Final random numbers must not be in set h
         let beta_1 = generate_beta_random(8, &poly_sx, &set_h);
         let beta_2 = generate_beta_random(9, &poly_sx, &set_h);
-        let beta_3 = Mfp::from(5);
-        // let beta_3 = Mfp::from(thread_rng().gen_range(1..P));
+        // let beta_3 = Mfp::from(5);
+        let beta_3 = Mfp::from(thread_rng().gen_range(1..1000));
         
 
         // TODO:
