@@ -388,17 +388,17 @@ impl Verification {
         sigma_3: &Mfp,
         set_k_len: usize,
     ) -> bool {
-        println!("h_3x: ");
-        println!("g_3x: ");
-        println!("van_poly_vkx:");
+        println_dbg!("h_3x: ");
+        println_dbg!("g_3x: ");
+        println_dbg!("van_poly_vkx:");
         dsp_poly!(van_poly_vkx);
-        println!("ax: {:?}", ax);
+        println_dbg!("ax: {:?}", ax);
         dsp_poly!(ax);
-        println!("bx: {:?}", bx);
+        println_dbg!("bx: {:?}", bx);
         dsp_poly!(bx);
-        println!("beta_3: {:?}", beta_3);
-        println!("sigma_3: {:?}", sigma_3);
-        println!("set_k_len: {}", set_k_len);
+        println_dbg!("beta_3: {:?}", beta_3);
+        println_dbg!("sigma_3: {:?}", sigma_3);
+        println_dbg!("set_k_len: {}", set_k_len);
 
         // Evaluate the left-hand side of the equation
         let eq11 = h_3x.eval(*beta_3) * van_poly_vkx.eval(*beta_3);

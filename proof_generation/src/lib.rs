@@ -54,6 +54,8 @@ pub fn main_proof_gen(setup_path: &str) -> Result<()> {
 
     // .: Proof Generation :.
     let proof_generation = ahp::proof_generation::ProofGeneration::new();
+    // Set timer 
+    let timer = std::time::Instant::now();
     let proof_data = proof_generation.generate_proof(
         &setup_json.get_ck(),
         class_data,
@@ -61,6 +63,7 @@ pub fn main_proof_gen(setup_path: &str) -> Result<()> {
         commitment_json,
         z_vec
     );
+    println!("Proof timer: {:?}", timer.elapsed());
 
     // Store the generated proof data in a JSON file
     proof_generation

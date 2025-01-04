@@ -42,13 +42,17 @@ pub fn commit(poly_in: &Poly, ck: &[Mfp]) -> Mfp {
     let mut res_poly = Mfp::ZERO;
 
     if let Degree::Num(deg) = poly_in.degree() {
+
+        // Ensure that the number of commitment keys is greater than the polynomial degree
+        assert!(ck.len() > deg, "Error: The number of commitment keys ({}), must be greater than the polynomial degree ({}).", ck.len(), deg);
+
         for i in 0..=deg {
             match poly_in.term_with_degree(i) {
                 Term::ZeroTerm => {
                     continue;
                 }
                 Term::Term(t, _) => {
-                    let mul = Mfp::from(to_bint!(t) as u128 * to_bint!(ck[i])  as u128);
+                    let mul = Mfp::from(to_bint!(t) as u128 * to_bint!(ck[i]) as u128);
                     res_poly += mul;
                 }
             }

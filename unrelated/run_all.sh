@@ -20,7 +20,8 @@ if [ "$#" -lt 2 ]; then
   exit 1
 fi
 
-find data/ -type f -not -name 'device_config.json' -delete
+# find data/ -type f -name 'proof.json' -delete
+# find data/ -type f -name 'program_commitment.json' -delete
 
 # setup benchmark
 filename="$1"
@@ -33,7 +34,7 @@ if [ "$options" = "--release" ]; then
 fi
 
 # set p number
-# ./unrelated/z_vec 5087281
+./unrelated/z_vec 270592001
 
 export RUSTFLAGS=""
 # Build and Run

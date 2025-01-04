@@ -141,7 +141,7 @@ impl ProofGeneration {
 
         // Interpolate polynomial w(h) over the subset H[<=∣x∣]
         let points = get_points_set(&z_vec[numebr_t_zero..], set_h_2);
-        println!("points w_hat {:?}", points);
+        println_dbg!("points w_hat {:?}", points);
         let w_hat = interpolate(&points);
 
         // Compute the vanishing polynomial for the subset H[<=∣x∣]
@@ -304,7 +304,7 @@ impl ProofGeneration {
         // let b_max_rand = std::cmp::min(10, class_data.n_g);
         // let random_b = thread_rng().gen_range(1..b_max_rand);
         // println_dbg!("b = {}", random_b);
-        let random_b = 0;
+        let random_b = 2;
 
         // Generate and interpolate points for matrices az, bz, cz
         let (poly_z_hat_a, poly_z_hat_b, poly_z_hat_c) = Self::generate_oz_interpolations(
@@ -670,17 +670,17 @@ impl ProofGeneration {
         //     .map(|v| Mfp::from(*v))
         //     .collect::<Vec<Mfp>>();
 
-        // TODO: Random numebrs from Wiki, Comment it after test
-        let coefficients = [
-            82, 74, 64, 0, 0, 28, 59, 0, 0, 0, 0, 0, 0, 0, 56, 0, 0, 0, 14, 0, 50, 41, 5, 54, 64,
-            0, 55, 69, 71, 12, 0, 0, 0, 0, 44, 0, 0, 0, 0, 0, 25, 0, 0, 41, 27, 0, 0, 8, 34, 58, 0,
-            0, 0, 0, 47, 52, 0, 0, 58, 63, 48, 38, 0, 0, 0, 26, 65, 0, 0, 0, 83, 63, 0, 48, 82, 0,
-            33, 14, 34, 0, 37, 12, 0, 0,
-        ]
-        .iter()
-        .rev()
-        .map(|v| Mfp::from(*v))
-        .collect::<Vec<Mfp>>();
+        // // TODO: Random numebrs from Wiki, Comment it after test
+        // let coefficients = [
+        //     82, 74, 64, 0, 0, 28, 59, 0, 0, 0, 0, 0, 0, 0, 56, 0, 0, 0, 14, 0, 50, 41, 5, 54, 64,
+        //     0, 55, 69, 71, 12, 0, 0, 0, 0, 44, 0, 0, 0, 0, 0, 25, 0, 0, 41, 27, 0, 0, 8, 34, 58, 0,
+        //     0, 0, 0, 47, 52, 0, 0, 58, 63, 48, 38, 0, 0, 0, 26, 65, 0, 0, 0, 83, 63, 0, 48, 82, 0,
+        //     33, 14, 34, 0, 37, 12, 0, 0,
+        // ]
+        // .iter()
+        // .rev()
+        // .map(|v| Mfp::from(*v))
+        // .collect::<Vec<Mfp>>();
 
         let mut rand_poly = Poly::from(coefficients);
         rand_poly.trim();
@@ -776,7 +776,7 @@ impl ProofGeneration {
         eta: Vec<Mfp>,
         poly_pi: &[&Poly],
     ) -> Poly {
-        println!("eta: {:?}", eta);
+        println_dbg!("eta: {:?}", eta);
 
         let val_vhx_beta_1 = van_poly_vhx.eval(beta[0]);
         let val_vhx_beta_2 = van_poly_vhx.eval(beta[1]);

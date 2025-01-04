@@ -30,10 +30,11 @@ fn main() -> Result<()> {
     for (class_number, metadata) in class_data {
         // Calculate the D_AHP value using the formula: D_AHP = 12 * n_g
 
-        let d_ahp_vec: Vec<u64> = vec![3 * metadata.n_g + 2 * metadata.n_i + 1, 12 * metadata.n_g];
+        let d_ahp_vec: Vec<u64> = vec![3 * metadata.n_g + 2 * metadata.n_i + 2, 12 * metadata.n_g];
         let d_ahp = *d_ahp_vec.iter().max().unwrap();
 
-        println_dbg!("pos {class_number} = {:?}", d_ahp_vec.iter().position(|v| *v == d_ahp));
+        let inx = d_ahp_vec.iter().position(|v| *v == d_ahp).unwrap();
+        println_dbg!("class_number {class_number}: inx {}, number: {}", inx, d_ahp_vec[inx]);
 
         // Generate cryptographic keys for the setup
         setup.generate_keys(d_ahp, metadata.p, metadata.g);

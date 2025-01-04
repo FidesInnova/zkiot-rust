@@ -21,7 +21,6 @@ use std::env;
 fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
 
-
     // Initiate the proof generation process
     main_proof_gen(&args[1])?;
 
