@@ -799,11 +799,11 @@ impl ProofGeneration {
     }
 
     /// Store in Json file
-    pub fn store(&self, path: &str, proof_data: Box<[AHPData]>, class_number: u8) -> Result<()> {
+    pub fn store(&self, path: &str, proof_data: Box<[AHPData]>, class_number: u8, commitment_id: String) -> Result<()> {
         let file = File::create(path)?;
         let writer = BufWriter::new(file);
 
-        let proof_json = ProofGenerationJson::new(proof_data, class_number);
+        let proof_json = ProofGenerationJson::new(proof_data, class_number, commitment_id);
         serde_json::to_writer(writer, &proof_json)?;
         Ok(())
     }
@@ -818,8 +818,8 @@ impl ProofGeneration {
 /// More Info: [wiki](https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-4-proof-json-file-format)
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ProofGenerationJson {
-    #[serde(flatten)]
-    pub info: DeviceInfo,
+    pub class: u8,
+    pub commitment_id: String,
 
     // #[serde(rename = "DeviceEncodedID")]
     // device_encoded_id: String,
@@ -915,7 +915,7 @@ pub struct ProofGenerationJson {
 }
 
 impl ProofGenerationJson {
-    pub fn new(proof_data: Box<[AHPData]>, class_number: u8) -> Self {
+    pub fn new(proof_data: Box<[AHPData]>, class_number: u8, commitment_id: String) -> Self {
         let mut commits = vec![];
         let mut polys = vec![];
         let mut sigma = vec![];
@@ -932,18 +932,9 @@ impl ProofGenerationJson {
             }
         }
 
-        let commitment_id = sha2_hash("concat_vals(DeviceConfig.json)");
-
         Self {
-            info: DeviceInfo::new(
-                class_number,
-                &commitment_id.to_string(),
-                "FidesInnova",
-                "test",
-                "1",
-                "2",
-            ),
-            // device_encoded_id: "Base64<MAC>".to_owned(),
+            class: class_number,
+            commitment_id,
             com1ahp: x_vec,
             com2ahp: commits[0],
             com3ahp: commits[1],

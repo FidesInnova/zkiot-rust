@@ -20,3 +20,5 @@ pub mod json_file;
 pub mod matrices;
 pub mod ahp;
 pub mod kzg;
+pub mod polynomial;
+pub mod field;

@@ -54,7 +54,7 @@ fn main() -> Result<()> {
     let proof_generation = ProofGeneration::restore(proof_path)
         .with_context(|| "Error loading proof data")?;
 
-    let class_number = proof_generation.info.class;
+    let class_number = proof_generation.class;
     
     // Load class data from the JSON file
     let class_data = ClassDataJson::get_class_data("class.json", class_number)

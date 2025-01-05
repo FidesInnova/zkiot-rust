@@ -117,11 +117,11 @@ impl Commitment {
 
 
     /// Store in Json file
-    pub fn store(&self, path: &str, class_number: u8, class: ClassDataJson) -> Result<()> {
+    pub fn store(&self, path: &str, class_number: u8, class: ClassDataJson, commitment_id: u64) -> Result<()> {
         let file = File::create(path)?;
         let writer = BufWriter::new(file);
 
-        let commitment_json = CommitmentJson::new(&self.polys_px, class_number, class);
+        let commitment_json = CommitmentJson::new(&self.polys_px, class_number, class, commitment_id);
         serde_json::to_writer(writer, &commitment_json)?;
         Ok(())
     }
@@ -176,12 +176,12 @@ pub struct CommitmentJson {
 }
 
 impl CommitmentJson {
-    pub fn new(polys_px: &Vec<Poly>, class_number: u8, class: ClassDataJson) -> Self {
+    pub fn new(polys_px: &Vec<Poly>, class_number: u8, class: ClassDataJson, commitment_id: u64) -> Self {
         // Extract values for CommitmentJson from the Commitment struct
         let polys_px_t: Vec<Vec<u64>> = polys_px.iter().map(|p| write_term(p)).collect();
 
         Self {
-            info: DeviceInfo::new(class_number, "123456789", "FidesInnova", "test", "1", "2"),
+            info: DeviceInfo::new(class_number, &commitment_id.to_string(), "FidesInnova", "test", "1", "2"),
             m: class.m,
             n: class.n,
             p: class.p,
@@ -305,6 +305,11 @@ impl CommitmentBuilder {
 
                     a_mat[(_inx, _li)] = left_val;
                     b_mat[(_inx, _ri)] = right_val;
+                }
+                Instructions::Div => {
+                    println_dbg!("Gate: Div");
+                    
+
                 }
                 _ => {}
             }

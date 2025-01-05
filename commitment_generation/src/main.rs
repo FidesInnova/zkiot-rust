@@ -78,14 +78,13 @@ fn main() -> Result<()> {
     let gates = parse_from_lines(lines, &PathBuf::from(program_path))
         .with_context(|| "Error parsing instructions")?;
 
-    
     let gates = ahp::commitment_generation::Commitment::process_gates(gates);
 
     // Get the class number based on the length of the gates
     let class_number = &get_class_number(gates.len());
 
     println_dbg!("class: {}", class_number);
-    
+
     // Ensure that the P in use is correct
     assert_eq!(
         classes_data[class_number].p,
@@ -118,12 +117,22 @@ fn main() -> Result<()> {
     )
     .store(PROGRAM_PARAMS_PATH)?;
 
+    let concat_device_config_values = format!(
+        "{}{}{}{}",
+        device_config.info.iot_manufacturer_name,
+        device_config.info.iot_device_name,
+        device_config.info.device_hardware_version,
+        device_config.info.firmware_version
+    );
+    let commitment_id = utils::sha2_hash(&concat_device_config_values);
+
     // Store the commitment data in a JSON file
     commitment
         .store(
             PROGRAM_COMMITMENT_PATH,
             *class_number,
             classes_data[class_number],
+            commitment_id,
         )
         .with_context(|| "Error storing commitment data")?;
 

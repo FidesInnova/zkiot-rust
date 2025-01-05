@@ -60,14 +60,14 @@ pub fn main_proof_gen(setup_path: &str) -> Result<()> {
         &setup_json.get_ck(),
         class_data,
         program_params,
-        commitment_json,
+        commitment_json.clone(),
         z_vec
     );
     println!("Proof timer: {:?}", timer.elapsed());
 
     // Store the generated proof data in a JSON file
     proof_generation
-        .store(PROOF_PATH, proof_data, class_number)
+        .store(PROOF_PATH, proof_data, class_number, commitment_json.info.commitment_id)
         .with_context(|| "Error storing proof data")?;
     println!("ProofGeneration file generated successfully");
 
