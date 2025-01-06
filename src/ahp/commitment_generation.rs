@@ -32,21 +32,22 @@ use crate::matrices::Matrices;
 use crate::parser::Gate;
 use crate::parser::Instructions;
 use crate::parser::RiscvReg;
+use crate::polynomial::FPoly;
 use crate::println_dbg;
 use crate::utils::*;
 
 #[derive(Debug, Clone)]
 pub struct Commitment {
-    pub set_h: Vec<Mfp>,
-    pub set_k: Vec<Mfp>,
+    pub set_h: Vec<u64>,
+    pub set_k: Vec<u64>,
     pub numebr_t_zero: usize,
     pub matrices: Matrices,
 
     /// row, col, val
-    pub polys_px: Vec<Poly>,
+    pub polys_px: Vec<FPoly>,
 
     /// val, row, col
-    pub points_px: Vec<HashMap<Mfp, Mfp>>,
+    pub points_px: Vec<HashMap<u64, u64>>,
 }
 
 impl Commitment {
@@ -83,8 +84,8 @@ impl Commitment {
     /// [AHP Commitment Generation Documentation](https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/2-commitment-phase#id-2-3-ahp-commitment)
     pub fn get_polynomials_commitment(
         &self,
-        commitment_key: &Vec<Mfp>,
-    ) -> Vec<Mfp> {
+        commitment_key: &Vec<u64>,
+    ) -> Vec<u64> {
         let commitment = compute_all_commitment(&self.polys_px, commitment_key);
         println_dbg!("com_ahp: {}", dsp_vec!(commitment));
         commitment
@@ -202,7 +203,7 @@ impl CommitmentJson {
 
     /// Converts a vector of u64 values into a polynomial.
     fn convert_poly(v: &Vec<u64>) -> Poly {
-        let mut poly = Poly::from(v.iter().rev().map(|&t| Mfp::from(t)).collect::<Vec<Mfp>>());
+        let mut poly = Poly::from(v.iter().rev().map(|&t| u64::from(t)).collect::<Vec<u64>>());
         poly.trim();
         poly
     }
@@ -284,7 +285,7 @@ impl CommitmentBuilder {
             println_dbg!("li: {_li}");
             println_dbg!("ri: {_ri}");
 
-            c_mat[(_inx, _inx)] = Mfp::ONE;
+            c_mat[(_inx, _inx)] = 1;
             println_dbg!("C[{}, {}] = 1", _inx, _inx);
 
             match gate.instr {
@@ -294,7 +295,7 @@ impl CommitmentBuilder {
                     println_dbg!("B[{}, {}] = {}", _inx, _li, left_val);
                     println_dbg!("B[{}, {}] = {}", _inx, _ri, right_val);
 
-                    a_mat[(_inx, 0)] = Mfp::ONE;
+                    a_mat[(_inx, 0)] = 1;
                     b_mat[(_inx, _li)] = left_val;
                     b_mat[(_inx, _ri)] = right_val;
                 }
@@ -432,13 +433,13 @@ impl CommitmentBuilder {
         (li, ri)
     }
 
-    /// Helper function to get Mfp value and index
-    fn get_mfp_value(val: Option<u64>, index: &mut usize) -> Mfp {
+    /// Helper function to get u64 value and index
+    fn get_mfp_value(val: Option<u64>, index: &mut usize) -> u64 {
         if let Some(v) = val {
             *index = 0; // Set index to zero if value exists
-            Mfp::from(v)
+            u64::from(v)
         } else {
-            Mfp::ONE
+            1
         }
     }
 
@@ -583,26 +584,26 @@ mod test_matrices {
 
         // Check matrix A
         let mat = commitment.commitm.matrices.a;
-        assert_eq!(mat[(33, 0)], Mfp::ONE);
-        assert_eq!(mat[(34, 2)], Mfp::ONE);
-        assert_eq!(mat[(35, 0)], Mfp::ONE);
-        assert_eq!(mat[(36, 33)], Mfp::ONE);
+        assert_eq!(mat[(33, 0)], 1);
+        assert_eq!(mat[(34, 2)], 1);
+        assert_eq!(mat[(35, 0)], 1);
+        assert_eq!(mat[(36, 33)], 1);
 
         // Check matrix B
         let mat = commitment.commitm.matrices.b;
-        assert_eq!(mat[(33, 1)], Mfp::ONE);
-        assert_eq!(mat[(35, 34)], Mfp::ONE);
+        assert_eq!(mat[(33, 1)], 1);
+        assert_eq!(mat[(35, 34)], 1);
 
-        assert_eq!(mat[(33, 0)], Mfp::from(5));
-        assert_eq!(mat[(34, 0)], Mfp::from(2));
-        assert_eq!(mat[(35, 0)], Mfp::from(10));
-        assert_eq!(mat[(36, 0)], Mfp::from(7));
+        assert_eq!(mat[(33, 0)], u64::from(5));
+        assert_eq!(mat[(34, 0)], u64::from(2));
+        assert_eq!(mat[(35, 0)], u64::from(10));
+        assert_eq!(mat[(36, 0)], u64::from(7));
 
         // Check matrix C
         let mat = commitment.commitm.matrices.c;
-        assert_eq!(mat[(33, 33)], Mfp::ONE);
-        assert_eq!(mat[(34, 34)], Mfp::ONE);
-        assert_eq!(mat[(35, 35)], Mfp::ONE);
-        assert_eq!(mat[(36, 36)], Mfp::ONE);
+        assert_eq!(mat[(33, 33)], 1);
+        assert_eq!(mat[(34, 34)], 1);
+        assert_eq!(mat[(35, 35)], 1);
+        assert_eq!(mat[(36, 36)], 1);
     }
 }

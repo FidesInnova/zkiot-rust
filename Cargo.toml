@@ -8,14 +8,9 @@ members = ["setup", "commitment_generation", "proof_generation", "proof_verifica
 
 [dependencies]
 anyhow = "1.0.86"
-ark-ff = "0.4.2"
-lazy_static = "1.5.0"
 nalgebra = "0.33.1"
 nalgebra-sparse = "0.10.0"
-num-complex = "0.4.6"
 rand = "0.8.5"
-rustfft = "6.2.0"
-rustnomial = "0.3.2"
 serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0.128"
 sha2 = "0.10.8"
