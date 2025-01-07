@@ -442,24 +442,23 @@ pub fn poly_func_u(x: Option<u64>, y: Option<u64>, degree: usize, p: u64) -> FPo
             let mut current_power = 1;
             for _ in 0..degree {
                 vec_poly.push(current_power);
-                current_power = current_power * y;
+                current_power = fmath::mul(current_power, y, p);
             }
             FPoly::new(vec_poly)
-        }
+        },
         (Some(x), None) => {
             let mut vec_poly: Vec<u64> = Vec::with_capacity(degree);
             let mut current_power = 1;
             for _ in 0..degree {
                 vec_poly.push(current_power);
-                current_power = current_power * x;
+                current_power = fmath::mul(current_power, x, p);
             }
             FPoly::new(vec_poly)
-        }
+        },
         (Some(x), Some(y)) => {
             let mut result = 0;
 
             for k in 0..degree {
-                // FIXME: Check here!
                 let rhs = fmath::pow(y, k as u64, p);
                 let lhs = fmath::pow(x, (degree - 1 - k) as u64, p);
                 let mul_numbers = fmath::mul(lhs, rhs, p);
@@ -467,7 +466,7 @@ pub fn poly_func_u(x: Option<u64>, y: Option<u64>, degree: usize, p: u64) -> FPo
             }
 
             FPoly::new(vec![result])
-        }
+        },
         (None, None) => panic!("Both x and y cannot be None"),
     }
 }
