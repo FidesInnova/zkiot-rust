@@ -48,7 +48,7 @@ impl Setup {
         let tau = 119;  // Placeholder for a random number
 
         // Generate commitment keys using KZG.
-        let ck = kzg::setup(num, tau, p, g);
+        let ck = kzg::setup(num, tau, g, p);
 
         self.ck = ck; // Store commitment keys
         self.vk = self.ck[1]; // Set verifying key

@@ -18,13 +18,9 @@ use std::io::BufWriter;
 use std::iter::repeat_with;
 
 use anyhow::Result;
-use ark_ff::Field;
 use nalgebra::DVector;
 use rand::thread_rng;
 use rand::Rng;
-use rustnomial::Evaluable;
-use rustnomial::FreeSizePolynomial;
-use rustnomial::SizedPolynomial;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -77,13 +73,13 @@ impl ProofGeneration {
     }
 
     /// Generates a vector Z
-    pub fn generate_z_vec(class_data: &ClassDataJson, z_vec_in: Vec<u64>) -> DVector<Mfp> {
+    pub fn generate_z_vec(class_data: &ClassDataJson, z_vec_in: Vec<u64>) -> DVector<u64> {
         let size = class_data.get_matrix_size();
-        let mut z_vec: DVector<Mfp> = DVector::zeros(size);
+        let mut z_vec: DVector<u64> = DVector::zeros(size);
 
         assert_eq!(z_vec_in.len() as u64, class_data.n_g + class_data.n_i + 1);
 
-        let vals = z_vec_in.iter().map(|v| Mfp::from(*v)).collect::<Vec<Mfp>>();
+        let vals = z_vec_in.iter().map(|v| u64::from(*v)).collect::<Vec<u64>>();
         println_dbg!("val len: {}", vals.len());
 
         for (i, z) in vals.iter().enumerate() {
@@ -98,9 +94,9 @@ impl ProofGeneration {
 
     /// Generates interpolated polynomials from the given matrix and random values
     fn generate_oz_interpolations(
-        matrix_oz: [Vec<Mfp>; 3],
+        matrix_oz: [Vec<u64>; 3],
         random_b: u64,
-        set_h: &Vec<Mfp>,
+        set_h: &Vec<u64>,
     ) -> (Poly, Poly, Poly) {
         let mut points_za = get_points_set(&matrix_oz[0], &set_h);
         let mut points_zb = get_points_set(&matrix_oz[1], &set_h);
@@ -127,8 +123,8 @@ impl ProofGeneration {
     /// Helper function to compute interpolations for w(h)
     fn compute_x_w_vanishing_interpolation(
         random_b: u64,
-        set_h: &Vec<Mfp>,
-        z_vec: &Vec<Mfp>,
+        set_h: &Vec<u64>,
+        z_vec: &Vec<u64>,
         numebr_t_zero: usize,
     ) -> (Poly, Poly, Poly) {
         // Split set_h into two subsets based on index t
@@ -177,9 +173,9 @@ impl ProofGeneration {
 
     /// Calculates r polynomials using alpha for given points
     fn calculate_r_polynomials_with_alpha(
-        points_px: &Vec<HashMap<Mfp, Mfp>>,
-        alpha: Mfp,
-        set_h: &Vec<Mfp>,
+        points_px: &Vec<HashMap<u64, u64>>,
+        alpha: u64,
+        set_h: &Vec<u64>,
         g: u64,
     ) -> (Poly, Poly, Poly) {
         // ∑ r(alpha_2=10, k) * A^(k,x)
@@ -230,9 +226,9 @@ impl ProofGeneration {
 
     /// Calculates r polynomials using beta for given points
     fn calculate_r_polynomials_with_beta(
-        points_px: &Vec<HashMap<Mfp, Mfp>>,
-        beta_1: Mfp,
-        set_h: &Vec<Mfp>,
+        points_px: &Vec<HashMap<u64, u64>>,
+        beta_1: u64,
+        set_h: &Vec<u64>,
     ) -> (Poly, Poly, Poly) {
         // ∑ r(alpha_2=10, k) * A^(x,k)
         let r_a_xk = m_k(
@@ -276,7 +272,7 @@ impl ProofGeneration {
     /// Generates proof values to be used for creating a JSON file later
     pub fn generate_proof(
         &self,
-        commitment_key: &Vec<Mfp>,
+        commitment_key: &Vec<u64>,
         class_data: ClassDataJson,
         program_params: ProgramParamsJson,
         commitment_json: CommitmentJson,
@@ -358,21 +354,21 @@ impl ProofGeneration {
         // Compute sigma by evaluating the polynomial at points in set_h
         let sigma_1 = set_h
             .iter()
-            .fold(Mfp::ZERO, |acc, &v| acc + poly_sx.eval(v));
+            .fold(u64::ZERO, |acc, &v| acc + poly_sx.eval(v));
         println_dbg!("sigma_1 :	{}", sigma_1);
 
         // TODO:
-        let alpha = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(0))).to_string()));
-        let eta_a = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(1))).to_string()));
-        let eta_b = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(2))).to_string()));
-        let eta_c = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(3))).to_string()));
+        let alpha = u64::from(sha2_hash(&(poly_sx.eval(u64::from(0))).to_string()));
+        let eta_a = u64::from(sha2_hash(&(poly_sx.eval(u64::from(1))).to_string()));
+        let eta_b = u64::from(sha2_hash(&(poly_sx.eval(u64::from(2))).to_string()));
+        let eta_c = u64::from(sha2_hash(&(poly_sx.eval(u64::from(3))).to_string()));
 
         // From wiki: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
         //             Step 6
-        // let alpha = Mfp::from(10);
-        // let eta_a = Mfp::from(2);
-        // let eta_b = Mfp::from(30);
-        // let eta_c = Mfp::from(100);
+        // let alpha = u64::from(10);
+        // let eta_a = u64::from(2);
+        // let eta_b = u64::from(30);
+        // let eta_c = u64::from(100);
 
         // Compute polynomial for ∑ ηz(x)
         let sigma_eta_z_x = Poly::new(vec![eta_a]) * &poly_z_hat_a
@@ -423,7 +419,7 @@ impl ProofGeneration {
         println_dbg!("Poly h_1x: ");
         dsp_poly!(h_1x);
 
-        let g_1x = div_mod(&div_res.1, &Poly::new(vec![Mfp::ONE, Mfp::ZERO])).0;
+        let g_1x = div_mod(&div_res.1, &Poly::new(vec![u64::ONE, u64::ZERO])).0;
         println_dbg!("Poly g_1x:");
         dsp_poly!(g_1x);
 
@@ -431,8 +427,8 @@ impl ProofGeneration {
         let beta_1 = generate_beta_random(8, &poly_sx, &set_h);
         let beta_2 = generate_beta_random(9, &poly_sx, &set_h);
 
-        // let beta_1 = Mfp::from(22);
-        // let beta_2 = Mfp::from(80);
+        // let beta_1 = u64::from(22);
+        // let beta_2 = u64::from(80);
 
         let (r_a_xk, r_b_xk, r_c_xk) =
             Self::calculate_r_polynomials_with_beta(&points_px, beta_1, &set_h);
@@ -456,12 +452,12 @@ impl ProofGeneration {
         println_dbg!("Poly h_2x: ");
         dsp_poly!(h_2x);
 
-        let g_2x = div_mod(&div_res.1, &Poly::new(vec![Mfp::ONE, Mfp::ZERO])).0;
+        let g_2x = div_mod(&div_res.1, &Poly::new(vec![u64::ONE, u64::ZERO])).0;
         println_dbg!("Poly g_2x:");
         dsp_poly!(g_2x);
 
         // sigma_3
-        let mut sigma_3 = Mfp::ZERO;
+        let mut sigma_3 = u64::ZERO;
 
         let polys_px = commitment_json.get_polys_px();
 
@@ -496,19 +492,19 @@ impl ProofGeneration {
             vec![eta_a, eta_b, eta_c],
             &polys_pi,
         );
-        println_dbg!("poly_a_x: {}", poly_a_x.eval(Mfp::from(5)));
+        println_dbg!("poly_a_x: {}", poly_a_x.eval(u64::from(5)));
         dsp_poly!(poly_a_x);
 
         // b(x)
         let poly_b_x = polys_pi[0] * polys_pi[1] * polys_pi[2];
-        println_dbg!("poly_b_x: {}", poly_b_x.eval(Mfp::from(5)));
+        println_dbg!("poly_b_x: {}", poly_b_x.eval(u64::from(5)));
         dsp_poly!(poly_b_x);
 
         let van_poly_vkx = vanishing_poly(&set_k);
         println_dbg!("van_poly_vkx");
         dsp_poly!(van_poly_vkx);
 
-        let sigma_3_set_k = div_mod_val(Mfp::from(sigma_3), Mfp::from(set_k.len() as u64));
+        let sigma_3_set_k = div_mod_val(u64::from(sigma_3), u64::from(set_k.len() as u64));
         println_dbg!("sigma_3_set_k {}", sigma_3_set_k);
 
         let poly_f_3x = poly_f_3x - Poly::from(vec![sigma_3_set_k]);
@@ -516,7 +512,7 @@ impl ProofGeneration {
         println_dbg!("poly_f_3x");
         dsp_poly!(poly_f_3x);
 
-        let g_3x = div_mod(&poly_f_3x, &Poly::from(vec![Mfp::ONE, Mfp::ZERO])).0;
+        let g_3x = div_mod(&poly_f_3x, &Poly::from(vec![u64::ONE, u64::ZERO])).0;
         println_dbg!("g_3x");
         dsp_poly!(g_3x);
 
@@ -581,23 +577,23 @@ impl ProofGeneration {
 
         // TODO:
         // let eta_values = [
-        //     Mfp::from(1),  // eta_w
-        //     Mfp::from(4),  // eta_z_a
-        //     Mfp::from(10), // eta_z_b
-        //     Mfp::from(8),  // eta_z_c
-        //     Mfp::from(32), // eta_h0
-        //     Mfp::from(45), // eta_s
-        //     Mfp::from(92), // eta_g1
-        //     Mfp::from(11), // eta_h1
-        //     Mfp::from(1),  // eta_g2
-        //     Mfp::from(5),  // eta_h2
-        //     Mfp::from(25), // eta_g3
-        //     Mfp::from(63), // eta_h3
+        //     u64::from(1),  // eta_w
+        //     u64::from(4),  // eta_z_a
+        //     u64::from(10), // eta_z_b
+        //     u64::from(8),  // eta_z_c
+        //     u64::from(32), // eta_h0
+        //     u64::from(45), // eta_s
+        //     u64::from(92), // eta_g1
+        //     u64::from(11), // eta_h1
+        //     u64::from(1),  // eta_g2
+        //     u64::from(5),  // eta_h2
+        //     u64::from(25), // eta_g3
+        //     u64::from(63), // eta_h3
         // ];
 
         let mut eta_values = vec![];
         for i in 10..=21 {
-            eta_values.push(Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(i)).to_string())))
+            eta_values.push(u64::from(sha2_hash(&poly_sx.eval(u64::from(i)).to_string())))
         }
 
         let poly_px = eta_values
@@ -610,14 +606,14 @@ impl ProofGeneration {
         dsp_poly!(poly_px);
 
         // TODO:
-        let z = Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(22)).to_string()));
-        // let z = Mfp::from(2);
+        let z = u64::from(sha2_hash(&poly_sx.eval(u64::from(22)).to_string()));
+        // let z = u64::from(2);
         let val_y_p = poly_px.eval(z);
         println_dbg!("val_y_p {}", val_y_p);
 
         let mut poly_px_add = poly_px;
         poly_px_add.add_term(-val_y_p, 0);
-        let poly_x_z = Poly::from(vec![Mfp::ONE, Mfp::from(-z)]);
+        let poly_x_z = Poly::from(vec![u64::ONE, u64::from(-z)]);
 
         let poly_qx = div_mod(&poly_px_add, &poly_x_z).0;
         println_dbg!("poly_qx");
@@ -643,7 +639,7 @@ impl ProofGeneration {
     }
 
     /// Computes three polynomials used for ax
-    pub fn compute_polys_pi(beta_1: Mfp, beta_2: Mfp, polys_px: &[Poly]) -> (Poly, Poly, Poly) {
+    pub fn compute_polys_pi(beta_1: u64, beta_2: u64, polys_px: &[Poly]) -> (Poly, Poly, Poly) {
         let poly_pi_a =
             (Poly::from(vec![beta_2]) - &polys_px[0]) * (Poly::from(vec![beta_1]) - &polys_px[1]);
         let poly_pi_b =
@@ -657,9 +653,9 @@ impl ProofGeneration {
     /// Generates a random polynomial with specified degree and coefficient range
     fn generate_random_polynomial(degree: usize, coefficient_range: (u64, u64)) -> Poly {
         let mut rng = rand::thread_rng();
-        let coefficients: Vec<Mfp> = repeat_with(|| {
+        let coefficients: Vec<u64> = repeat_with(|| {
             let random_value = rng.gen_range(coefficient_range.0..=coefficient_range.1);
-            Mfp::from(random_value)
+            u64::from(random_value)
         })
         .take(degree + 1) // +1 because degree is the highest power
         .collect();
@@ -667,8 +663,8 @@ impl ProofGeneration {
         // // TODO: Random numebrs from Wiki, Comment it after test
         // let coefficients = [5, 0, 101, 17, 0, 1, 20, 0, 0, 3, 115]
         //     .iter()
-        //     .map(|v| Mfp::from(*v))
-        //     .collect::<Vec<Mfp>>();
+        //     .map(|v| u64::from(*v))
+        //     .collect::<Vec<u64>>();
 
         // // TODO: Random numebrs from Wiki, Comment it after test
         // let coefficients = [
@@ -679,8 +675,8 @@ impl ProofGeneration {
         // ]
         // .iter()
         // .rev()
-        // .map(|v| Mfp::from(*v))
-        // .collect::<Vec<Mfp>>();
+        // .map(|v| u64::from(*v))
+        // .collect::<Vec<u64>>();
 
         let mut rand_poly = Poly::from(coefficients);
         rand_poly.trim();
@@ -690,11 +686,11 @@ impl ProofGeneration {
     /// Creates a proof structure from provided polynomial and commitment data
     fn create_proof(
         polys_proof: &[Poly],
-        sigma: &[Mfp],
-        commit_x: &[Mfp],
-        val_y_p: Mfp,
-        val_commit_poly_qx: Mfp,
-        x_vec: &Vec<Mfp>,
+        sigma: &[u64],
+        commit_x: &[u64],
+        val_y_p: u64,
+        val_commit_poly_qx: u64,
+        x_vec: &Vec<u64>,
     ) -> Box<[AHPData]> {
         let mut proof_data = Vec::new();
 
@@ -727,12 +723,12 @@ impl ProofGeneration {
 
     /// Computes polynomial Fx
     fn generate_poly_fx(
-        sigma_3: &mut Mfp,
+        sigma_3: &mut u64,
         polys_px: &[Poly],
         van_poly_vhx: &Poly,
-        eta: &Vec<Mfp>,
-        beta: &Vec<Mfp>,
-        set_k: &Vec<Mfp>,
+        eta: &Vec<u64>,
+        beta: &Vec<u64>,
+        set_k: &Vec<u64>,
     ) -> Poly {
         let mut points_f_3: Vec<Point> = vec![];
         for k in set_k.iter() {
@@ -771,9 +767,9 @@ impl ProofGeneration {
     /// Generates polynomial based on input parameters
     fn generate_poly_ax(
         polys_px: &[Poly],
-        beta: Vec<Mfp>,
+        beta: Vec<u64>,
         van_poly_vhx: &Poly,
-        eta: Vec<Mfp>,
+        eta: Vec<u64>,
         poly_pi: &[&Poly],
     ) -> Poly {
         println_dbg!("eta: {:?}", eta);
@@ -969,9 +965,9 @@ impl ProofGenerationJson {
     }
 
     /// Get vector X (Vector X is the first part of vector Z, where Z = [X, W, Y])
-    pub fn get_x_vec(&self) -> Vec<Mfp> {
-        let mut x: Vec<Mfp> = self.com1ahp.iter().map(|v| Mfp::from(*v)).collect();
-        x.insert(0, Mfp::ONE);
+    pub fn get_x_vec(&self) -> Vec<u64> {
+        let mut x: Vec<u64> = self.com1ahp.iter().map(|v| u64::from(*v)).collect();
+        x.insert(0, u64::ONE);
         x
     }
 
@@ -999,16 +995,16 @@ impl ProofGenerationJson {
         let poly_vec = this_poly
             .iter()
             .rev()
-            .map(|&v| Mfp::from(v))
-            .collect::<Vec<Mfp>>();
+            .map(|&v| u64::from(v))
+            .collect::<Vec<u64>>();
         let mut poly = Poly::from(poly_vec);
         poly.trim();
         poly
     }
 
     /// Get commits
-    pub fn get_commits(&self, num: usize) -> Mfp {
-        Mfp::from(*match num {
+    pub fn get_commits(&self, num: usize) -> u64 {
+        u64::from(*match num {
             0 => &self.com2ahp,
             1 => &self.com3ahp,
             2 => &self.com4ahp,
@@ -1029,8 +1025,8 @@ impl ProofGenerationJson {
     }
 
     /// Get sigma values
-    pub fn get_sigma(&self, num: usize) -> Mfp {
-        Mfp::from(match num {
+    pub fn get_sigma(&self, num: usize) -> u64 {
+        u64::from(match num {
             1 => self.p1ahp,
             2 => self.p10ahp,
             3 => self.p13ahp,
@@ -1040,8 +1036,8 @@ impl ProofGenerationJson {
 
     /// Get 1:p16ahp, and 2:p17ahp
     /// For more details, refer to the [documentation](https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-3-proof-structure)
-    pub fn get_value(&self, num: usize) -> Mfp {
-        Mfp::from(match num {
+    pub fn get_value(&self, num: usize) -> u64 {
+        u64::from(match num {
             1 => self.p16ahp,
             2 => self.p17ahp,
             _ => panic!("Invalid value number"),

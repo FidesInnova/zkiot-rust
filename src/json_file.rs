@@ -15,10 +15,6 @@
 //! Utilities for storing polynomials and sets in JSON files.
 use anyhow::anyhow;
 use anyhow::Result;
-use ark_ff::Field;
-use nalgebra::DMatrix;
-use rustnomial::Degree;
-use rustnomial::SizedPolynomial;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
@@ -31,10 +27,9 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use crate::math::generate_set;
-use crate::math::Mfp;
-use crate::math::Poly;
+use crate::matrices::FMatrix;
 use crate::matrices::Matrices;
-use crate::to_bint;
+use crate::polynomial::FPoly;
 use crate::utils::read_json_file;
 
 /// Converts a polynomial to a vector representation of its coefficients.
@@ -46,29 +41,10 @@ use crate::utils::read_json_file;
 /// # Returns
 /// Returns a `Vec<u64>` containing the coefficients of the polynomial, where the index represents the exponent
 /// of each term. If a term does not exist for a particular exponent, the coefficient at that index will be `0`.
-pub fn write_term(poly: &Poly) -> Vec<u64> {
+pub fn write_term(poly: &FPoly) -> Vec<u64> {
     let mut poly = poly.clone();
     poly.trim();
-
-    let poly_terms = poly.terms_as_vec();
-
-    let max_deg = if let Degree::Num(n) = poly.degree() {
-        n
-    } else {
-        0
-    };
-
-    let mut poly = vec![0; max_deg + 1];
-
-    for (i, poly) in poly.iter_mut().enumerate().take(max_deg + 1) {
-        let index = poly_terms
-            .iter()
-            .position(|v| v.1 == i)
-            .unwrap_or(usize::MAX);
-        *poly = to_bint!(poly_terms.get(index).unwrap_or(&(Mfp::ZERO, 0)).0);
-    }
-
-    poly
+    poly.terms.into_iter().rev().collect()
 }
 
 /// Adds a new JSON value to an existing JSON file, replacing any existing data.
@@ -95,18 +71,17 @@ pub fn store_in_json_file(value: Value, path: &str) -> Result<()> {
     Ok(())
 }
 
-/// Converts a vector of `Mfp` objects to a vector of `u64` values.
+/// Converts a vector of `u64` objects to a vector of `u64` values.
 ///
 /// # Parameters
-/// - `set`: A reference to a vector containing `Mfp` objects to be converted.
+/// - `set`: A reference to a vector containing `u64` objects to be converted.
 ///
 /// # Returns
-/// Returns a `Vec<u64>` containing the converted values, where each `Mfp` object
+/// Returns a `Vec<u64>` containing the converted values, where each `u64` object
 /// is transformed into a `u64` representation using the `to_bint!` macro.
-pub fn write_set(set: &Vec<Mfp>) -> Vec<u64> {
-    set.iter()
-        .map(|v| to_bint!(*v) as u64)
-        .collect::<Vec<u64>>()
+pub fn write_set(set: &Vec<u64>) -> Vec<u64> {
+    // FIXME: Remove this function! 
+    set.clone()
 }
 
 /// Opens a file and returns a buffered reader.
@@ -219,11 +194,12 @@ pub struct ProgramParamsJson {
 impl ProgramParamsJson {
     pub fn new(
         matrices: &Matrices,
-        points_px: &Vec<HashMap<Mfp, Mfp>>,
+        points_px: &Vec<HashMap<u64, u64>>,
         class_data: ClassDataJson,
+        p: u64
     ) -> Self {
         // store points accordint to set_k
-        let set_k = generate_set(class_data.m, class_data);
+        let set_k = generate_set(class_data.m, class_data, p);
 
         // Values of ranges: [[point_val_a, point_col_a, point_row_a, ...]]
         let points_px = Self::to_points_u64(points_px, &set_k);
@@ -249,13 +225,13 @@ impl ProgramParamsJson {
 
     /// Converts a vector of point mappings to u64 values based on a specified key set
     #[allow(warnings)]
-    fn to_points_u64(points_px: &Vec<HashMap<Mfp, Mfp>>, set_k: &Vec<Mfp>) -> Vec<Vec<u64>> {
+    fn to_points_u64(points_px: &Vec<HashMap<u64, u64>>, set_k: &Vec<u64>) -> Vec<Vec<u64>> {
         let mut points_px_t: Vec<Vec<(u64, u64)>> = points_px
             .iter()
             .map(|points| {
                 points
                     .iter()
-                    .map(|(&key, &val)| (to_bint!(key), to_bint!(val)))
+                    .map(|(&key, &val)| (key, val))
                     .collect::<Vec<(u64, u64)>>()
             })
             .collect();
@@ -267,7 +243,7 @@ impl ProgramParamsJson {
                 // Find the index of x in set_k to use as the sorting key
                 set_k
                     .iter()
-                    .position(|&k| to_bint!(k) == x)
+                    .position(|&k| k == x)
                     .unwrap_or(usize::MAX)
             });
         }
@@ -290,22 +266,22 @@ impl ProgramParamsJson {
     }
 
     /// Constructs matrix A with specified size and number of leading zeros
-    fn get_matrix_a(&self, size: usize, number_t_zeros: usize) -> DMatrix<Mfp> {
-        let mut mat_a = DMatrix::<Mfp>::zeros(size, size);
+    fn get_matrix_a(&self, size: usize, number_t_zeros: usize) -> FMatrix {
+        let mut mat_a = FMatrix::zeros(size, size);
 
         for (i, &j) in self.a.iter().enumerate() {
-            mat_a[(i + number_t_zeros, j.try_into().unwrap())] = Mfp::ONE;
+            mat_a[(i + number_t_zeros, j.try_into().unwrap())] = 1;
         }
 
         mat_a
     }
 
     /// Constructs matrix B from the provided triplet data
-    fn get_matrix_b(&self, size: usize) -> DMatrix<Mfp> {
-        let mut mat_b = DMatrix::<Mfp>::zeros(size, size);
+    fn get_matrix_b(&self, size: usize) -> FMatrix {
+        let mut mat_b = FMatrix::zeros(size, size);
 
         for &(i, j, val) in self.b.iter() {
-            mat_b[(i, j)] = Mfp::from(val);
+            mat_b[(i, j)] = u64::from(val);
         }
 
         mat_b
@@ -314,8 +290,8 @@ impl ProgramParamsJson {
     /// Retrieves the points data as a vector of hash maps.
     ///
     /// # Returns
-    /// A vector of hash maps where each map represents a set of points with `Mfp` keys and values.
-    pub fn get_points_px(&self, set_k: &Vec<Mfp>) -> Vec<HashMap<Mfp, Mfp>> {
+    /// A vector of hash maps where each map represents a set of points with `u64` keys and values.
+    pub fn get_points_px(&self, set_k: &Vec<u64>) -> Vec<HashMap<u64, u64>> {
         let points_px = [
             self.v_a.clone(),
             self.r_a.clone(),
@@ -334,7 +310,7 @@ impl ProgramParamsJson {
                 points
                     .iter()
                     .enumerate()
-                    .map(|(i, &p)| (set_k[i], Mfp::from(p)))
+                    .map(|(i, &p)| (set_k[i], u64::from(p)))
                     .collect()
             })
             .collect()
@@ -351,7 +327,7 @@ impl ProgramParamsJson {
     pub fn get_matrices(
         &self,
         class_data: &ClassDataJson,
-    ) -> (DMatrix<Mfp>, DMatrix<Mfp>, DMatrix<Mfp>) {
+    ) -> (FMatrix, FMatrix, FMatrix) {
         let a = self.get_matrix_a(
             class_data.get_matrix_size(),
             class_data.get_matrix_t_zeros(),
@@ -430,5 +406,27 @@ impl DeviceConfigJson {
     pub fn convert_lines(lines: LineValue) -> Vec<usize> {
         let LineValue::Range(r) = lines;
         (r.0..=r.1).collect()
+    }
+}
+
+
+
+#[cfg(test)]
+mod test_json {
+    use super::*;
+
+    #[test]
+    fn test_write() {
+        let poly1 = FPoly::new(vec![1, 2, 3, 4, 5]);
+        let poly2 = FPoly::new(vec![0, 0, 3, 4, 5]);
+        let poly3 = FPoly::new(vec![1, 2, 3, 0, 0]);
+        let poly4 = FPoly::new(vec![0, 2, 3, 0, 0]);
+        let poly5 = FPoly::new(vec![0, 0, 0, 0, 0]);
+        
+        assert_eq!(vec![1, 2, 3, 4, 5].into_iter().rev().collect::<Vec<u64>>(), write_term(&poly1));
+        assert_eq!(vec![3, 4, 5].into_iter().rev().collect::<Vec<u64>>(), write_term(&poly2));
+        assert_eq!(vec![1, 2, 3, 0, 0].into_iter().rev().collect::<Vec<u64>>(), write_term(&poly3));
+        assert_eq!(vec![2, 3, 0, 0].into_iter().rev().collect::<Vec<u64>>(), write_term(&poly4));
+        assert_eq!(vec![].into_iter().rev().collect::<Vec<u64>>(), write_term(&poly5));
     }
 }

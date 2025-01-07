@@ -12,52 +12,72 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use ark_ff::Field;
-use rustnomial::Degree;
-use rustnomial::SizedPolynomial;
-use rustnomial::Term;
+use crate::{field::fmath, polynomial::FPoly};
 
-use crate::math::Mfp;
-use crate::math::Poly;
-use crate::to_bint;
-
-/// Generates a vector of Mfp values based on the setup parameters and a random number
-pub fn setup(max: u64, tau: u64, p: u64, g: u64) -> Vec<Mfp> {
-    // Random number 
+/// Generates a vector of u64 values based on the setup parameters and a random number
+pub fn setup(max: u64, tau: u64, g: u64, p: u64) -> Vec<u64> {
+    // Random number
     let tau = tau % (p - 1);
-    let mut tmp = Mfp::from(g);
+    let mut tmp = g % p;
 
     (0..max)
         .map(|_| {
             let current = tmp;
-            tmp = Mfp::from(to_bint!(current) as u128 * tau as u128);
+            tmp = fmath::mul_use_u128(current, tau, p);
             current
         })
         .collect()
 }
 
-
 /// Computes the commitment of a polynomial using the provided commitment keys
-pub fn commit(poly_in: &Poly, ck: &[Mfp]) -> Mfp {
-    let mut res_poly = Mfp::ZERO;
+pub fn commit(poly_in: &FPoly, ck: &[u64], p: u64) -> u64 {
+    let mut res_poly = 0;
 
-    if let Degree::Num(deg) = poly_in.degree() {
+    let degree = poly_in.degree();
 
-        // Ensure that the number of commitment keys is greater than the polynomial degree
-        assert!(ck.len() > deg, "Error: The number of commitment keys ({}), must be greater than the polynomial degree ({}).", ck.len(), deg);
+    // Ensure that the number of commitment keys is greater than the polynomial degree
+    assert!(ck.len() > degree, "Error: The number of commitment keys ({}), must be greater than the polynomial degree ({}).", ck.len(), degree);
 
-        for i in 0..=deg {
-            match poly_in.term_with_degree(i) {
-                Term::ZeroTerm => {
-                    continue;
-                }
-                Term::Term(t, _) => {
-                    let mul = Mfp::from(to_bint!(t) as u128 * to_bint!(ck[i]) as u128);
-                    res_poly += mul;
-                }
-            }
-        }
+    for i in 0..degree {
+        let term = poly_in.terms[degree - 1 - i];
+        let mul = fmath::mul_use_u128(term, ck[i], p);
+        res_poly = fmath::add(res_poly, mul, p);
     }
 
     res_poly
+}
+
+
+#[cfg(test)]
+mod test_kzg {
+    use super::*;
+    const P: u64 = 181;
+
+    #[test]
+    fn test_setup() {
+        let max = 5;
+        let tau = 119;
+        let g = 2;
+
+        let result = setup(max, tau, g, P);
+
+        assert_eq!(result.len(), max as usize);
+        
+        assert_eq!(result, vec![2, 57, 86, 98, 78]);
+    }
+
+    #[test]
+    fn test_commit() {
+        let poly = FPoly::new(vec![
+            234,
+            12,
+            0,
+            99
+        ]);
+        let ck = vec![22, 180, 571, 174, 333];
+
+        let result = commit(&poly, &ck, P);
+        
+        assert_eq!(result, 152);
+    }
 }

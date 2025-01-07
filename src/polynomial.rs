@@ -1,3 +1,17 @@
+// Copyright 2024 Fidesinnova, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use crate::field::fmath;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -11,10 +25,11 @@ pub enum Term<N> {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FPoly {
-    terms: Vec<u64>,
+    pub terms: Vec<u64>,
 }
 
 impl FPoly {
+    // FIXME: should i use % p here?
     pub fn new(terms: Vec<u64>) -> Self {
         Self { terms }
     }
@@ -62,6 +77,34 @@ impl FPoly {
         if inx != 0 {
             self.terms.drain(0..inx);
         }
+    }
+}
+
+impl std::fmt::Display for FPoly {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut result = String::new();
+        let deg = self.degree();
+    
+        for (i, &term) in self.terms.iter().enumerate() {
+            if term == 0 || i > deg {
+                continue;
+            }
+    
+            if !result.is_empty() {
+                result.push_str(" + ");
+            }
+    
+            match (term, deg - i) {
+                (1, 0) => result.push_str("1"),
+                (1, 1) => result.push_str("x"),
+                (1, exp) => result.push_str(&format!("x^{}", exp)),
+                (_, 0) => result.push_str(&term.to_string()),
+                (_, 1) => result.push_str(&format!("{}x", term)),
+                (_, exp) => result.push_str(&format!("{}x^{}", term, exp)),
+            }
+        }
+    
+        write!(f, "{}", result)
     }
 }
 

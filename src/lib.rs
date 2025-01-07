@@ -22,4 +22,3 @@ pub mod ahp;
 pub mod kzg;
 pub mod polynomial;
 pub mod field;
-pub mod matrix;

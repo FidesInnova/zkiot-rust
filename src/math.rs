@@ -519,9 +519,8 @@ pub fn sigma_rk_mk(
         let mut p_r_xk = poly_func_u(Some(alpha), Some(*h), set_h.len(), p);
 
         let timer = std::time::Instant::now();
-        // this part is expensive
+        // FIXME: this part is expensive
         let mut p_m_kx = m_k_2(h, points_val, points_row, points_col, &catch, eval_order, p);
-        // ----------------------
         // eprintln!("time2 : {:?}", timer.elapsed());
 
         p_r_xk.trim();
@@ -633,11 +632,11 @@ pub fn e_func(a: u64, b: u64, g: u64, p: u64) -> u64 {
 ///
 /// # Returns
 /// A vector of `u64` values, where each value represents the commitment for the corresponding polynomial.
-pub fn compute_all_commitment(polys: &[FPoly], ck: &Vec<u64>) -> Vec<u64> {
+pub fn compute_all_commitment(polys: &[FPoly], ck: &Vec<u64>, p: u64) -> Vec<u64> {
     let mut res = vec![];
 
     for poly in polys.iter() {
-        let commitment_num = kzg::commit(&poly, &ck);
+        let commitment_num = kzg::commit(&poly, &ck, p);
         res.push(commitment_num);
     }
 
