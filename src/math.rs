@@ -28,6 +28,7 @@ use std::collections::HashSet;
 /// Type alias for a 2D point in the `u64` field.
 pub type Point = (u64, u64);
 
+
 /// Interpolates a polynomial that passes through a given set of points using the Newton interpolation algorithm.
 ///
 /// # Parameters
@@ -47,13 +48,9 @@ pub fn interpolate(points: &[Point], p: u64) -> FPoly {
     // Compute the divided differences table
     for j in 1..n {
         for i in 0..(n - j) {
-            let x_i = u64::from(points[i].0);
-            let x_ij = u64::from(points[i + j].0);
-            let numerator = fmath::sub(
-                divided_differences[i + 1][j - 1],
-                divided_differences[i][j - 1],
-                p,
-            );
+            let x_i = points[i].0;
+            let x_ij = points[i + j].0;
+            let numerator = fmath::sub(divided_differences[i + 1][j - 1], divided_differences[i][j - 1], p);
             let denominator = fmath::sub(x_ij, x_i, p);
             divided_differences[i][j] = fmath::div(numerator, denominator, p);
         }
@@ -65,8 +62,7 @@ pub fn interpolate(points: &[Point], p: u64) -> FPoly {
 
     for i in 1..n {
         let x_i = u64::from(points[i - 1].0);
-        // FIXME: inverse_mul or add?
-        let new_term = FPoly::new(vec![1, fmath::inverse_mul(x_i, p)]);
+        let new_term = FPoly::new(vec![1, fmath::inverse_add(x_i, p)]);
         poly_term = poly_fmath::poly_mul(&poly_term, &new_term, p); // Multiply by (x - x_i) for each term
         let poly_product = poly_fmath::poly_mul_by_number(&poly_term, divided_differences[0][i], p);
         poly_res = poly_fmath::poly_add(&poly_res, &poly_product, p);
