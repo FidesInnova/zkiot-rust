@@ -195,7 +195,7 @@ pub fn push_random_points(points: &mut Vec<Point>, b: u64, set_h: &HashSet<u64>,
 /// and uses it to generate a random number. If the generated number already exists in the
 /// `set_h`, it increments the number by one and checks again until a unique number is found.
 pub fn generate_beta_random(num: u64, poly_sx: &FPoly, set_h: &Vec<u64>, p: u64) -> u64 {
-    let mut random_number = u64::from(sha2_hash(&poly_sx.evaluate(num, p).to_string()));
+    let mut random_number = u64::from(sha2_hash_lower_32bit(&poly_sx.evaluate(num, p).to_string()));
     while set_h.contains(&random_number) {
         random_number = (random_number + 1) % p;
     }
@@ -433,6 +433,14 @@ macro_rules! dsp_vec {
 }
 
 
+
+fn sha2_hash(input: &str) -> String {
+    let mut hasher = sha2::Sha256::new();
+    hasher.update(input);
+    let result = hasher.finalize();
+    todo!()
+}
+
 /// Computes the SHA-256 hash of the given input string and returns the result as a `u32`.
 ///
 /// # Parameters
@@ -440,7 +448,7 @@ macro_rules! dsp_vec {
 ///
 /// # Returns
 /// A `u32` value representing the lower 32 bits of the SHA-256 hash.
-pub fn sha2_hash(input: &str) -> u64 {
+pub fn sha2_hash_lower_32bit(input: &str) -> u64 {
     let mut hasher = sha2::Sha256::new();
     hasher.update(input);
     let result = hasher.finalize();

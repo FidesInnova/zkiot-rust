@@ -14,6 +14,7 @@
 
 // field opration funcitons
 
+#[macro_use]
 pub mod fmath {
     pub fn add(a: u64, b: u64, p: u64) -> u64 {
         (a + b) % p
@@ -30,7 +31,7 @@ pub mod fmath {
         (a * b) % p
     }
 
-    pub fn mul_use_u128(a: u64, b: u64, p: u64) -> u64 {
+    pub fn mul_u128(a: u64, b: u64, p: u64) -> u64 {
         (((a as u128) * (b as u128)) % (p as u128)) as u64
     }
 
@@ -69,13 +70,52 @@ pub mod fmath {
     pub fn inverse_add(a: u64, p: u64) -> u64 {
         p - (a % p)
     }
+
+    #[macro_export]
+    macro_rules! add_many {
+        ($p:expr, $x:expr) => {
+            $x
+        };
+        ($p:expr, $first:expr, $($rest:expr),+) => {
+            crate::field::fmath::add($first, add_many!($p, $($rest),+), $p)
+        };
+    }
+
+    #[macro_export]
+    macro_rules! mul_many {
+        ($p:expr, $x:expr) => {
+            $x
+        };
+        ($p:expr, $first:expr, $($rest:expr),+) => {
+            crate::field::fmath::mul($first, mul_many!($p, $($rest),+), $p)
+        };
+    }
 }
-
-
 
 #[cfg(test)]
 mod tests {
+    use crate::{add_many, mul_many};
+
     use super::*;
+    
+    #[test]
+    fn test_add_macro() {
+        let result = add_many!(11, 10, 11, 14, 15);
+        assert_eq!(result, 6);
+        
+        let result = add_many!(11, 0, 0, 21, 14);
+        assert_eq!(result, 2);
+    }
+
+    #[test]
+    fn test_mul_macro() {
+        let result = mul_many!(11, 12, 13, 14, 16);
+        assert_eq!(result, 8);
+        
+        let result = mul_many!(11, 1, 0, 21, 14);
+        assert_eq!(result, 0);
+    }
+
 
     #[test]
     fn test_add() {

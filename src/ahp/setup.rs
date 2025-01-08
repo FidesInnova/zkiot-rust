@@ -20,14 +20,13 @@ use std::io::BufWriter;
 use serde::Deserialize;
 
 use crate::kzg;
-use crate::math::Mfp;
 use crate::json_file::write_set;
 use crate::utils::read_json_file;
 
 /// Struct for setup data with commitment and verifying keys
 pub struct Setup {
-    ck: Vec<Mfp>, // Commitment keys
-    vk: Mfp,      // Verifying key
+    ck: Vec<u64>, // Commitment keys
+    vk: u64,      // Verifying key
 }
 
 impl Setup {
@@ -35,7 +34,7 @@ impl Setup {
     pub fn default() -> Self {
         Self {
             ck: Vec::default(),
-            vk: Mfp::default(),
+            vk: u64::default(),
         }
     }
     
@@ -91,8 +90,8 @@ pub struct SetupJson {
 
 impl SetupJson {
     /// Creates a new `SetupJson` from commitment keys and a class identifier
-    pub fn new(ck: &Vec<Mfp>, class: u8) -> Self {
-        let ck = write_set(ck); // Convert Mfp to u64
+    pub fn new(ck: &Vec<u64>, class: u8) -> Self {
+        let ck = write_set(ck); // Convert u64 to u64
         Self {
             class,
             ck: ck.clone(), // Store commitment keys
@@ -100,13 +99,13 @@ impl SetupJson {
         }
     }
 
-    /// Gets commitment keys as `Mfp`.
-    pub fn get_ck(&self) -> Vec<Mfp> {
-        self.ck.iter().map(|v| Mfp::from(*v)).collect() // Convert u64 to Mfp
+    /// Gets commitment keys as `u64`.
+    pub fn get_ck(&self) -> Vec<u64> {
+        self.ck.iter().map(|v| u64::from(*v)).collect() // Convert u64 to u64
     }
 
-    /// Gets verifying key as `Mfp`
-    pub fn get_vk(&self) -> Mfp {
-        Mfp::from(self.vk) // Convert u64 to Mfp
+    /// Gets verifying key as `u64`
+    pub fn get_vk(&self) -> u64 {
+        u64::from(self.vk) // Convert u64 to u64
     }
 }

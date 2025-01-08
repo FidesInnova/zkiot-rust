@@ -14,6 +14,16 @@
 
 use crate::field::fmath;
 
+#[macro_export]
+macro_rules! fpoly {
+    ( $( $x:expr ),* ) => {
+        {
+            use $crate::polynomial::FPoly;
+            FPoly::new(vec![$($x,)*])
+        }
+    };
+}
+
 #[derive(Debug, Clone, PartialEq)]
 /// Term is a type which represents a term in a polynomial.
 pub enum Term<N> {
@@ -78,6 +88,10 @@ impl FPoly {
             self.terms.drain(0..inx);
         }
     }
+
+    pub fn is_zero(&self) -> bool {
+        self.degree() == 0
+    }
 }
 
 impl std::fmt::Display for FPoly {
@@ -112,7 +126,7 @@ pub mod poly_fmath {
     use super::{FPoly, Term};
     use crate::field::fmath;
 
-    pub fn poly_add(a: &FPoly, b: &FPoly, p: u64) -> FPoly {
+    pub fn add(a: &FPoly, b: &FPoly, p: u64) -> FPoly {
         let (terms, small) = if b.degree() > a.degree() {
             (&b.terms, &a.terms)
         } else {
@@ -130,7 +144,7 @@ pub mod poly_fmath {
         FPoly::new(terms)
     }
 
-    pub fn poly_sub(a: &FPoly, b: &FPoly, p: u64) -> FPoly {
+    pub fn sub(a: &FPoly, b: &FPoly, p: u64) -> FPoly {
         let max_degree = std::cmp::max(a.terms.len(), b.terms.len());
 
         // Prepare the result vector
@@ -161,7 +175,7 @@ pub mod poly_fmath {
         }
     }
 
-    pub fn poly_mul(a: &FPoly, b: &FPoly, p: u64) -> FPoly {
+    pub fn mul(a: &FPoly, b: &FPoly, p: u64) -> FPoly {
         let rhs = &a.terms[first_nonzero_index(&a.terms)..];
         let lhs = &b.terms[first_nonzero_index(&b.terms)..];
         let mut terms = vec![0; rhs.len() + lhs.len() - 1];
@@ -239,7 +253,7 @@ pub mod poly_fmath {
     /// - Performs NTT on both polynomials.
     /// - Multiplies the transformed coefficients element-wise.
     /// - Applies the inverse NTT and rescales the coefficients by `1/n`.
-    fn poly_mul_ntt(a: FPoly, b: FPoly, p: u64, root: u64) -> FPoly {
+    fn mul_ntt(a: FPoly, b: FPoly, p: u64, root: u64) -> FPoly {
         let len = a.degree() + b.degree() - 1;
         let n = len.next_power_of_two();
 
@@ -263,7 +277,7 @@ pub mod poly_fmath {
         FPoly::new(result.into_iter().take(len).collect())
     }
 
-    pub fn poly_div(a: &FPoly, b: &FPoly, p: u64) -> (FPoly, FPoly) {
+    pub fn div(a: &FPoly, b: &FPoly, p: u64) -> (FPoly, FPoly) {
         let zero = 0;
 
         let (rhs_first, rhs_deg) = match first_term(&b.terms) {
@@ -336,7 +350,7 @@ pub mod poly_fmath {
         Term::ZeroTerm
     }
 
-    pub fn poly_mul_by_number(a: &FPoly, y: u64, p: u64) -> FPoly {
+    pub fn mul_by_number(a: &FPoly, y: u64, p: u64) -> FPoly {
         FPoly::new(a.terms.iter().map(|&x| fmath::mul(x, y, p)).collect())
     }
 
@@ -372,8 +386,8 @@ mod tests {
         let poly2 = FPoly::new(vec![5, 6, 8]);
         let poly3 = FPoly::new(vec![4, 22]);
 
-        assert_eq!(vec![6, 8, 1], poly_add(&poly1, &poly2, 11).terms);
-        assert_eq!(vec![5, 10, 8], poly_add(&poly2, &poly3, 11).terms);
+        assert_eq!(vec![6, 8, 1], add(&poly1, &poly2, 11).terms);
+        assert_eq!(vec![5, 10, 8], add(&poly2, &poly3, 11).terms);
     }
 
     #[test]
@@ -382,9 +396,9 @@ mod tests {
         let poly2 = FPoly::new(vec![5, 6, 8]);
         let poly3 = FPoly::new(vec![4, 22]);
 
-        assert_eq!(vec![7, 7, 7], poly_sub(&poly1, &poly2, 11).terms);
-        assert_eq!(vec![5, 2, 8], poly_sub(&poly2, &poly3, 11).terms);
-        assert_eq!(vec![6, 9, 3], poly_sub(&poly3, &poly2, 11).terms);
+        assert_eq!(vec![7, 7, 7], sub(&poly1, &poly2, 11).terms);
+        assert_eq!(vec![5, 2, 8], sub(&poly2, &poly3, 11).terms);
+        assert_eq!(vec![6, 9, 3], sub(&poly3, &poly2, 11).terms);
     }
 
     #[test]
@@ -395,9 +409,9 @@ mod tests {
 
         assert_eq!(
             vec![2, 6, 3, 10, 2, 7, 2, 7],
-            poly_mul(&poly1, &poly2, 11).terms
+            mul(&poly1, &poly2, 11).terms
         );
-        assert_eq!(vec![0, 0, 0], poly_mul(&poly1, &poly3, 11).terms);
+        assert_eq!(vec![0, 0, 0], mul(&poly1, &poly3, 11).terms);
     }
 
     #[test]
@@ -405,12 +419,12 @@ mod tests {
         let poly1 = FPoly::new(vec![1, 5, 6, 9]);
         let poly2 = FPoly::new(vec![2, 7, 11, 5, 24]);
 
-        assert_eq!(0, poly_div(&poly1, &poly2, 11).0.terms.len());
+        assert_eq!(0, div(&poly1, &poly2, 11).0.terms.len());
 
-        assert_eq!(vec![1, 5, 6, 9], poly_div(&poly1, &poly2, 11).1.terms);
+        assert_eq!(vec![1, 5, 6, 9], div(&poly1, &poly2, 11).1.terms);
 
-        assert_eq!(vec![2, 8], poly_div(&poly2, &poly1, 11).0.terms);
+        assert_eq!(vec![2, 8], div(&poly2, &poly1, 11).0.terms);
 
-        assert_eq!(vec![3, 5, 7], poly_div(&poly2, &poly1, 11).1.terms);
+        assert_eq!(vec![3, 5, 7], div(&poly2, &poly1, 11).1.terms);
     }
 }

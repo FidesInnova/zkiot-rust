@@ -358,10 +358,10 @@ impl ProofGeneration {
         println_dbg!("sigma_1 :	{}", sigma_1);
 
         // TODO:
-        let alpha = u64::from(sha2_hash(&(poly_sx.eval(u64::from(0))).to_string()));
-        let eta_a = u64::from(sha2_hash(&(poly_sx.eval(u64::from(1))).to_string()));
-        let eta_b = u64::from(sha2_hash(&(poly_sx.eval(u64::from(2))).to_string()));
-        let eta_c = u64::from(sha2_hash(&(poly_sx.eval(u64::from(3))).to_string()));
+        let alpha = u64::from(sha2_hash_lower_32bit(&(poly_sx.eval(u64::from(0))).to_string()));
+        let eta_a = u64::from(sha2_hash_lower_32bit(&(poly_sx.eval(u64::from(1))).to_string()));
+        let eta_b = u64::from(sha2_hash_lower_32bit(&(poly_sx.eval(u64::from(2))).to_string()));
+        let eta_c = u64::from(sha2_hash_lower_32bit(&(poly_sx.eval(u64::from(3))).to_string()));
 
         // From wiki: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
         //             Step 6
@@ -593,7 +593,7 @@ impl ProofGeneration {
 
         let mut eta_values = vec![];
         for i in 10..=21 {
-            eta_values.push(u64::from(sha2_hash(&poly_sx.eval(u64::from(i)).to_string())))
+            eta_values.push(u64::from(sha2_hash_lower_32bit(&poly_sx.eval(u64::from(i)).to_string())))
         }
 
         let poly_px = eta_values
@@ -606,7 +606,7 @@ impl ProofGeneration {
         dsp_poly!(poly_px);
 
         // TODO:
-        let z = u64::from(sha2_hash(&poly_sx.eval(u64::from(22)).to_string()));
+        let z = u64::from(sha2_hash_lower_32bit(&poly_sx.eval(u64::from(22)).to_string()));
         // let z = u64::from(2);
         let val_y_p = poly_px.eval(z);
         println_dbg!("val_y_p {}", val_y_p);

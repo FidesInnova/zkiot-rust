@@ -63,9 +63,9 @@ pub fn interpolate(points: &[Point], p: u64) -> FPoly {
     for i in 1..n {
         let x_i = u64::from(points[i - 1].0);
         let new_term = FPoly::new(vec![1, fmath::inverse_add(x_i, p)]);
-        poly_term = poly_fmath::poly_mul(&poly_term, &new_term, p); // Multiply by (x - x_i) for each term
-        let poly_product = poly_fmath::poly_mul_by_number(&poly_term, divided_differences[0][i], p);
-        poly_res = poly_fmath::poly_add(&poly_res, &poly_product, p);
+        poly_term = poly_fmath::mul(&poly_term, &new_term, p); // Multiply by (x - x_i) for each term
+        let poly_product = poly_fmath::mul_by_number(&poly_term, divided_differences[0][i], p);
+        poly_res = poly_fmath::add(&poly_res, &poly_product, p);
     }
 
     poly_res
@@ -107,8 +107,8 @@ pub fn vanishing_poly(set: &Vec<u64>, p: u64) -> FPoly {
     let mut vp = FPoly::one();
 
     for i in set {
-        let product = poly_fmath::poly_sub(&FPoly::one_x(), &FPoly::new(vec![*i]), p);
-        vp = poly_fmath::poly_mul(&product, &vp, p);
+        let product = poly_fmath::sub(&FPoly::one_x(), &FPoly::new(vec![*i]), p);
+        vp = poly_fmath::mul(&product, &vp, p);
     }
 
     vp.trim();
@@ -356,15 +356,15 @@ pub fn m_k(
             EvalOrder::XK => {
                 let res_poly_y = poly_y.evaluate(*num, p);
                 let mul_nums = fmath::mul(*h, res_poly_y, p);
-                poly_fmath::poly_mul_by_number(&poly_x, mul_nums, p)
+                poly_fmath::mul_by_number(&poly_x, mul_nums, p)
             }
             EvalOrder::KX => {
                 let res_poly_x = poly_x.evaluate(*num, p);
                 let mul_nums = fmath::mul(*h, res_poly_x, p);
-                poly_fmath::poly_mul_by_number(&poly_y, mul_nums, p)
+                poly_fmath::mul_by_number(&poly_y, mul_nums, p)
             }
         };
-        poly_res = poly_fmath::poly_add(&poly_res, &tmp_result, p); 
+        poly_res = poly_fmath::add(&poly_res, &tmp_result, p); 
     }
 
     poly_res
@@ -398,15 +398,15 @@ pub fn m_k_2(
             EvalOrder::XK => {
                 let res_poly_y = poly_y.evaluate(*num, p);
                 let mul_poly = FPoly::new(vec![(*value * res_poly_y)]);
-                poly_fmath::poly_mul(&poly_x, &mul_poly, p)
+                poly_fmath::mul(&poly_x, &mul_poly, p)
             }
             EvalOrder::KX => {
                 let res_poly_x = poly_x.evaluate(*num, p);
                 let mul_poly = FPoly::new(vec![(*value * res_poly_x)]);
-                poly_fmath::poly_mul(&poly_y, &mul_poly, p)
+                poly_fmath::mul(&poly_y, &mul_poly, p)
             }
         };
-        poly_res = poly_fmath::poly_add(&poly_res, &tmp_result, p);
+        poly_res = poly_fmath::add(&poly_res, &tmp_result, p);
         ftime += timer.elapsed();
     }
     // eprintln!("timer - in: {:?}", ftime);
@@ -527,8 +527,8 @@ pub fn sigma_rk_mk(
         p_m_kx.trim();
 
         // sigma
-        let mul_poly = poly_fmath::poly_mul(&p_r_xk, &p_m_kx, p);
-        res = poly_fmath::poly_add(&res, &mul_poly, p);
+        let mul_poly = poly_fmath::mul(&p_r_xk, &p_m_kx, p);
+        res = poly_fmath::add(&res, &mul_poly, p);
     }
 
     res
