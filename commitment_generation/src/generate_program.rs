@@ -26,6 +26,7 @@ pub fn generate_new_program(
     input_path: &str,
     line_range: LineValue,
     class_data: ClassDataJson,
+    addi_instruction_count: u64
 ) -> Result<()> {
     // Open the input file
     let input_file = File::open(input_path)?;
@@ -43,15 +44,12 @@ pub fn generate_new_program(
 
     let LineValue::Range(range) = line_range;
 
-    let diff = (range.1 - range.0) as u64;
-    let add_no_op_number = n_g - diff - 1;
-
     insert_assembly_instructions(
         &mut output_file,
         reader,
         range,
         (n_g + n_i + 1).try_into()?,
-        add_no_op_number,
+        addi_instruction_count,
     )?;
 
     Ok(())
@@ -62,7 +60,7 @@ fn insert_assembly_instructions(
     reader: BufReader<File>,
     line_range: (usize, usize),
     z_vec_len: usize,
-    add_no_op_number: u64,
+    addi_instruction_count: u64,
 ) -> Result<()> {
     // Allocating memory for the generated ASM file!
     let mut space_size = vec![4; 32];
@@ -97,11 +95,11 @@ fn insert_assembly_instructions(
         }
 
         if num == line_range.1 {
-            insert_addi_0(output_file, add_no_op_number)?;
+            insert_addi_0(output_file, addi_instruction_count)?;
             insert_z_array(output_file)?;
             insert_z_array_population_code(output_file)?;
 
-            for i in 33..(z_vec_len) {
+            for i in 33..(z_vec_len as u64 - addi_instruction_count) as usize {
                 writeln!(output_file, "la a1, x{}_array", array_offset_pair[i - 33].0)?;
                 writeln!(output_file, "lw t0, {}(a1)", array_offset_pair[i - 33].1)?;
                 writeln!(output_file, "sw t0, {}(a0)", i * 4)?;

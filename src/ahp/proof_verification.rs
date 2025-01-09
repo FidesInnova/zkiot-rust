@@ -36,7 +36,7 @@ use crate::println_dbg;
 use crate::to_bint;
 use crate::utils::generate_beta_random;
 use crate::utils::get_points_set;
-use crate::utils::sha2_hash;
+use crate::utils::sha2_hash_lower_32bit;
 
 use super::proof_generation::Polys;
 use super::proof_generation::ProofGeneration;
@@ -88,10 +88,10 @@ impl Verification {
         // TODO:
         // From wiki: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
         //             Step 6
-        let alpha = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(0))).to_string()));
-        let eta_a = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(1))).to_string()));
-        let eta_b = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(2))).to_string()));
-        let eta_c = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(3))).to_string()));
+        let alpha = Mfp::from(sha2_hash_lower_32bit(&(poly_sx.eval(Mfp::from(0))).to_string()));
+        let eta_a = Mfp::from(sha2_hash_lower_32bit(&(poly_sx.eval(Mfp::from(1))).to_string()));
+        let eta_b = Mfp::from(sha2_hash_lower_32bit(&(poly_sx.eval(Mfp::from(2))).to_string()));
+        let eta_c = Mfp::from(sha2_hash_lower_32bit(&(poly_sx.eval(Mfp::from(3))).to_string()));
         // println_dbg!("alpha: {:?} - {}", poly_sx.eval(Mfp::from(0)), alpha);
 
         // let alpha = Mfp::from(10);
@@ -99,7 +99,7 @@ impl Verification {
         // let eta_b = Mfp::from(30);
         // let eta_c = Mfp::from(100);
 
-        let z = Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(22)).to_string()));
+        let z = Mfp::from(sha2_hash_lower_32bit(&poly_sx.eval(Mfp::from(22)).to_string()));
         // let z = Mfp::from(2);
 
         let beta = vec![beta_1, beta_2, beta_3];
@@ -301,7 +301,7 @@ impl Verification {
 
         let mut eta_values = vec![];
         for i in 10..=21 {
-            eta_values.push(Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(i)).to_string())))
+            eta_values.push(Mfp::from(sha2_hash_lower_32bit(&poly_sx.eval(Mfp::from(i)).to_string())))
         }
 
         // Compute polynomial px using eta values

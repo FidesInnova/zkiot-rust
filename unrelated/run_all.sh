@@ -34,7 +34,7 @@ if [ "$options" = "--release" ]; then
 fi
 
 # set p number
-./unrelated/z_vec 14056961
+python3 unrelated/z_vec.py
 
 export RUSTFLAGS=""
 # Build and Run

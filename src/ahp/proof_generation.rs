@@ -362,10 +362,10 @@ impl ProofGeneration {
         println_dbg!("sigma_1 :	{}", sigma_1);
 
         // TODO:
-        let alpha = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(0))).to_string()));
-        let eta_a = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(1))).to_string()));
-        let eta_b = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(2))).to_string()));
-        let eta_c = Mfp::from(sha2_hash(&(poly_sx.eval(Mfp::from(3))).to_string()));
+        let alpha = Mfp::from(sha2_hash_lower_32bit(&(poly_sx.eval(Mfp::from(0))).to_string()));
+        let eta_a = Mfp::from(sha2_hash_lower_32bit(&(poly_sx.eval(Mfp::from(1))).to_string()));
+        let eta_b = Mfp::from(sha2_hash_lower_32bit(&(poly_sx.eval(Mfp::from(2))).to_string()));
+        let eta_c = Mfp::from(sha2_hash_lower_32bit(&(poly_sx.eval(Mfp::from(3))).to_string()));
 
         // From wiki: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
         //             Step 6
@@ -597,7 +597,7 @@ impl ProofGeneration {
 
         let mut eta_values = vec![];
         for i in 10..=21 {
-            eta_values.push(Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(i)).to_string())))
+            eta_values.push(Mfp::from(sha2_hash_lower_32bit(&poly_sx.eval(Mfp::from(i)).to_string())))
         }
 
         let poly_px = eta_values
@@ -610,7 +610,7 @@ impl ProofGeneration {
         dsp_poly!(poly_px);
 
         // TODO:
-        let z = Mfp::from(sha2_hash(&poly_sx.eval(Mfp::from(22)).to_string()));
+        let z = Mfp::from(sha2_hash_lower_32bit(&poly_sx.eval(Mfp::from(22)).to_string()));
         // let z = Mfp::from(2);
         let val_y_p = poly_px.eval(z);
         println_dbg!("val_y_p {}", val_y_p);
@@ -799,11 +799,11 @@ impl ProofGeneration {
     }
 
     /// Store in Json file
-    pub fn store(&self, path: &str, proof_data: Box<[AHPData]>, class_number: u8) -> Result<()> {
+    pub fn store(&self, path: &str, proof_data: Box<[AHPData]>, class_number: u8, commitment_id: String) -> Result<()> {
         let file = File::create(path)?;
         let writer = BufWriter::new(file);
 
-        let proof_json = ProofGenerationJson::new(proof_data, class_number);
+        let proof_json = ProofGenerationJson::new(proof_data, class_number, commitment_id);
         serde_json::to_writer(writer, &proof_json)?;
         Ok(())
     }
@@ -818,8 +818,7 @@ impl ProofGeneration {
 /// More Info: [wiki](https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-4-proof-json-file-format)
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ProofGenerationJson {
-    #[serde(flatten)]
-    pub info: DeviceInfo,
+    commitment_id: String,
 
     // #[serde(rename = "DeviceEncodedID")]
     // device_encoded_id: String,
@@ -915,7 +914,7 @@ pub struct ProofGenerationJson {
 }
 
 impl ProofGenerationJson {
-    pub fn new(proof_data: Box<[AHPData]>, class_number: u8) -> Self {
+    pub fn new(proof_data: Box<[AHPData]>, class_number: u8, commitment_id: String) -> Self {
         let mut commits = vec![];
         let mut polys = vec![];
         let mut sigma = vec![];
@@ -932,17 +931,9 @@ impl ProofGenerationJson {
             }
         }
 
-        let commitment_id = sha2_hash("concat_vals(DeviceConfig.json)");
 
         Self {
-            info: DeviceInfo::new(
-                class_number,
-                &commitment_id.to_string(),
-                "FidesInnova",
-                "test",
-                "1",
-                "2",
-            ),
+            commitment_id,
             // device_encoded_id: "Base64<MAC>".to_owned(),
             com1ahp: x_vec,
             com2ahp: commits[0],

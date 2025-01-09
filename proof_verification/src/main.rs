@@ -53,9 +53,13 @@ fn main() -> Result<()> {
     // Load proof generation data from the proof file
     let proof_generation = ProofGeneration::restore(proof_path)
         .with_context(|| "Error loading proof data")?;
+        
+    // Load commitment data from the commitment file
+    let commitment_json = Commitment::restore(program_commitment_path)
+        .with_context(|| "Error loading commitment data")?;
 
-    let class_number = proof_generation.info.class;
-    
+    let class_number = commitment_json.info.class;
+
     // Load class data from the JSON file
     let class_data = ClassDataJson::get_class_data("class.json", class_number)
         .with_context(|| "Error loading class data")?;
@@ -63,10 +67,6 @@ fn main() -> Result<()> {
     // Restore setup data from the specified JSON file
     let setup_json =
         Setup::restore(setup_path).with_context(|| "Error retrieving setup data")?;
-        
-    // Load commitment data from the commitment file
-    let commitment_json = Commitment::restore(program_commitment_path)
-        .with_context(|| "Error loading commitment data")?;
 
     // .: Verification :.
     let verification = Verification::new(&proof_generation);

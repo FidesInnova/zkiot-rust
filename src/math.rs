@@ -32,9 +32,10 @@ use crate::to_bint;
 use rustnomial::{Polynomial, SizedPolynomial, Term};
 use crate::utils::add_random_points;
 
-pub const P: u64 = 14056961;
-// pub const P: u64 = 2460193;
+// Field number
+pub const P: u64 = 5087281;
 
+// Generate field struct
 field!(Mfp, P);
 
 /// Type alias for a polynomial over the `Mfp` field.

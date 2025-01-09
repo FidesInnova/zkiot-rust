@@ -47,6 +47,9 @@ fn main() -> io::Result<()> {
     let p = args[1].trim();
     let p: u128 = p.parse().unwrap();
 
+    let args: Vec<String> = std::env::args().collect();
+    let n_g = args[2].trim();
+    let n_g: u128 = n_g.parse().unwrap();
 
     let mut register_map: HashMap<String, u128> = HashMap::from_iter(vec![
         ("zero".to_owned(), 0), 
@@ -108,12 +111,7 @@ fn main() -> io::Result<()> {
             }
             _ => {}
         }
-
-        if let Some(&result) = register_map.get(&reg[0].clone()) {
-            w.push((reg[0].clone(), result % p));
-        }
     }
-
 
     let w: Vec<u128> = w.iter().map(|(_, v)| *v).collect();
 

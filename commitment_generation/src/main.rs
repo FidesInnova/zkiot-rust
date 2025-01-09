@@ -78,13 +78,17 @@ fn main() -> Result<()> {
     let gates = parse_from_lines(lines, &PathBuf::from(program_path))
         .with_context(|| "Error parsing instructions")?;
 
-    
-    let gates = ahp::commitment_generation::Commitment::process_gates(gates);
 
     // Get the class number based on the length of the gates
-    let class_number = &get_class_number(gates.len());
-
+    let class_number = &device_config.class;
+    // let class_number = &get_class_number(gates.len());
     println_dbg!("class: {}", class_number);
+
+    // The number of times the instruction 'addi s1, 0' is added to the assembly code.
+    let addi_instruction_count = get_addi_number(device_config.code_block, classes_data[class_number].n_g);
+
+    let gates = ahp::commitment_generation::Commitment::process_gates(gates, classes_data[class_number].n_g);
+
     
     // Ensure that the P in use is correct
     assert_eq!(
@@ -101,6 +105,7 @@ fn main() -> Result<()> {
         program_path,
         device_config.code_block,
         classes_data[class_number],
+        addi_instruction_count
     )?;
 
     // .: Commitment :.
@@ -124,6 +129,7 @@ fn main() -> Result<()> {
             PROGRAM_COMMITMENT_PATH,
             *class_number,
             classes_data[class_number],
+            device_config
         )
         .with_context(|| "Error storing commitment data")?;
 
@@ -131,6 +137,15 @@ fn main() -> Result<()> {
 
     Ok(())
 }
+
+
+fn get_addi_number(line_range: LineValue, n_g: u64) -> u64 {
+    let LineValue::Range(range) = line_range;
+    let diff = (range.1 - range.0) as u64;
+    let addi_instruction_count = n_g - diff - 1;
+    addi_instruction_count
+}
+
 
 fn get_class_number(len: usize) -> u8 {
     if len == 1 {

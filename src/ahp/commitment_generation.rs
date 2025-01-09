@@ -26,13 +26,16 @@ use crate::dsp_poly;
 use crate::dsp_vec;
 use crate::json_file::write_term;
 use crate::json_file::ClassDataJson;
+use crate::json_file::DeviceConfigJson;
 use crate::json_file::DeviceInfo;
+use crate::json_file::LineValue;
 use crate::math::*;
 use crate::matrices::Matrices;
 use crate::parser::Gate;
 use crate::parser::Instructions;
 use crate::parser::RiscvReg;
 use crate::println_dbg;
+use crate::utils;
 use crate::utils::*;
 
 #[derive(Debug, Clone)]
@@ -91,8 +94,9 @@ impl Commitment {
     }
 
 
-    pub fn process_gates(gates: Vec<Gate>) -> Vec<Gate> {
+    pub fn process_gates(gates: Vec<Gate>, n_g: u64) -> Vec<Gate> {
         let mut gate_res = vec![];
+
         for gate in gates.clone() {
             match gate.instr {
                 Instructions::Div => {
@@ -112,16 +116,21 @@ impl Commitment {
                 _ => gate_res.push(gate.clone())
             }
         }
+
+        while gate_res.len() as u64 <= n_g {
+            gate_res.push(Gate::new(None, Some(0), RiscvReg::Zero, RiscvReg::Zero, RiscvReg::Zero, Instructions::Addi))
+        }  
+
         gate_res
     }
 
 
     /// Store in Json file
-    pub fn store(&self, path: &str, class_number: u8, class: ClassDataJson) -> Result<()> {
+    pub fn store(&self, path: &str, class_number: u8, class: ClassDataJson, device_config: DeviceConfigJson) -> Result<()> {
         let file = File::create(path)?;
         let writer = BufWriter::new(file);
 
-        let commitment_json = CommitmentJson::new(&self.polys_px, class_number, class);
+        let commitment_json = CommitmentJson::new(&self.polys_px, class_number, class, device_config);
         serde_json::to_writer(writer, &commitment_json)?;
         Ok(())
     }
@@ -170,18 +179,28 @@ pub struct CommitmentJson {
     #[serde(rename = "ValC")]
     val_c: Vec<u64>,
 
-    #[serde(rename = "Curve")]
     curve: String,
     polynomial_commitment: String,
 }
 
 impl CommitmentJson {
-    pub fn new(polys_px: &Vec<Poly>, class_number: u8, class: ClassDataJson) -> Self {
+    pub fn new(polys_px: &Vec<Poly>, class_number: u8, class: ClassDataJson, device_confic: DeviceConfigJson) -> Self {
         // Extract values for CommitmentJson from the Commitment struct
         let polys_px_t: Vec<Vec<u64>> = polys_px.iter().map(|p| write_term(p)).collect();
 
+        let concat_device_config_values = format!(
+            "{}{}{}{}",
+            device_confic.iot_developer_name,
+            device_confic.iot_device_name,
+            device_confic.device_hardware_version,
+            device_confic.firmware_version
+        );
+        let commitment_id = utils::sha2_hash(&concat_device_config_values);
+
+        let info = DeviceInfo::new(device_confic.class, &commitment_id, &device_confic.iot_developer_name, &device_confic.iot_device_name, &device_confic.device_hardware_version, &device_confic.firmware_version);
+
         Self {
-            info: DeviceInfo::new(class_number, "123456789", "FidesInnova", "test", "1", "2"),
+            info,
             m: class.m,
             n: class.n,
             p: class.p,

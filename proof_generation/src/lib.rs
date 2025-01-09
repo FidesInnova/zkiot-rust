@@ -27,7 +27,7 @@ use zk_iot::ahp::{self, setup::Setup};
 
 const PROGRAM_PARAMS_PATH: &str = "data/program_params.json";
 const PROGRAM_COMMITMENT_PATH: &str = "data/program_commitment.json";
-const DEVICE_CONFIG_PATH: &str = "data/device_config.json";
+const DEVICE_CONFIG_PATH: &str = "data/commitment_json.info.json";
 const CLASS_TABLE: &str = "class.json";
 const PROOF_PATH: &str = "data/proof.json";
 
@@ -60,14 +60,25 @@ pub fn main_proof_gen(setup_path: &str) -> Result<()> {
         &setup_json.get_ck(),
         class_data,
         program_params,
-        commitment_json,
+        commitment_json.clone(),
         z_vec
     );
     println!("Proof timer: {:?}", timer.elapsed());
 
+    
+    let concat_device_config_values = format!(
+        "{}{}{}{}",
+        commitment_json.info.iot_developer_name,
+        commitment_json.info.iot_device_name,
+        commitment_json.info.device_hardware_version,
+        commitment_json.info.firmware_version
+    );
+    let commitment_id = utils::sha2_hash(&concat_device_config_values);
+
+
     // Store the generated proof data in a JSON file
     proof_generation
-        .store(PROOF_PATH, proof_data, class_number)
+        .store(PROOF_PATH, proof_data, class_number, commitment_id)
         .with_context(|| "Error storing proof data")?;
     println!("ProofGeneration file generated successfully");
 
