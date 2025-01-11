@@ -41,11 +41,15 @@ pub struct FPoly {
 impl FPoly {
     // FIXME: should i use % p here?
     pub fn new(terms: Vec<u64>) -> Self {
+        let mut terms = terms; 
+        if terms.len() == 0 {
+            terms.push(0);
+        }
         Self { terms }
     }
 
     pub fn zero() -> Self {
-        Self { terms: vec![] }
+        Self { terms: vec![0] }
     }
 
     pub fn one() -> Self {
@@ -57,7 +61,7 @@ impl FPoly {
     }
 
     pub fn degree(&self) -> usize {
-        self.terms.len()
+        self.terms.len() - 1
     }
 
     pub fn add_term(&mut self, coeff: u64, degree: usize) {
@@ -379,6 +383,17 @@ pub mod poly_fmath {
 mod tests {
     use super::*;
     use poly_fmath::*;
+    
+    #[test]
+    fn test_eval() {
+        let poly1 = FPoly::new(vec![10, 70, 12, 220, 133, 112, 512, 150]);
+        
+        assert_eq!(poly1.evaluate(2, 181), 42);
+        assert_eq!(poly1.evaluate(191, 181), 154);
+        assert_eq!(poly1.evaluate(0, 181), 150);
+        assert_eq!(poly1.evaluate(0, 11), 7);
+    }
+
 
     #[test]
     fn test_add() {
@@ -419,7 +434,7 @@ mod tests {
         let poly1 = FPoly::new(vec![1, 5, 6, 9]);
         let poly2 = FPoly::new(vec![2, 7, 11, 5, 24]);
 
-        assert_eq!(0, div(&poly1, &poly2, 11).0.terms.len());
+        assert_eq!(0, div(&poly1, &poly2, 11).0.degree());
 
         assert_eq!(vec![1, 5, 6, 9], div(&poly1, &poly2, 11).1.terms);
 

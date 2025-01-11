@@ -433,12 +433,20 @@ macro_rules! dsp_vec {
 }
 
 
-
-fn sha2_hash(input: &str) -> String {
+/// Computes the SHA-256 hash of the given input string and returns the result as a hexadecimal string.
+///
+/// # Parameters
+/// - `input`: A string slice representing the input to be hashed.
+///
+/// # Returns
+/// A `String` containing the SHA-256 hash of the input, represented in hexadecimal format.
+pub fn sha2_hash(input: &str) -> String {
     let mut hasher = sha2::Sha256::new();
     hasher.update(input);
     let result = hasher.finalize();
-    todo!()
+    let hex_result = result.iter().map(|byte| format!("{:02x}", byte)).collect::<String>();
+    
+    hex_result
 }
 
 /// Computes the SHA-256 hash of the given input string and returns the result as a `u32`.

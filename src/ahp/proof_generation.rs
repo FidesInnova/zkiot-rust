@@ -24,8 +24,6 @@ use rand::Rng;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::dsp_mat;
-use crate::dsp_poly;
 use crate::dsp_vec;
 use crate::json_file::write_set;
 use crate::json_file::write_term;
@@ -35,7 +33,6 @@ use crate::json_file::ProgramParamsJson;
 use crate::kzg;
 use crate::math::*;
 use crate::println_dbg;
-use crate::to_bint;
 use crate::utils::*;
 
 use super::commitment_generation::CommitmentJson;

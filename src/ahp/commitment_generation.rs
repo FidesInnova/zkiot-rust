@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use anyhow::Result;
-use ark_ff::Field;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -21,8 +20,6 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::BufWriter;
 
-use crate::dsp_mat;
-use crate::dsp_poly;
 use crate::dsp_vec;
 use crate::json_file::write_term;
 use crate::json_file::ClassDataJson;
@@ -55,10 +52,10 @@ impl Commitment {
     pub fn new(class_data: ClassDataJson) -> CommitmentBuilder {
         let numebr_t_zero = class_data.get_matrix_t_zeros() as u64;
 
-        let set_h = generate_set(class_data.n, class_data);
-        let set_k = generate_set(class_data.m, class_data);
+        let set_h = generate_set(class_data.n, class_data, class_data.p);
+        let set_k = generate_set(class_data.m, class_data, class_data.p);
 
-        println_dbg!("$p: {}", P);
+        println_dbg!("$p: {}", class_data.p);
         println_dbg!("$g: {}", class_data.g);
 
         println_dbg!("set_h: {}", dsp_vec!(set_h));
