@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-p = 5087281
-n_g = 8
+import sys
+import json
 
 def write_vector_to_file(vector, filename):
     with open(filename, 'w') as file:
@@ -77,6 +77,16 @@ def parser(path: str):
             # Store the instruction and its operands in a tuple
             parsed_lines.append((instruction, operands))
     return parsed_lines
+
+
+class_number = sys.argv[1]
+file = open("class.json", 'r')
+data = json.load(file)
+
+class_data = data[class_number]
+
+p = class_data["p"]
+n_g = class_data["n_g"]
 
 
 parsed_data = parser("program.s")

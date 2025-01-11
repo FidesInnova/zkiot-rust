@@ -2,24 +2,16 @@ jal store_register_instances
 mul     s5, s7, t2
 la t0, x21_array
 sw x21, 4(t0)
-addi    a2, gp, 8978425823032156496
+addi    a2, gp, 3
 la t0, x12_array
 sw x12, 4(t0)
-mul     a0, zero, zero
+mul     a0, s1, s1
 la t0, x10_array
 sw x10, 4(t0)
-add     s0, t1, a5
-la t0, x8_array
-sw x8, 4(t0)
-addi    a7, s5, 2456705344503350716
-la t0, x17_array
-sw x17, 4(t0)
-mul     s9, sp, zero
-la t0, x25_array
-sw x25, 4(t0)
-mul     a4, s9, s4
-la t0, x14_array
-sw x14, 4(t0)
+addi s1, s1, 0
+addi s1, s1, 0
+addi s1, s1, 0
+addi s1, s1, 0
 addi s1, s1, 0
 la a0, z_array
 li t0, 1
@@ -161,18 +153,6 @@ sw t0, 136(a0)
 la a1, x10_array
 lw t0, 4(a1)
 sw t0, 140(a0)
-la a1, x8_array
-lw t0, 4(a1)
-sw t0, 144(a0)
-la a1, x17_array
-lw t0, 4(a1)
-sw t0, 148(a0)
-la a1, x25_array
-lw t0, 4(a1)
-sw t0, 152(a0)
-la a1, x14_array
-lw t0, 4(a1)
-sw t0, 156(a0)
 call proofGenerator
 .section .data
 .global z_array
@@ -186,16 +166,16 @@ x4_array:    .space 4   # Array for x4
 x5_array:    .space 4   # Array for x5
 x6_array:    .space 4   # Array for x6
 x7_array:    .space 4   # Array for x7
-x8_array:    .space 8   # Array for x8
+x8_array:    .space 4   # Array for x8
 x9_array:    .space 4   # Array for x9
 x10_array:    .space 8   # Array for x10
 x11_array:    .space 4   # Array for x11
 x12_array:    .space 8   # Array for x12
 x13_array:    .space 4   # Array for x13
-x14_array:    .space 8   # Array for x14
+x14_array:    .space 4   # Array for x14
 x15_array:    .space 4   # Array for x15
 x16_array:    .space 4   # Array for x16
-x17_array:    .space 8   # Array for x17
+x17_array:    .space 4   # Array for x17
 x18_array:    .space 4   # Array for x18
 x19_array:    .space 4   # Array for x19
 x20_array:    .space 4   # Array for x20
@@ -203,7 +183,7 @@ x21_array:    .space 8   # Array for x21
 x22_array:    .space 4   # Array for x22
 x23_array:    .space 4   # Array for x23
 x24_array:    .space 4   # Array for x24
-x25_array:    .space 8   # Array for x25
+x25_array:    .space 4   # Array for x25
 x26_array:    .space 4   # Array for x26
 x27_array:    .space 4   # Array for x27
 x28_array:    .space 4   # Array for x28

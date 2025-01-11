@@ -22,15 +22,15 @@ use crate::math::Poly;
 use crate::to_bint;
 
 /// Generates a vector of Mfp values based on the setup parameters and a random number
-pub fn setup(max: u64, tau: u64, p: u64, g: u64) -> Vec<Mfp> {
+pub fn setup(max: u64, tau: u64, p: u64, g: u64) -> Vec<u64> {
     // Random number 
     let tau = tau % (p - 1);
-    let mut tmp = Mfp::from(g);
+    let mut tmp = g % p;
 
     (0..max)
         .map(|_| {
             let current = tmp;
-            tmp = Mfp::from(to_bint!(current) as u128 * tau as u128);
+            tmp = ((current as u128 * tau as u128) % p as u128) as u64;
             current
         })
         .collect()
@@ -60,4 +60,42 @@ pub fn commit(poly_in: &Poly, ck: &[Mfp]) -> Mfp {
     }
 
     res_poly
+}
+
+
+
+
+#[cfg(test)]
+mod test_kzg {
+    use crate::math::P;
+
+    use super::*;
+
+    #[test]
+    fn test_setup() {
+        let max = 5;
+        let tau = 119;
+        let g = 2;
+
+        let result = setup(max, tau, 181, g);
+
+        assert_eq!(result.len(), max as usize);
+        
+        assert_eq!(result, vec![2, 57, 86, 98, 78]);
+    }
+
+    #[test]
+    fn test_commit() {
+        let poly = Poly::new(vec![
+            Mfp::from(234),
+            Mfp::from(12),
+            Mfp::ZERO,
+            Mfp::from(99)
+        ]);
+        let ck = vec![Mfp::from(22), Mfp::from(180), Mfp::from(571), Mfp::from(174), Mfp::from(333)];
+
+        let result = commit(&poly, &ck);
+        
+        assert_eq!(result, Mfp::from(152));
+    }
 }

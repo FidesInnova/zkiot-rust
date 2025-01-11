@@ -35,6 +35,7 @@ use crate::parser::Gate;
 use crate::parser::Instructions;
 use crate::parser::RiscvReg;
 use crate::println_dbg;
+use crate::to_bint;
 use crate::utils;
 use crate::utils::*;
 
@@ -100,25 +101,14 @@ impl Commitment {
         for gate in gates.clone() {
             match gate.instr {
                 Instructions::Div => {
-                    let des = gate.des_reg;
-                    let lhs = gate.reg_left;
-                    let rhs = gate.reg_right;
-
-                    let add_to_gate = vec![
-                        Gate::new(gate.val_left, gate.val_right, des, lhs, rhs, Instructions::Mul),
-                        Gate::new(gate.val_left, gate.val_right, des, lhs, rhs, Instructions::Mul),
-                        Gate::new(gate.val_left, gate.val_right, des, lhs, rhs, Instructions::Mul),
-                        Gate::new(gate.val_left, gate.val_right, des, lhs, rhs, Instructions::Add)
-                    ];
-
-                    gate_res.extend(add_to_gate.iter());
+                    // TODO: The logic of this section is not yet complete
                 }
                 _ => gate_res.push(gate.clone())
             }
         }
 
-        while gate_res.len() as u64 <= n_g {
-            gate_res.push(Gate::new(None, Some(0), RiscvReg::Zero, RiscvReg::Zero, RiscvReg::Zero, Instructions::Addi))
+        while (gate_res.len() as u64) < n_g {
+            gate_res.push(Gate::new(None, Some(0), RiscvReg::Zero, RiscvReg::Zero, RiscvReg::Zero, Instructions::Addi));
         }  
 
         gate_res

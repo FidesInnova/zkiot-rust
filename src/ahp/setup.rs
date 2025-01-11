@@ -26,8 +26,8 @@ use crate::utils::read_json_file;
 
 /// Struct for setup data with commitment and verifying keys
 pub struct Setup {
-    ck: Vec<Mfp>, // Commitment keys
-    vk: Mfp,      // Verifying key
+    ck: Vec<u64>, // Commitment keys
+    vk: u64,      // Verifying key
 }
 
 impl Setup {
@@ -35,7 +35,7 @@ impl Setup {
     pub fn default() -> Self {
         Self {
             ck: Vec::default(),
-            vk: Mfp::default(),
+            vk: 0,
         }
     }
     
@@ -91,8 +91,7 @@ pub struct SetupJson {
 
 impl SetupJson {
     /// Creates a new `SetupJson` from commitment keys and a class identifier
-    pub fn new(ck: &Vec<Mfp>, class: u8) -> Self {
-        let ck = write_set(ck); // Convert Mfp to u64
+    pub fn new(ck: &Vec<u64>, class: u8) -> Self {
         Self {
             class,
             ck: ck.clone(), // Store commitment keys

@@ -34,13 +34,13 @@ if [ "$options" = "--release" ]; then
 fi
 
 # set p number
-python3 unrelated/z_vec.py
+python3 unrelated/z_vec.py $2
 
 export RUSTFLAGS=""
 # Build and Run
-cargo build -p setup $options >> "$filename" && \
-echo "Setup: =====================================================" >> "report.txt" && \
-/usr/bin/time -v -a -o "report.txt" ./target/$dir/setup >> "$filename" && \
+# cargo build -p setup $options >> "$filename" && \
+# echo "Setup: =====================================================" >> "report.txt" && \
+# /usr/bin/time -v -a -o "report.txt" ./target/$dir/setup >> "$filename" && \
 
 cargo build -p commitment_generation $options >> "$filename" && \
 echo "Commitment: ================================================" >> "report.txt" && \
