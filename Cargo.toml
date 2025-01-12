@@ -8,8 +8,6 @@ members = ["setup", "commitment_generation", "proof_generation", "proof_verifica
 
 [dependencies]
 anyhow = "1.0.86"
-nalgebra = "0.33.1"
-nalgebra-sparse = "0.10.0"
 rand = "0.8.5"
 serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0.128"

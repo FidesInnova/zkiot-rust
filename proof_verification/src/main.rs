@@ -75,7 +75,8 @@ fn main() -> Result<()> {
         class_data, 
         commitment_json.get_polys_px(), 
         proof_generation.get_x_vec(),
-        class_data.g
+        class_data.g,
+        class_data.p
     );
 
     eprintln!("Verification result: {}", verification_result);

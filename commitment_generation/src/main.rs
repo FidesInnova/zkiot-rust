@@ -85,15 +85,7 @@ fn main() -> Result<()> {
 
     println_dbg!("class: {}", class_number);
 
-    // Ensure that the P in use is correct
-    assert_eq!(
-        classes_data[class_number].p,
-        math::P,
-        "Assertion failed: Expected P to be {}, but found {} for class number {}",
-        classes_data[class_number].p,
-        math::P,
-        class_number
-    );
+    let p = classes_data[class_number].p;
 
     // Generate new assembly file at program_commitment_path/program_new.s
     generate_new_program(
@@ -104,16 +96,17 @@ fn main() -> Result<()> {
 
     // .: Commitment :.
     let commitment = ahp::commitment_generation::Commitment::new(classes_data[class_number])
-        .gen_matrices(gates, classes_data[class_number].n_i.try_into()?)
-        .gen_polynomials()
+        .gen_matrices(gates, classes_data[class_number].n_i.try_into()?, p)
+        .gen_polynomials(p)
         .build();
 
-    let commitment_polys = commitment.get_polynomials_commitment(&setup_json.get_ck());
+    let commitment_polys = commitment.get_polynomials_commitment(&setup_json.get_ck(), p);
 
     let _ = ProgramParamsJson::new(
         &commitment.matrices,
         &commitment.points_px,
         classes_data[class_number],
+        p
     )
     .store(PROGRAM_PARAMS_PATH)?;
 

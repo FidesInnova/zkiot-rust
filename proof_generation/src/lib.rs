@@ -61,7 +61,8 @@ pub fn main_proof_gen(setup_path: &str) -> Result<()> {
         class_data,
         program_params,
         commitment_json.clone(),
-        z_vec
+        z_vec,
+        class_data.p
     );
     println!("Proof timer: {:?}", timer.elapsed());
 

@@ -76,23 +76,23 @@ impl Verification {
         let beta_1 = generate_beta_random(8, &poly_sx, &set_h, p);
         let beta_2 = generate_beta_random(9, &poly_sx, &set_h, p);
         // let beta_3 = 5;
-        let beta_3 = u64::from(thread_rng().gen_range(1..1000));
+        let beta_3 = thread_rng().gen_range(1..1000);
         
 
         // TODO:
         // From wiki: [https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/3-proof-generation-phase#id-3-5-2-ahp-proof]
         //             Step 6
-        let alpha = u64::from(sha2_hash_lower_32bit(&(poly_sx.eval(u64::from(0))).to_string()));
-        let eta_a = u64::from(sha2_hash_lower_32bit(&(poly_sx.eval(u64::from(1))).to_string()));
-        let eta_b = u64::from(sha2_hash_lower_32bit(&(poly_sx.eval(u64::from(2))).to_string()));
-        let eta_c = u64::from(sha2_hash_lower_32bit(&(poly_sx.eval(u64::from(3))).to_string()));
+        let alpha = u64::from(sha2_hash_lower_32bit(&(poly_sx.evaluate(0, p)).to_string()));
+        let eta_a = u64::from(sha2_hash_lower_32bit(&(poly_sx.evaluate(1, p)).to_string()));
+        let eta_b = u64::from(sha2_hash_lower_32bit(&(poly_sx.evaluate(2, p)).to_string()));
+        let eta_c = u64::from(sha2_hash_lower_32bit(&(poly_sx.evaluate(3, p)).to_string()));
 
         // let alpha = u64::from(10);
         // let eta_a = u64::from(2);
         // let eta_b = u64::from(30);
         // let eta_c = u64::from(100);
 
-        let z = u64::from(sha2_hash_lower_32bit(&poly_sx.eval(u64::from(22)).to_string()));
+        let z = u64::from(sha2_hash_lower_32bit(&poly_sx.evaluate(22, p).to_string()));
         // let z = u64::from(2);
 
         let beta = vec![beta_1, beta_2, beta_3];
@@ -136,11 +136,12 @@ impl Verification {
         let van_poly_vkx = Self::vanishing_poly(set_k_len, p);
         let van_poly_vhx = Self::vanishing_poly(set_h_len, p);
 
-        let (pi_a, pi_b, pi_c) = ProofGeneration::compute_polys_pi(beta[0], beta[1], polys_px);
+        let (pi_a, pi_b, pi_c) = ProofGeneration::compute_polys_pi(beta[0], beta[1], polys_px, p);
         let polys_pi = vec![&pi_a, &pi_b, &pi_c];
 
         let poly_a_x = Self::generate_poly_ax(polys_px, beta, &van_poly_vhx, eta, &polys_pi, p);
-        let poly_b_x = polys_pi[0] * polys_pi[1] * polys_pi[2];
+        
+        let poly_b_x = poly_fmath::mul(&poly_fmath::mul(&polys_pi[0], &polys_pi[1], p), &polys_pi[2], p);
 
         Self::check_equation_1(
             &self.data.get_poly(Polys::H3x as usize),
@@ -217,7 +218,8 @@ impl Verification {
 
         // Compute the vanishing polynomial for the subset H
         let van_poly_vh1 = vanishing_poly(set_h_1, p);
-        let poly_z_hat_x = &self.data.get_poly(Polys::WHat as usize) * &van_poly_vh1 + poly_x_hat; // Combine polynomials
+        let tmp_mul = poly_fmath::mul(&self.data.get_poly(Polys::WHat as usize), &van_poly_vh1, p);
+        let poly_z_hat_x = poly_fmath::mul(&tmp_mul, &poly_x_hat, p); // Combine polynomials
 
         // Check the third verification equation
         Self::check_equation_3(
@@ -249,9 +251,8 @@ impl Verification {
         let van_poly_vhx = Self::vanishing_poly(set_h_len, p); // Vanishing polynomial for h
         println_dbg!("van_poly_vhx: {}", van_poly_vhx);
 
-        let poly_ab_c = &self.data.get_poly(Polys::ZHatA as usize)
-            * &self.data.get_poly(Polys::ZHatB as usize)
-            - &self.data.get_poly(Polys::ZHatC as usize); // Compute polynomial A * B - C
+        let tmp_mul = poly_fmath::mul(&self.data.get_poly(Polys::ZHatA as usize), &self.data.get_poly(Polys::ZHatB as usize), p);
+        let poly_ab_c = poly_fmath::sub(&tmp_mul, &self.data.get_poly(Polys::ZHatC as usize), p); // Compute polynomial A * B - C
 
         println_dbg!("poly_ab_c: {}", poly_ab_c);
         
@@ -970,7 +971,7 @@ mod verification_test {
             532449, 1405880, 282149, 1154187, 367542, 1488803, 1007425, 1562587, 1237979, 1642415,
             1330105, 1411920, 405521, 316873, 951528, 18252, 557073, 690220, 1004634, 80522, 86907,
             1388766, 882514, 365582, 1554060, 461445, 1517614, 347528, 664656, 1083077, 1300262,
-            1196032, 936930, 335878, 556562, 924938, 425872, 829241, 1306973, 1113903, 746810,
+            1196032, 936930, 335878, 199862, 924938, 425872, 829241, 1306973, 1113903, 746810,
             226387, 1016548, 446480, 857039
         );
         assert!(!Verification::check_equation_3(

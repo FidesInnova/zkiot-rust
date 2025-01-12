@@ -132,7 +132,7 @@ pub mod matrix_fmath {
     }
 
     
-    pub fn vector_mul(a: &FMatrix, b: Vec<u64>, p: u64) -> Vec<u64> {
+    pub fn vector_mul(a: &FMatrix, b: &Vec<u64>, p: u64) -> Vec<u64> {
         let n = a.size();
         let mut result = vec![0; n];
 
@@ -234,7 +234,7 @@ mod test_matrix_oprations {
         let b = vec![2, 4, 6];
         let p = 11;
 
-        let result = matrix_fmath::vector_mul(&a, b, p);
+        let result = matrix_fmath::vector_mul(&a, &b, p);
         
         assert_eq!(result, vec![10, 2, 5]);
     }

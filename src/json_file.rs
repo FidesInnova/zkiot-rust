@@ -202,7 +202,7 @@ impl ProgramParamsJson {
         let set_k = generate_set(class_data.m, class_data, p);
 
         // Values of ranges: [[point_val_a, point_col_a, point_row_a, ...]]
-        let points_px = Self::to_points_u64(points_px, &set_k);
+        let points_px = Self::to_points_u64(points_px, &set_k, p);
 
         Self {
             a: Matrices::to_sparse_column_indices(&matrices.a, class_data.get_matrix_t_zeros()),
@@ -225,13 +225,13 @@ impl ProgramParamsJson {
 
     /// Converts a vector of point mappings to u64 values based on a specified key set
     #[allow(warnings)]
-    fn to_points_u64(points_px: &Vec<HashMap<u64, u64>>, set_k: &Vec<u64>) -> Vec<Vec<u64>> {
+    fn to_points_u64(points_px: &Vec<HashMap<u64, u64>>, set_k: &Vec<u64>, p: u64) -> Vec<Vec<u64>> {
         let mut points_px_t: Vec<Vec<(u64, u64)>> = points_px
             .iter()
             .map(|points| {
                 points
                     .iter()
-                    .map(|(&key, &val)| (key, val))
+                    .map(|(&key, &val)| (key, val % p))
                     .collect::<Vec<(u64, u64)>>()
             })
             .collect();
@@ -277,11 +277,11 @@ impl ProgramParamsJson {
     }
 
     /// Constructs matrix B from the provided triplet data
-    fn get_matrix_b(&self, size: usize) -> FMatrix {
+    fn get_matrix_b(&self, size: usize, p: u64) -> FMatrix {
         let mut mat_b = FMatrix::zeros(size, size);
 
         for &(i, j, val) in self.b.iter() {
-            mat_b[(i, j)] = u64::from(val);
+            mat_b[(i, j)] = val % p;
         }
 
         mat_b
@@ -291,7 +291,7 @@ impl ProgramParamsJson {
     ///
     /// # Returns
     /// A vector of hash maps where each map represents a set of points with `u64` keys and values.
-    pub fn get_points_px(&self, set_k: &Vec<u64>) -> Vec<HashMap<u64, u64>> {
+    pub fn get_points_px(&self, set_k: &Vec<u64>, p: u64) -> Vec<HashMap<u64, u64>> {
         let points_px = [
             self.v_a.clone(),
             self.r_a.clone(),
@@ -310,7 +310,7 @@ impl ProgramParamsJson {
                 points
                     .iter()
                     .enumerate()
-                    .map(|(i, &p)| (set_k[i], u64::from(p)))
+                    .map(|(i, &x)| (set_k[i], x % p))
                     .collect()
             })
             .collect()
@@ -327,12 +327,13 @@ impl ProgramParamsJson {
     pub fn get_matrices(
         &self,
         class_data: &ClassDataJson,
+        p: u64
     ) -> (FMatrix, FMatrix, FMatrix) {
         let a = self.get_matrix_a(
             class_data.get_matrix_size(),
             class_data.get_matrix_t_zeros(),
         );
-        let b = self.get_matrix_b(class_data.get_matrix_size());
+        let b = self.get_matrix_b(class_data.get_matrix_size(), p);
         let c = Matrices::generate_matrix_c(
             class_data.get_matrix_size(),
             class_data.get_matrix_t_zeros(),

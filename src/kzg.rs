@@ -38,8 +38,8 @@ pub fn commit(poly_in: &FPoly, ck: &[u64], p: u64) -> u64 {
     // Ensure that the number of commitment keys is greater than the polynomial degree
     assert!(ck.len() > degree, "Error: The number of commitment keys ({}), must be greater than the polynomial degree ({}).", ck.len(), degree);
 
-    for i in 0..degree {
-        let term = poly_in.terms[degree - 1 - i];
+    for i in 0..=degree {
+        let term = poly_in.get_term(i);
         let mul = fmath::mul_u128(term, ck[i], p);
         res_poly = fmath::add(res_poly, mul, p);
     }
@@ -68,15 +68,25 @@ mod test_kzg {
 
     #[test]
     fn test_commit() {
-        let poly = FPoly::new(vec![
+        let poly1 = FPoly::new(vec![
+            1,
+            2,
+            3,
+        ]);
+        let ck1 = vec![3, 2, 1];
+        let result = commit(&poly1, &ck1, P);
+        assert_eq!(result, 14);
+
+
+        let poly2 = FPoly::new(vec![
             234,
             12,
             0,
             99
         ]);
-        let ck = vec![22, 180, 571, 174, 333];
+        let ck2 = vec![22, 180, 571, 174, 333];
 
-        let result = commit(&poly, &ck, P);
+        let result = commit(&poly2, &ck2, P);
         
         assert_eq!(result, 152);
     }

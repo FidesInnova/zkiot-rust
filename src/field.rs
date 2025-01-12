@@ -28,7 +28,8 @@ pub mod fmath {
     }
 
     pub fn mul(a: u64, b: u64, p: u64) -> u64 {
-        (a * b) % p
+        // (a * b) % p
+        mul_u128(a, b, p)
     }
 
     pub fn mul_u128(a: u64, b: u64, p: u64) -> u64 {
@@ -44,9 +45,6 @@ pub mod fmath {
         if p == 1 {
             return 0; // Any number mod 1 is 0
         }
-        
-        // Assert that (p - 1) * (p - 1) does not overflow base
-        assert!((p - 1) * (p - 1) >= a);
     
         let mut result = 1;
         let mut base = a % p; // Reduce base modulo p

@@ -78,12 +78,14 @@ impl FPoly {
     pub fn evaluate(&self, x: u64, p: u64) -> u64 {
         self.terms
             .iter()
+            .rev()
             .enumerate()
             .map(|(i, &coeff)| {
                 let term_x = fmath::pow(x, i.try_into().unwrap(), p);
                 fmath::mul(coeff, term_x, p)
             })
-            .sum()
+            .fold(0, |acc, x| fmath::add(acc, x, p))
+
     }
 
     pub fn trim(&mut self) {
@@ -95,6 +97,11 @@ impl FPoly {
 
     pub fn is_zero(&self) -> bool {
         self.degree() == 0
+    }
+
+    pub fn get_term(&self, degree: usize) -> u64 {
+        assert!(degree < self.terms.len(), "Degree is greater than the polynomial degree.");
+        self.terms[self.terms.len() - degree - 1]
     }
 }
 
@@ -126,6 +133,7 @@ impl std::fmt::Display for FPoly {
     }
 }
 
+#[macro_use]
 pub mod poly_fmath {
     use super::{FPoly, Term};
     use crate::field::fmath;
@@ -377,6 +385,27 @@ pub mod poly_fmath {
 
         len
     }
+
+
+    #[macro_export]
+    macro_rules! poly_add_many {
+        ($p:expr, $x:expr) => {
+            $x
+        };
+        ($p:expr, $first:expr, $($rest:expr),+) => {
+            crate::polynomial::poly_fmath::add(&$first, &poly_add_many!($p, $($rest),+), $p)
+        };
+    }
+
+    #[macro_export]
+    macro_rules! poly_mul_many {
+        ($p:expr, $x:expr) => {
+            $x
+        };
+        ($p:expr, $first:expr, $($rest:expr),+) => {
+            crate::polynomial::poly_fmath::mul($first, &poly_mul_many!($p, $($rest),+), $p)
+        };
+    }
 }
 
 #[cfg(test)]
@@ -384,6 +413,29 @@ mod tests {
     use super::*;
     use poly_fmath::*;
     
+    #[test]
+    fn test_add_many() {
+        let poly1 = FPoly::new(vec![1, 2, 4]);
+        let poly2 = FPoly::new(vec![5, 6, 8]);
+        let poly3 = FPoly::new(vec![4, 22]);
+
+        let result = poly_add_many!(11, poly1, poly2, poly3);
+        assert_eq!(result.terms, vec![6, 1, 1]);
+    }
+
+
+    #[test]
+    fn test_mul_many() {
+        let poly1 = FPoly::new(vec![1, 2, 4]);
+        let poly2 = FPoly::new(vec![5, 6, 8]);
+        let poly3 = FPoly::new(vec![4, 22]);
+
+        let result = poly_mul_many!(11, &poly1, &poly2, &poly3);
+        assert_eq!(result.terms, vec![9, 9, 6, 6, 7, 0]);
+    }
+
+
+
     #[test]
     fn test_eval() {
         let poly1 = FPoly::new(vec![10, 70, 12, 220, 133, 112, 512, 150]);
@@ -393,6 +445,19 @@ mod tests {
         assert_eq!(poly1.evaluate(0, 181), 150);
         assert_eq!(poly1.evaluate(0, 11), 7);
     }
+
+
+    #[test]
+    fn test_degree() {
+        let poly1 = FPoly::new(vec![1, 2, 4]);
+        let poly2 = FPoly::new(vec![0]);
+        let poly3 = FPoly::new(vec![]);
+        
+        assert_eq!(poly1.degree(), 2);
+        assert_eq!(poly2.degree(), 0);
+        assert_eq!(poly3.degree(), 0);
+    }
+
 
 
     #[test]

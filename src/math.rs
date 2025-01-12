@@ -17,11 +17,11 @@
 use crate::field::fmath;
 use crate::json_file::ClassDataJson;
 use crate::kzg;
+use crate::matrices::FMatrix;
 use crate::polynomial::poly_fmath;
 use crate::polynomial::FPoly;
 use crate::println_dbg;
 use crate::utils::add_random_points;
-use nalgebra::DMatrix;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
@@ -139,8 +139,7 @@ pub fn vanishing_poly(set: &Vec<u64>, p: u64) -> FPoly {
 /// The function will panic if an index `c` in `set_k` is out of bounds or if `set_k` does not have
 /// a value corresponding to the index `c`. This is asserted with `assert!(set_k.get(c).is_some());`.
 pub fn get_matrix_point_val(
-    mat: &DMatrix<u64>,
-    set_h: &[u64],
+    mat: &FMatrix,
     set_k: &[u64],
     row_k: &HashMap<u64, u64>,
     col_k: &HashMap<u64, u64>,
@@ -149,7 +148,7 @@ pub fn get_matrix_point_val(
 ) -> HashMap<u64, u64> {
     let mut res = HashMap::new();
     let mut counter = 0;
-    let mat_len = mat.nrows();
+    let mat_len = mat.size();
 
     let mut poly_u = FPoly::new(vec![0]);
     // FIXME: Check here
@@ -192,10 +191,10 @@ pub fn get_matrix_point_val(
 /// # Description
 /// The function iterates over the matrix `mat` and, for each non-zero element,
 /// maps the corresponding value in `set_k` to the row value in `set_h`.
-pub fn get_matrix_point_row(mat: &DMatrix<u64>, set_h: &[u64], set_k: &[u64]) -> HashMap<u64, u64> {
+pub fn get_matrix_point_row(mat: &FMatrix, set_h: &[u64], set_k: &[u64]) -> HashMap<u64, u64> {
     let mut res = HashMap::new();
     let mut counter = 0;
-    let mat_len = mat.nrows();
+    let mat_len = mat.size();
 
     for i in 0..mat_len {
         for j in 0..mat_len {
@@ -226,10 +225,10 @@ pub fn get_matrix_point_row(mat: &DMatrix<u64>, set_h: &[u64], set_k: &[u64]) ->
 /// # Description
 /// The function iterates over the matrix `mat` and, for each non-zero element,
 /// maps the corresponding value in `set_k` to the column value in `set_h`.
-pub fn get_matrix_point_col(mat: &DMatrix<u64>, set_h: &[u64], set_k: &[u64]) -> HashMap<u64, u64> {
+pub fn get_matrix_point_col(mat: &FMatrix, set_h: &[u64], set_k: &[u64]) -> HashMap<u64, u64> {
     let mut res = HashMap::new();
     let mut c = 0;
-    let mat_len = mat.nrows();
+    let mat_len = mat.size();
 
     for i in 0..mat_len {
         for j in 0..mat_len {
@@ -269,7 +268,7 @@ pub fn get_matrix_point_col(mat: &DMatrix<u64>, set_h: &[u64], set_k: &[u64]) ->
 /// The function will panic if the number of row and column points does not match the expected
 /// count based on `set_k`.
 pub fn get_matrix_points(
-    mat: &DMatrix<u64>,
+    mat: &FMatrix,
     set_h: &[u64],
     set_k: &[u64],
     p: u64,
@@ -282,7 +281,7 @@ pub fn get_matrix_points(
     // Ensure that the number of col points matches the length of set_k.
     assert_eq!(col_p.len(), set_k.len());
 
-    let val_p = get_matrix_point_val(mat, &set_h, &set_k, &row_p, &col_p, set_h.len(), p);
+    let val_p = get_matrix_point_val(mat, &set_k, &row_p, &col_p, set_h.len(), p);
 
     (row_p, col_p, val_p)
 }

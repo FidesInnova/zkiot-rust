@@ -15,8 +15,6 @@
 //! Utility functions and structures for gate definitions, matrix operations, and polynomial encoding.
 
 use anyhow::Result;
-use nalgebra::DMatrix;
-use nalgebra::DVector;
 use rand::thread_rng;
 use rand::Rng;
 use sha2::Digest;
@@ -25,6 +23,7 @@ use std::collections::HashSet;
 
 use crate::define_get_points_fn;
 use crate::get_val;
+use crate::matrices::FMatrix;
 use crate::polynomial::FPoly;
 use crate::println_dbg;
 
@@ -40,9 +39,9 @@ use crate::math::Point;
 /// # Description
 /// This function iterates over the first `t` rows of the given matrix `mat` and sets all
 /// elements in these rows to zero. The number of rows affected is specified by the parameter `t`.
-pub fn rows_to_zero(mat: &mut DMatrix<u64>, t: usize) {
+pub fn rows_to_zero(mat: &mut FMatrix, t: usize) {
     for i in 0..t {
-        for j in 0..mat.ncols() {
+        for j in 0..mat.size() {
             mat[(i, j)] = 0;
         }
     }
@@ -89,32 +88,32 @@ pub fn get_points_set(seq: &[u64], n: &[u64]) -> Vec<Point> {
     points
 }
 
-/// Converts a column vector matrix to a vector of field elements.
-///
-/// # Parameters
-/// - `mat`: A matrix of field elements with a single column and multiple rows.
-///
-/// # Returns
-/// Returns a vector of `u64` elements, where each element is extracted from the column of the matrix.
-///
-/// # Description
-/// This function takes a matrix with a single column and converts it into a vector of field elements.
-/// It iterates over the rows of the matrix, extracting each element from the single column and adding
-/// it to the resulting vector.
-///
-/// # Panics
-/// Panics if the number of columns in the matrix is not equal to 1. The function assumes that the matrix
-/// is a column vector with exactly one column.
-pub fn mat_to_vec(mat: &DVector<u64>) -> Vec<u64> {
-    assert!(mat.ncols() == 1, "cannot convet to vec mat.ncols() == 1");
+// /// Converts a column vector matrix to a vector of field elements.
+// ///
+// /// # Parameters
+// /// - `mat`: A matrix of field elements with a single column and multiple rows.
+// ///
+// /// # Returns
+// /// Returns a vector of `u64` elements, where each element is extracted from the column of the matrix.
+// ///
+// /// # Description
+// /// This function takes a matrix with a single column and converts it into a vector of field elements.
+// /// It iterates over the rows of the matrix, extracting each element from the single column and adding
+// /// it to the resulting vector.
+// ///
+// /// # Panics
+// /// Panics if the number of columns in the matrix is not equal to 1. The function assumes that the matrix
+// /// is a column vector with exactly one column.
+// pub fn mat_to_vec(mat: &DVector<u64>) -> Vec<u64> {
+//     assert!(mat.ncols() == 1, "cannot convet to vec mat.ncols() == 1");
 
-    let mut v = vec![];
+//     let mut v = vec![];
 
-    for i in 0..mat.nrows() {
-        v.push(mat[(i, 0)]);
-    }
-    v
-}
+//     for i in 0..mat.nrows() {
+//         v.push(mat[(i, 0)]);
+//     }
+//     v
+// }
 
 /// Converts a vector of `u64` elements into a `HashSet` of `u64`.
 ///
@@ -297,7 +296,7 @@ pub fn print_hashmap(points: &HashMap<u64, u64>, set_k: &[u64]) {
 /// 1. The row polynomial is obtained by performing Lagrange interpolation on the points corresponding to the rows of the matrix.
 /// 2. The column polynomial is obtained by performing Lagrange interpolation on the points corresponding to the columns of the matrix.
 /// 3. The value polynomial is obtained by performing Lagrange interpolation on the points corresponding to the non-zero values in the matrix.
-pub fn encode_matrix_m(matrix: &DMatrix<u64>, set_h: &[u64], set_k: &[u64], p: u64) -> Vec<FPoly> {
+pub fn encode_matrix_m(matrix: &FMatrix, set_h: &[u64], set_k: &[u64], p: u64) -> Vec<FPoly> {
     let points = get_points_row(matrix, set_h, set_k);
     let row = interpolate(&points, p);
     let points = get_points_col(matrix, set_h, set_k);
@@ -353,12 +352,12 @@ macro_rules! get_val {
 macro_rules! define_get_points_fn {
     ($name:ident, $mode:ident) => {
         #[allow(unused_variables)]
-        pub fn $name(mat: &DMatrix<u64>, h: &[u64], k: &[u64]) -> Vec<(u64, u64)> {
+        pub fn $name(mat: &FMatrix, h: &[u64], k: &[u64]) -> Vec<(u64, u64)> {
             let mut points: Vec<(u64, u64)> = vec![];
             let mut c = 0;
 
-            for i in 0..mat.nrows() {
-                for j in 0..mat.ncols() {
+            for i in 0..mat.size() {
+                for j in 0..mat.size() {
                     if mat[(i, j)] != 0 {
                         let value = get_val!($mode, h, mat, i, j);
                         points.push((k[c], value));
@@ -372,65 +371,6 @@ macro_rules! define_get_points_fn {
 }
 
 
-// /// Displays the contents of a matrix.
-// ///
-// /// # Parameters
-// /// - `$mat`: A reference to the matrix to be displayed. The matrix should implement indexing
-// ///   via `(i, j)` to access elements.
-// ///
-// /// # Description
-// /// This macro iterates over the rows and columns of the provided matrix, printing each element.
-// #[macro_export]
-// macro_rules! dsp_mat {
-//     ($mat: expr) => {
-//         for i in 0..$mat.nrows() {
-//             for j in 0..$mat.ncols() {
-//                 let derr = $mat[(i, j)];
-//                 crate::print_dbg!(
-//                     "{:<3}",
-//                     if derr == <crate::math::u64 as ark_ff::Field>::ZERO {
-//                         "0".to_owned()
-//                     } else {
-//                         format!("{}", derr)
-//                     }
-//                 );
-//             }
-//             crate::println_dbg!();
-//         }
-//         crate::println_dbg!();
-//     };
-// }
-
-/// Converts a vector to a formatted string with elements separated by commas.
-///
-/// # Parameters
-/// - `$ve`: A reference to the vector to be converted to a string. The vector should implement
-///   the `Display` trait for its elements.
-///
-/// # Returns
-/// Returns a string containing the vector elements separated by commas, with no trailing comma
-/// at the end.
-///
-/// # Description
-/// This macro iterates over the elements of the provided vector, concatenating them into a
-/// comma-separated string. The resulting string is useful for displaying
-/// of the vector.
-#[macro_export]
-macro_rules! dsp_vec {
-    ($ve: expr) => {{
-        let mut result = String::new();
-
-        for (i, x) in $ve.iter().enumerate() {
-            if i == $ve.len() - 1 {
-                result.push_str(&format!("{}", x));
-            } else {
-                result.push_str(&format!("{}, ", x));
-            }
-        }
-
-        result
-    }};
-}
 
 
 /// Computes the SHA-256 hash of the given input string and returns the result as a hexadecimal string.
@@ -501,6 +441,8 @@ pub fn read_json_file<T: serde::de::DeserializeOwned>(path: &str) -> Result<T> {
 ///
 /// # Example
 /// ```rust
+/// use zk_iot::print_dbg;
+/// let value = 42;
 /// print_dbg!("Value: {}", value);
 /// ```
 #[macro_export]
@@ -523,6 +465,8 @@ macro_rules! print_dbg {
 ///
 /// # Example
 /// ```rust
+/// use zk_iot::println_dbg;
+/// let value = 42;
 /// println_dbg!("Debugging value: {}", value);
 /// ```
 #[macro_export]

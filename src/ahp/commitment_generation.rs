@@ -20,7 +20,6 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::BufWriter;
 
-use crate::dsp_vec;
 use crate::json_file::write_term;
 use crate::json_file::ClassDataJson;
 use crate::json_file::DeviceInfo;
@@ -58,8 +57,8 @@ impl Commitment {
         println_dbg!("$p: {}", class_data.p);
         println_dbg!("$g: {}", class_data.g);
 
-        println_dbg!("set_h: {}", dsp_vec!(set_h));
-        println_dbg!("set_k: {}", dsp_vec!(set_k));
+        println_dbg!("set_h: {:?}", set_h);
+        println_dbg!("set_k: {:?}", set_k);
 
         let matrix_size = class_data.get_matrix_size();
         let matrices = Matrices::new(matrix_size.try_into().unwrap());
@@ -82,9 +81,10 @@ impl Commitment {
     pub fn get_polynomials_commitment(
         &self,
         commitment_key: &Vec<u64>,
+        p: u64,
     ) -> Vec<u64> {
-        let commitment = compute_all_commitment(&self.polys_px, commitment_key);
-        println_dbg!("com_ahp: {}", dsp_vec!(commitment));
+        let commitment = compute_all_commitment(&self.polys_px, commitment_key, p);
+        println_dbg!("com_ahp: {:?}", commitment);
         commitment
     }
 
@@ -174,7 +174,7 @@ pub struct CommitmentJson {
 }
 
 impl CommitmentJson {
-    pub fn new(polys_px: &Vec<Poly>, class_number: u8, class: ClassDataJson, commitment_id: u64) -> Self {
+    pub fn new(polys_px: &Vec<FPoly>, class_number: u8, class: ClassDataJson, commitment_id: u64) -> Self {
         // Extract values for CommitmentJson from the Commitment struct
         let polys_px_t: Vec<Vec<u64>> = polys_px.iter().map(|p| write_term(p)).collect();
 
@@ -199,14 +199,14 @@ impl CommitmentJson {
     }
 
     /// Converts a vector of u64 values into a polynomial.
-    fn convert_poly(v: &Vec<u64>) -> Poly {
-        let mut poly = Poly::from(v.iter().rev().map(|&t| u64::from(t)).collect::<Vec<u64>>());
+    fn convert_poly(v: &Vec<u64>) -> FPoly {
+        let mut poly = FPoly::new(v.iter().rev().map(|&x| x).collect());
         poly.trim();
         poly
     }
 
     /// Retrieves the polynomial data as a vector of `Poly` instances.
-    pub fn get_polys_px(&self) -> Vec<Poly> {
+    pub fn get_polys_px(&self) -> Vec<FPoly> {
         vec![
             Self::convert_poly(&self.row_a),
             Self::convert_poly(&self.col_a),
@@ -251,7 +251,7 @@ impl CommitmentBuilder {
     ///
     /// For further details, please refer to the documentation:
     /// [Documentation Link](https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/2-commitment-phase)
-    pub fn gen_matrices(&mut self, gates: Vec<Gate>, ni: usize) -> Self {
+    pub fn gen_matrices(&mut self, gates: Vec<Gate>, ni: usize, p: u64) -> Self {
         // Create copies of matrices A, B, and C
         let a_mat = &mut self.commitm.matrices.a;
         let b_mat = &mut self.commitm.matrices.b;
@@ -293,16 +293,16 @@ impl CommitmentBuilder {
                     println_dbg!("B[{}, {}] = {}", _inx, _ri, right_val);
 
                     a_mat[(_inx, 0)] = 1;
-                    b_mat[(_inx, _li)] = left_val;
-                    b_mat[(_inx, _ri)] = right_val;
+                    b_mat[(_inx, _li)] = left_val % p;
+                    b_mat[(_inx, _ri)] = right_val % p;
                 }
                 Instructions::Mul => {
                     println_dbg!("Gate: Mul");
                     println_dbg!("A[{}, {}] = {}", _inx, _li, left_val);
                     println_dbg!("B[{}, {}] = {}", _inx, _ri, right_val);
 
-                    a_mat[(_inx, _li)] = left_val;
-                    b_mat[(_inx, _ri)] = right_val;
+                    a_mat[(_inx, _li)] = left_val % p;
+                    b_mat[(_inx, _ri)] = right_val % p;
                 }
                 Instructions::Div => {
                     println_dbg!("Gate: Div");
@@ -315,11 +315,11 @@ impl CommitmentBuilder {
 
         // Print matrices if the program is compiled in debug mode
         println_dbg!("Mat A:");
-        dsp_mat!(self.commitm.matrices.a);
+        println_dbg!("{}", self.commitm.matrices.a);
         println_dbg!("Mat B:");
-        dsp_mat!(self.commitm.matrices.b);
+        println_dbg!("{}", self.commitm.matrices.b);
         println_dbg!("Mat C:");
-        dsp_mat!(self.commitm.matrices.c);
+        println_dbg!("{}", self.commitm.matrices.c);
 
         self.clone()
     }
@@ -441,49 +441,49 @@ impl CommitmentBuilder {
     }
 
     /// Generates polynomials from matrix data and updates the commitment structure
-    pub fn gen_polynomials(&mut self) -> Self {
+    pub fn gen_polynomials(&mut self, p: u64) -> Self {
         let set_h = &self.commitm.set_h;
         let set_k = &self.commitm.set_k;
 
         // Collect row, column, and value points from matrix A
         let (points_row_p_a, points_col_p_a, points_val_p_a) =
-            get_matrix_points(&self.commitm.matrices.a, set_h, set_k);
+            get_matrix_points(&self.commitm.matrices.a, set_h, set_k, p);
         // Collect row, column, and value points from matrix B
         let (points_row_p_b, points_col_p_b, points_val_p_b) =
-            get_matrix_points(&self.commitm.matrices.b, set_h, set_k);
+            get_matrix_points(&self.commitm.matrices.b, set_h, set_k, p);
         // Collect row, column, and value points from matrix C.
         let (points_row_p_c, points_col_p_c, points_val_p_c) =
-            get_matrix_points(&self.commitm.matrices.c, set_h, set_k);
+            get_matrix_points(&self.commitm.matrices.c, set_h, set_k, p);
 
-        let a_row_px = sigma_yi_li(&points_row_p_a, &self.commitm.set_k);
+        let a_row_px = sigma_yi_li(&points_row_p_a, &self.commitm.set_k, p);
         println_dbg!("a_row_px: ");
-        dsp_poly!(a_row_px);
-        let a_col_px = sigma_yi_li(&points_col_p_a, &self.commitm.set_k);
+        println_dbg!("{}", a_row_px);
+        let a_col_px = sigma_yi_li(&points_col_p_a, &self.commitm.set_k, p);
         println_dbg!("a_col_px: ");
-        dsp_poly!(a_col_px);
-        let a_val_px = sigma_yi_li(&points_val_p_a, &self.commitm.set_k);
+        println_dbg!("{}", a_col_px);
+        let a_val_px = sigma_yi_li(&points_val_p_a, &self.commitm.set_k, p);
         println_dbg!("a_val_px: ");
-        dsp_poly!(a_val_px);
+        println_dbg!("{}", a_val_px);
 
-        let b_row_px = sigma_yi_li(&points_row_p_b, &self.commitm.set_k);
+        let b_row_px = sigma_yi_li(&points_row_p_b, &self.commitm.set_k, p);
         println_dbg!("b_row_px: ");
-        dsp_poly!(b_row_px);
-        let b_col_px = sigma_yi_li(&points_col_p_b, &self.commitm.set_k);
+        println_dbg!("{}", b_row_px);
+        let b_col_px = sigma_yi_li(&points_col_p_b, &self.commitm.set_k, p);
         println_dbg!("b_col_px: ");
-        dsp_poly!(b_col_px);
-        let b_val_px = sigma_yi_li(&points_val_p_b, &self.commitm.set_k);
+        println_dbg!("{}", b_col_px);
+        let b_val_px = sigma_yi_li(&points_val_p_b, &self.commitm.set_k, p);
         println_dbg!("b_val_px: ");
-        dsp_poly!(b_val_px);
+        println_dbg!("{}", b_val_px);
 
-        let c_row_px = sigma_yi_li(&points_row_p_c, &self.commitm.set_k);
+        let c_row_px = sigma_yi_li(&points_row_p_c, &self.commitm.set_k, p);
         println_dbg!("c_row_px: ");
-        dsp_poly!(c_row_px);
-        let c_col_px = sigma_yi_li(&points_col_p_c, &self.commitm.set_k);
+        println_dbg!("{}", c_row_px);
+        let c_col_px = sigma_yi_li(&points_col_p_c, &self.commitm.set_k, p);
         println_dbg!("c_col_px: ");
-        dsp_poly!(c_col_px);
-        let c_val_px = sigma_yi_li(&points_val_p_c, &self.commitm.set_k);
+        println_dbg!("{}", c_col_px);
+        let c_val_px = sigma_yi_li(&points_val_p_c, &self.commitm.set_k, p);
         println_dbg!("c_val_px: ");
-        dsp_poly!(c_val_px);
+        println_dbg!("{}", c_val_px);
 
         let polys_pxs = vec![
             a_row_px, a_col_px, a_val_px, b_row_px, b_col_px, b_val_px, c_row_px, c_col_px,
@@ -577,7 +577,7 @@ mod test_matrices {
                 instr: Mul,
             },
         ];
-        let commitment = Commitment::new(class_data).gen_matrices(gates, class_data.n_i as usize);
+        let commitment = Commitment::new(class_data).gen_matrices(gates, class_data.n_i as usize, 1678321);
 
         // Check matrix A
         let mat = commitment.commitm.matrices.a;
@@ -591,10 +591,10 @@ mod test_matrices {
         assert_eq!(mat[(33, 1)], 1);
         assert_eq!(mat[(35, 34)], 1);
 
-        assert_eq!(mat[(33, 0)], u64::from(5));
-        assert_eq!(mat[(34, 0)], u64::from(2));
-        assert_eq!(mat[(35, 0)], u64::from(10));
-        assert_eq!(mat[(36, 0)], u64::from(7));
+        assert_eq!(mat[(33, 0)], 5);
+        assert_eq!(mat[(34, 0)], 2);
+        assert_eq!(mat[(35, 0)], 10);
+        assert_eq!(mat[(36, 0)], 7);
 
         // Check matrix C
         let mat = commitment.commitm.matrices.c;
