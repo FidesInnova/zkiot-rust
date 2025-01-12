@@ -130,6 +130,21 @@ pub mod matrix_fmath {
 
         result
     }
+
+    
+    pub fn vector_mul(a: &FMatrix, b: Vec<u64>, p: u64) -> Vec<u64> {
+        let n = a.size();
+        let mut result = vec![0; n];
+
+        for i in 0..n {
+            for j in 0..n {
+                let tmp_mul = fmath::mul(a[(i, j)], b[j], p);
+                result[i] = fmath::add(result[i], tmp_mul, p);
+            }
+        }
+        
+        result
+    }
 }
 
 
@@ -208,6 +223,23 @@ impl Matrices {
 #[cfg(test)]
 mod test_matrix_oprations {
     use super::*;
+
+    #[test]
+    fn test_vector_mul() {
+        let a = FMatrix::new(vec![
+            vec![0, 2, 4],
+            vec![3, 5, 7],
+            vec![6, 8, 10],
+        ]);
+
+        let b = vec![2, 4, 6];
+        let p = 11;
+
+        let result = matrix_fmath::vector_mul(&a, b, p);
+        
+        assert_eq!(result, vec![10, 2, 5]);
+    }
+
 
     #[test]
     fn test_add() {
