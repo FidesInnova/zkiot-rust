@@ -142,6 +142,7 @@ pub mod matrix_fmath {
                 result[i] = fmath::add(result[i], tmp_mul, p);
             }
         }
+        
         result
     }
 }
