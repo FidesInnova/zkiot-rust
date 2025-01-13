@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use poly_fmath::first_nonzero_index;
+
 use crate::field::fmath;
 
 #[macro_export]
@@ -41,7 +43,7 @@ pub struct FPoly {
 impl FPoly {
     // FIXME: should i use % p here?
     pub fn new(terms: Vec<u64>) -> Self {
-        let mut terms = terms; 
+        let mut terms = terms;
         if terms.len() == 0 {
             terms.push(0);
         }
@@ -61,7 +63,12 @@ impl FPoly {
     }
 
     pub fn degree(&self) -> usize {
-        self.terms.len() - 1
+        let index = first_nonzero_index(&self.terms);
+        if index == self.terms.len() {
+            0
+        } else {
+            self.terms.len() - index - 1
+        }
     }
 
     pub fn add_term(&mut self, coeff: u64, degree: usize) {
@@ -85,7 +92,6 @@ impl FPoly {
                 fmath::mul(coeff, term_x, p)
             })
             .fold(0, |acc, x| fmath::add(acc, x, p))
-
     }
 
     pub fn trim(&mut self) {
@@ -100,7 +106,10 @@ impl FPoly {
     }
 
     pub fn get_term(&self, degree: usize) -> u64 {
-        assert!(degree < self.terms.len(), "Degree is greater than the polynomial degree.");
+        assert!(
+            degree < self.terms.len(),
+            "Degree is greater than the polynomial degree."
+        );
         self.terms[self.terms.len() - degree - 1]
     }
 }
@@ -109,16 +118,16 @@ impl std::fmt::Display for FPoly {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut result = String::new();
         let deg = self.degree();
-    
+
         for (i, &term) in self.terms.iter().enumerate() {
             if term == 0 || i > deg {
                 continue;
             }
-    
+
             if !result.is_empty() {
                 result.push_str(" + ");
             }
-    
+
             match (term, deg - i) {
                 (1, 0) => result.push_str("1"),
                 (1, 1) => result.push_str("x"),
@@ -128,7 +137,7 @@ impl std::fmt::Display for FPoly {
                 (_, exp) => result.push_str(&format!("{}x^{}", term, exp)),
             }
         }
-    
+
         write!(f, "{}", result)
     }
 }
@@ -139,18 +148,16 @@ pub mod poly_fmath {
     use crate::field::fmath;
 
     pub fn add(a: &FPoly, b: &FPoly, p: u64) -> FPoly {
-        let (terms, small) = if b.degree() > a.degree() {
-            (&b.terms, &a.terms)
+        let (mut terms, small) = if b.terms.len() > a.terms.len() {
+            (b.terms.clone(), &a.terms)
         } else {
-            (&a.terms, &b.terms)
+            (a.terms.clone(), &b.terms)
         };
 
         let offset = terms.len() - small.len();
 
-        let mut terms = terms.clone();
-
         for (index, &val) in terms[offset..].iter_mut().zip(small) {
-            *index = fmath::add(*index, val, p)
+            *index = fmath::add(*index, val, p);
         }
 
         FPoly::new(terms)
@@ -202,7 +209,6 @@ pub mod poly_fmath {
         }
         FPoly::new(terms)
     }
-
 
     /// Performs the in-place Number Theoretic Transform (NTT) on a polynomial.
     ///
@@ -386,7 +392,6 @@ pub mod poly_fmath {
         len
     }
 
-
     #[macro_export]
     macro_rules! poly_add_many {
         ($p:expr, $x:expr) => {
@@ -412,17 +417,25 @@ pub mod poly_fmath {
 mod tests {
     use super::*;
     use poly_fmath::*;
-    
+
     #[test]
     fn test_add_many() {
         let poly1 = FPoly::new(vec![1, 2, 4]);
         let poly2 = FPoly::new(vec![5, 6, 8]);
         let poly3 = FPoly::new(vec![4, 22]);
 
-        let result = poly_add_many!(11, poly1, poly2, poly3);
+        let result = poly_add_many!(11, poly1.clone(), poly2.clone(), poly3);
         assert_eq!(result.terms, vec![6, 1, 1]);
-    }
 
+
+
+        let result = poly_add_many!(11, 
+            poly_fmath::mul_by_number(&poly1, 11, 11), 
+            poly2, 
+            poly3
+        );
+        assert_eq!(result.terms, vec![5, 10, 30 % 11]);
+    }
 
     #[test]
     fn test_mul_many() {
@@ -434,31 +447,26 @@ mod tests {
         assert_eq!(result.terms, vec![9, 9, 6, 6, 7, 0]);
     }
 
-
-
     #[test]
     fn test_eval() {
         let poly1 = FPoly::new(vec![10, 70, 12, 220, 133, 112, 512, 150]);
-        
+
         assert_eq!(poly1.evaluate(2, 181), 42);
         assert_eq!(poly1.evaluate(191, 181), 154);
         assert_eq!(poly1.evaluate(0, 181), 150);
         assert_eq!(poly1.evaluate(0, 11), 7);
     }
 
-
     #[test]
     fn test_degree() {
         let poly1 = FPoly::new(vec![1, 2, 4]);
         let poly2 = FPoly::new(vec![0]);
         let poly3 = FPoly::new(vec![]);
-        
+
         assert_eq!(poly1.degree(), 2);
         assert_eq!(poly2.degree(), 0);
         assert_eq!(poly3.degree(), 0);
     }
-
-
 
     #[test]
     fn test_add() {
@@ -468,6 +476,14 @@ mod tests {
 
         assert_eq!(vec![6, 8, 1], add(&poly1, &poly2, 11).terms);
         assert_eq!(vec![5, 10, 8], add(&poly2, &poly3, 11).terms);
+
+        let poly1 = FPoly::new(vec![0]);
+        let poly2 = FPoly::new(vec![0, 0]);
+
+        let mut result = poly_fmath::add(&poly1, &poly2, 11);
+        result.trim();
+
+        assert!(result.terms.len() == 0);
     }
 
     #[test]
@@ -487,10 +503,7 @@ mod tests {
         let poly2 = FPoly::new(vec![2, 7, 11, 5, 24]);
         let poly3 = FPoly::new(vec![]);
 
-        assert_eq!(
-            vec![2, 6, 3, 10, 2, 7, 2, 7],
-            mul(&poly1, &poly2, 11).terms
-        );
+        assert_eq!(vec![2, 6, 3, 10, 2, 7, 2, 7], mul(&poly1, &poly2, 11).terms);
         assert_eq!(vec![0, 0, 0], mul(&poly1, &poly3, 11).terms);
     }
 

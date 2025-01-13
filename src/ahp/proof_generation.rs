@@ -301,6 +301,8 @@ impl ProofGeneration {
         println_dbg!("P Mat C:");
         println_dbg!("{}", mat_c);
 
+        println!("{:?}", z_vec);
+
         let points_px = program_params.get_points_px(&set_k, p);
 
         // TODO: Set 'random_b' to a random value
@@ -339,7 +341,7 @@ impl ProofGeneration {
         println_dbg!("{}", van_poly_vhx);
 
         let tmp1 = poly_fmath::mul(&poly_z_hat_a, &poly_z_hat_b, p);
-        let poly_ab_c = poly_fmath::mul(&tmp1, &poly_z_hat_c, p);
+        let poly_ab_c = poly_fmath::sub(&tmp1, &poly_z_hat_c, p);
         
         println_dbg!("poly_ab_c");
         println_dbg!("{}", poly_ab_c);
@@ -386,11 +388,15 @@ impl ProofGeneration {
         // let eta_c = 100;
 
         // Compute polynomial for ∑ ηz(x)
-        let mut sigma_eta_z_x = FPoly::zero();
-        for (poly, eta) in [&poly_z_hat_a, &poly_z_hat_b, &poly_z_hat_c].iter().zip(etas.iter()) {
-            let tmp = poly_fmath::mul_by_number(poly, *eta, p);
-            sigma_eta_z_x = poly_fmath::add(&sigma_eta_z_x, &tmp, p);
-        }
+        // let sigma_eta_z_x = Poly::new(vec![eta_a]) * &poly_z_hat_a
+        //     + Poly::new(vec![eta_b]) * &poly_z_hat_b
+        //     + Poly::new(vec![eta_c]) * &poly_z_hat_c;
+        
+        let sigma_eta_z_x = poly_add_many!(p,
+            poly_fmath::mul_by_number(&poly_z_hat_a, eta_a, p),
+            poly_fmath::mul_by_number(&poly_z_hat_b, eta_b, p),
+            poly_fmath::mul_by_number(&poly_z_hat_c, eta_c, p)
+        );
 
         println_dbg!("sigma_eta_z_x");
         println_dbg!("{}", sigma_eta_z_x);
@@ -688,32 +694,17 @@ impl ProofGeneration {
     /// Generates a random polynomial with specified degree and coefficient range
     fn generate_random_polynomial(degree: usize, coefficient_range: (u64, u64), p: u64) -> FPoly {
         assert!(coefficient_range.1 < p);
-
         let mut rng = rand::thread_rng();
+        let mut tmp = 0;
         let coefficients: Vec<u64> = repeat_with(|| {
-            let random_value = rng.gen_range(coefficient_range.0..=coefficient_range.1);
+            // TODO: use random terms
+            // let random_value = rng.gen_range(coefficient_range.0..=coefficient_range.1);
+            let random_value = tmp;
+            tmp = tmp + 1;
             random_value
         })
         .take(degree + 1) // +1 because degree is the highest power
         .collect();
-
-        // // TODO: Random numebrs from Wiki, Comment it after test
-        // let coefficients = [5, 0, 101, 17, 0, 1, 20, 0, 0, 3, 115]
-        //     .iter()
-        //     .map(|v| *v))
-        //     .collect::<Vec<u64>>();
-
-        // // TODO: Random numebrs from Wiki, Comment it after test
-        // let coefficients = [
-        //     82, 74, 64, 0, 0, 28, 59, 0, 0, 0, 0, 0, 0, 0, 56, 0, 0, 0, 14, 0, 50, 41, 5, 54, 64,
-        //     0, 55, 69, 71, 12, 0, 0, 0, 0, 44, 0, 0, 0, 0, 0, 25, 0, 0, 41, 27, 0, 0, 8, 34, 58, 0,
-        //     0, 0, 0, 47, 52, 0, 0, 58, 63, 48, 38, 0, 0, 0, 26, 65, 0, 0, 0, 83, 63, 0, 48, 82, 0,
-        //     33, 14, 34, 0, 37, 12, 0, 0,
-        // ]
-        // .iter()
-        // .rev()
-        // .map(|v| *v))
-        // .collect::<Vec<u64>>();
 
         let mut rand_poly = FPoly::new(coefficients);
         rand_poly.trim();

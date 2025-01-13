@@ -66,6 +66,7 @@ pub fn interpolate(points: &[Point], p: u64) -> FPoly {
         poly_term = poly_fmath::mul(&poly_term, &new_term, p); // Multiply by (x - x_i) for each term
         let poly_product = poly_fmath::mul_by_number(&poly_term, divided_differences[0][i], p);
         poly_res = poly_fmath::add(&poly_res, &poly_product, p);
+        poly_res.trim();
     }
 
     poly_res

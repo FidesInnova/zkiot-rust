@@ -276,8 +276,8 @@ impl CommitmentBuilder {
             let (mut _li, mut _ri) = Self::get_register_index(&mut regs_data, gate, _inx);
 
             // Get left and right values (index is zero if value exists)
-            let left_val = Self::get_mfp_value(gate.val_left, &mut _li);
-            let right_val = Self::get_mfp_value(gate.val_right, &mut _ri);
+            let left_val = Self::get_mfp_value(gate.val_left, &mut _li, p);
+            let right_val = Self::get_mfp_value(gate.val_right, &mut _ri, p);
 
             println_dbg!("li: {_li}");
             println_dbg!("ri: {_ri}");
@@ -431,10 +431,10 @@ impl CommitmentBuilder {
     }
 
     /// Helper function to get u64 value and index
-    fn get_mfp_value(val: Option<u64>, index: &mut usize) -> u64 {
+    fn get_mfp_value(val: Option<u64>, index: &mut usize, p: u64) -> u64 {
         if let Some(v) = val {
             *index = 0; // Set index to zero if value exists
-            u64::from(v)
+            v % p
         } else {
             1
         }

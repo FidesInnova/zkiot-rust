@@ -34,7 +34,7 @@ if [ "$options" = "--release" ]; then
 fi
 
 # set p number
-./unrelated/z_vec 1588861
+./unrelated/z_vec $2
 
 export RUSTFLAGS=""
 # Build and Run

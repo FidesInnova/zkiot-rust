@@ -44,9 +44,13 @@ fn parse_file(path: &str) -> io::Result<Vec<(String, Vec<String>)>> {
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = std::env::args().collect();
-    let p = args[1].trim();
-    let p: u128 = p.parse().unwrap();
+    let class_number = args[1].trim();
 
+
+    let class_json_path = "class.json";
+    let class_json = std::fs::read_to_string(class_json_path).unwrap();
+    let class_json: serde_json::Value = serde_json::from_str(&class_json).unwrap();
+    let p = class_json[class_number]["p"].as_u64().unwrap() as u128;
 
     let mut register_map: HashMap<String, u128> = HashMap::from_iter(vec![
         ("zero".to_owned(), 0), 

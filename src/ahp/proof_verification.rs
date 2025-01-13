@@ -219,7 +219,9 @@ impl Verification {
         // Compute the vanishing polynomial for the subset H
         let van_poly_vh1 = vanishing_poly(set_h_1, p);
         let tmp_mul = poly_fmath::mul(&self.data.get_poly(Polys::WHat as usize), &van_poly_vh1, p);
-        let poly_z_hat_x = poly_fmath::mul(&tmp_mul, &poly_x_hat, p); // Combine polynomials
+        let poly_z_hat_x = poly_fmath::add(&tmp_mul, &poly_x_hat, p); // Combine polynomials
+
+        println!("poly_z_hat_x\n{}", poly_z_hat_x);
 
         // Check the third verification equation
         Self::check_equation_3(
