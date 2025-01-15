@@ -379,8 +379,7 @@ pub fn m_k_2(
     eval_order: &EvalOrder,
     p: u64,
 ) -> FPoly {
-    // FIXME: use FPoly::zero?
-    let mut poly_res = FPoly::new(vec![0]);
+    let mut poly_res = FPoly::zero();
 
     let mut ftime = std::time::Duration::new(0, 0);
 
@@ -397,13 +396,14 @@ pub fn m_k_2(
         let tmp_result = match eval_order {
             EvalOrder::XK => {
                 let res_poly_y = poly_y.evaluate(*num, p);
-                let mul_poly = FPoly::new(vec![(*value * res_poly_y)]);
-                poly_fmath::mul(&poly_x, &mul_poly, p)
+                let tmp_mul = fmath::mul(*value, res_poly_y, p);
+                poly_fmath::mul_by_number(&poly_x, tmp_mul, p)
             }
             EvalOrder::KX => {
                 let res_poly_x = poly_x.evaluate(*num, p);
-                let mul_poly = FPoly::new(vec![(*value * res_poly_x)]);
-                poly_fmath::mul(&poly_y, &mul_poly, p)
+
+                let tmp_mul = fmath::mul(*value, res_poly_x, p);
+                poly_fmath::mul_by_number(&poly_y, tmp_mul, p)
             }
         };
         poly_res = poly_fmath::add(&poly_res, &tmp_result, p);
@@ -499,7 +499,6 @@ pub fn sigma_rk_mk(
     points_row: &HashMap<u64, u64>,
     points_col: &HashMap<u64, u64>,
     eval_order: &EvalOrder,
-    g: u64,
     p: u64,
 ) -> FPoly {
     let mut res = FPoly::new(vec![0]);

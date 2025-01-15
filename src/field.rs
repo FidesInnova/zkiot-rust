@@ -27,13 +27,28 @@ pub mod fmath {
         }
     }
 
+    // pub fn mul(a: u64, b: u64, p: u64) -> u64 {
+    //     (a * b) % p
+    // }
+
     pub fn mul(a: u64, b: u64, p: u64) -> u64 {
-        // (a * b) % p
         mul_u128(a, b, p)
     }
 
     pub fn mul_u128(a: u64, b: u64, p: u64) -> u64 {
         (((a as u128) * (b as u128)) % (p as u128)) as u64
+    }
+
+    // Montgomery multiplication
+    pub fn montgomery_mul(a: u64, b: u64, p: u64, r: u64, p_inv: u64) -> u64 {
+        let t = a * b;
+        let m = (t.wrapping_mul(p_inv)) & (r - 1);
+        let u = (t + m * p) >> (r.trailing_zeros());
+        if u >= p {
+            u - p
+        } else {
+            u
+        }
     }
 
     pub fn div(a: u64, b: u64, p: u64) -> u64 {
@@ -135,6 +150,13 @@ mod tests {
         assert_eq!(fmath::mul(5, 3, 10), 5); // 15 mod 10 = 5
         assert_eq!(fmath::mul(4, 3, 10), 2); // 12 mod 10 = 2
         assert_eq!(fmath::mul(10, 5, 10), 0); // 50 mod 10 = 0
+    }
+
+    #[test]
+    fn test_mul_u128() {
+        assert_eq!(fmath::mul_u128(14250023927781300767, 14250023927781300767, 14250023927781300767), 0);
+        assert_eq!(fmath::mul_u128(14250023927781300767, 14210023927721320969, 14250023927781300767), 0);
+        assert_eq!(fmath::mul_u128(14220023927781300767, 14210023927721320969, 14250023927781300767), 3929830246445089526);
     }
 
     #[test]

@@ -365,11 +365,9 @@ pub enum LineValue {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct DeviceInfo {
-    #[serde(rename = "Class")]
     pub class: u8,
-    #[serde(rename = "commitmentID")]
     pub commitment_id: String,
-    pub iot_manufacturer_name: String,
+    pub iot_developer_name: String,
     pub iot_device_name: String,
     pub device_hardware_version: String,
     pub firmware_version: String,
@@ -387,7 +385,7 @@ impl DeviceInfo {
         DeviceInfo {
             class,
             commitment_id: commitment_id.to_string(),
-            iot_manufacturer_name: iot_manufacturer_name.to_string(),
+            iot_developer_name: iot_manufacturer_name.to_string(),
             iot_device_name: iot_device_name.to_string(),
             device_hardware_version: device_hardware_version.to_string(),
             firmware_version: firmware_version.to_string(),
@@ -397,8 +395,11 @@ impl DeviceInfo {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct DeviceConfigJson {
-    #[serde(flatten)]
-    pub info: DeviceInfo,
+    pub class: u8,
+    pub iot_developer_name: String,
+    pub iot_device_name: String,
+    pub device_hardware_version: String,
+    pub firmware_version: String,
     pub code_block: LineValue,
 }
 
@@ -409,7 +410,6 @@ impl DeviceConfigJson {
         (r.0..=r.1).collect()
     }
 }
-
 
 
 #[cfg(test)]

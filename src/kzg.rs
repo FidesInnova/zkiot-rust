@@ -56,7 +56,7 @@ mod test_kzg {
     #[test]
     fn test_setup() {
         let max = 5;
-        let tau = 119;
+        let tau = 121;
         let g = 2;
 
         let result = setup(max, tau, g, P);

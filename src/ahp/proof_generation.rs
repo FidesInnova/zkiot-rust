@@ -187,7 +187,6 @@ impl ProofGeneration {
             &points_px[1],
             &points_px[2],
             &EvalOrder::KX,
-            g,
             p
         );
 
@@ -203,7 +202,6 @@ impl ProofGeneration {
             &points_px[4],
             &points_px[5],
             &EvalOrder::KX,
-            g,
             p
         );
         println_dbg!("Poly ∑ r(alpha_2, k) * B^(k,x): ");
@@ -218,7 +216,6 @@ impl ProofGeneration {
             &points_px[7],
             &points_px[8],
             &EvalOrder::KX,
-            g,
             p
         );
         println_dbg!("Poly ∑ r(alpha_2, k) * C^(k,x): ");

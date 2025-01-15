@@ -15,6 +15,7 @@
 
 use std::fs::File;
 use anyhow::Result;
+use rand::{thread_rng, Rng};
 use serde::Serialize;
 use std::io::BufWriter;
 use serde::Deserialize;
@@ -43,8 +44,7 @@ impl Setup {
     /// # Parameters
     /// - `num`: Number of keys to generate.
     pub fn generate_keys(&mut self, num: u64, p: u64, g: u64) {
-        // TODO: Replace with a random number in the range
-        let tau = 119;  // Placeholder for a random number
+        let tau = thread_rng().gen_range(1..p);  // Placeholder for a random number
 
         // Generate commitment keys using KZG.
         let ck = kzg::setup(num, tau, g, p);
@@ -82,7 +82,6 @@ impl Setup {
 /// Struct for JSON serialization and deserialization of setup data
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetupJson {
-    #[serde(rename = "Class")]
     class: u8,         // Class identifier
     ck: Vec<u64>,      // Commitment keys
     vk: u64,           // Verifying key

@@ -448,7 +448,7 @@ pub fn read_json_file<T: serde::de::DeserializeOwned>(path: &str) -> Result<T> {
 #[macro_export]
 macro_rules! print_dbg {
     ($fmt:expr $(, $arg:expr)*) => {
-        #[cfg(debug_assertions)]
+        // #[cfg(debug_assertions)]
         print!("{}", format_args!($fmt $(, $arg)*));
     }
 }
@@ -472,11 +472,11 @@ macro_rules! print_dbg {
 #[macro_export]
 macro_rules! println_dbg {
     () => {
-        #[cfg(debug_assertions)]
+        // #[cfg(debug_assertions)]
         println!()
     };
     ($fmt:expr $(, $arg:expr)*) => {
-        #[cfg(debug_assertions)]
+        // #[cfg(debug_assertions)]
         println!("{}", format_args!($fmt $(, $arg)*));
     }
 }

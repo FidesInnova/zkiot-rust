@@ -1,7 +1,6 @@
 {
-    "Class": 0,
-    "commitmentID": "123456789",
-    "iot_manufacturer_name": "TrustSense",
+    "class": 0,
+    "iot_developer_name": "Fidesinnova",
     "iot_device_name": "zk-MultiSensor",
     "device_hardware_version": "1.0",
     "firmware_version": "1.0",

@@ -22,6 +22,7 @@ use std::io::BufWriter;
 
 use crate::json_file::write_term;
 use crate::json_file::ClassDataJson;
+use crate::json_file::DeviceConfigJson;
 use crate::json_file::DeviceInfo;
 use crate::math::*;
 use crate::matrices::Matrices;
@@ -30,6 +31,7 @@ use crate::parser::Instructions;
 use crate::parser::RiscvReg;
 use crate::polynomial::FPoly;
 use crate::println_dbg;
+use crate::utils;
 use crate::utils::*;
 
 #[derive(Debug, Clone)]
@@ -78,16 +80,11 @@ impl Commitment {
     /// Generates a commitment based on the AHP commitment generation process.
     /// For more details, see:
     /// [AHP Commitment Generation Documentation](https://fidesinnova-1.gitbook.io/fidesinnova-docs/zero-knowledge-proof-zkp-scheme/2-commitment-phase#id-2-3-ahp-commitment)
-    pub fn get_polynomials_commitment(
-        &self,
-        commitment_key: &Vec<u64>,
-        p: u64,
-    ) -> Vec<u64> {
+    pub fn get_polynomials_commitment(&self, commitment_key: &Vec<u64>, p: u64) -> Vec<u64> {
         let commitment = compute_all_commitment(&self.polys_px, commitment_key, p);
         println_dbg!("com_ahp: {:?}", commitment);
         commitment
     }
-
 
     pub fn process_gates(gates: Vec<Gate>) -> Vec<Gate> {
         let mut gate_res = vec![];
@@ -99,27 +96,61 @@ impl Commitment {
                     let rhs = gate.reg_right;
 
                     let add_to_gate = vec![
-                        Gate::new(gate.val_left, gate.val_right, des, lhs, rhs, Instructions::Mul),
-                        Gate::new(gate.val_left, gate.val_right, des, lhs, rhs, Instructions::Mul),
-                        Gate::new(gate.val_left, gate.val_right, des, lhs, rhs, Instructions::Mul),
-                        Gate::new(gate.val_left, gate.val_right, des, lhs, rhs, Instructions::Add)
+                        Gate::new(
+                            gate.val_left,
+                            gate.val_right,
+                            des,
+                            lhs,
+                            rhs,
+                            Instructions::Mul,
+                        ),
+                        Gate::new(
+                            gate.val_left,
+                            gate.val_right,
+                            des,
+                            lhs,
+                            rhs,
+                            Instructions::Mul,
+                        ),
+                        Gate::new(
+                            gate.val_left,
+                            gate.val_right,
+                            des,
+                            lhs,
+                            rhs,
+                            Instructions::Mul,
+                        ),
+                        Gate::new(
+                            gate.val_left,
+                            gate.val_right,
+                            des,
+                            lhs,
+                            rhs,
+                            Instructions::Add,
+                        ),
                     ];
 
                     gate_res.extend(add_to_gate.iter());
                 }
-                _ => gate_res.push(gate.clone())
+                _ => gate_res.push(gate.clone()),
             }
         }
         gate_res
     }
 
-
     /// Store in Json file
-    pub fn store(&self, path: &str, class_number: u8, class: ClassDataJson, commitment_id: u64) -> Result<()> {
+    pub fn store(
+        &self,
+        path: &str,
+        class_number: u8,
+        class: ClassDataJson,
+        device_config: DeviceConfigJson,
+    ) -> Result<()> {
         let file = File::create(path)?;
         let writer = BufWriter::new(file);
 
-        let commitment_json = CommitmentJson::new(&self.polys_px, class_number, class, commitment_id);
+        let commitment_json =
+            CommitmentJson::new(&self.polys_px, class_number, class, device_config);
         serde_json::to_writer(writer, &commitment_json)?;
         Ok(())
     }
@@ -174,12 +205,36 @@ pub struct CommitmentJson {
 }
 
 impl CommitmentJson {
-    pub fn new(polys_px: &Vec<FPoly>, class_number: u8, class: ClassDataJson, commitment_id: u64) -> Self {
+    pub fn new(
+        polys_px: &Vec<FPoly>,
+        class_number: u8,
+        class: ClassDataJson,
+        device_confic: DeviceConfigJson,
+    ) -> Self {
         // Extract values for CommitmentJson from the Commitment struct
         let polys_px_t: Vec<Vec<u64>> = polys_px.iter().map(|p| write_term(p)).collect();
 
+        let concat_device_config_values = format!(
+            "{}{}{}{}",
+            device_confic.iot_developer_name,
+            device_confic.iot_device_name,
+            device_confic.device_hardware_version,
+            device_confic.firmware_version
+        );
+        let commitment_id = utils::sha2_hash(&concat_device_config_values);
+
+        let info = DeviceInfo::new(
+            // device_confic.class,  // FIXME: for now we are not using this, use class_number instead
+            class_number,
+            &commitment_id,
+            &device_confic.iot_developer_name,
+            &device_confic.iot_device_name,
+            &device_confic.device_hardware_version,
+            &device_confic.firmware_version,
+        );
+
         Self {
-            info: DeviceInfo::new(class_number, &commitment_id.to_string(), "FidesInnova", "test", "1", "2"),
+            info,
             m: class.m,
             n: class.n,
             p: class.p,
@@ -306,8 +361,6 @@ impl CommitmentBuilder {
                 }
                 Instructions::Div => {
                     println_dbg!("Gate: Div");
-                    
-
                 }
                 _ => {}
             }
@@ -323,7 +376,6 @@ impl CommitmentBuilder {
 
         self.clone()
     }
-    
 
     fn generate_gate_index(gates: &Vec<Gate>, ni: usize) -> Vec<(usize, usize)> {
         fn get_index(
@@ -382,7 +434,7 @@ impl CommitmentBuilder {
 
             println_dbg!("inx: {_inx}");
             println_dbg!("set: {:?}", reg_set);
-            
+
             let _li = get_index(&tmp_z, gate.reg_left, _inx, counter, gate.des_reg, &reg_set);
             let _ri = get_index(
                 &tmp_z,
@@ -577,7 +629,8 @@ mod test_matrices {
                 instr: Mul,
             },
         ];
-        let commitment = Commitment::new(class_data).gen_matrices(gates, class_data.n_i as usize, 1678321);
+        let commitment =
+            Commitment::new(class_data).gen_matrices(gates, class_data.n_i as usize, 1678321);
 
         // Check matrix A
         let mat = commitment.commitm.matrices.a;
