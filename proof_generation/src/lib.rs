@@ -64,7 +64,7 @@ pub fn main_proof_gen(setup_path: &str) -> Result<()> {
         z_vec,
         class_data.p
     );
-    println!("Proof timer: {:?}", timer.elapsed());
+    println!("Proof timer: {:.2} milliseconds", timer.elapsed().as_millis() as f64);
 
     // Store the generated proof data in a JSON file
     proof_generation

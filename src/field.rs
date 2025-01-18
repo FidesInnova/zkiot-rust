@@ -27,28 +27,12 @@ pub mod fmath {
         }
     }
 
-    // pub fn mul(a: u64, b: u64, p: u64) -> u64 {
-    //     (a * b) % p
-    // }
-
     pub fn mul(a: u64, b: u64, p: u64) -> u64 {
-        mul_u128(a, b, p)
-    }
-
-    pub fn mul_u128(a: u64, b: u64, p: u64) -> u64 {
-        (((a as u128) * (b as u128)) % (p as u128)) as u64
-    }
-
-    // Montgomery multiplication
-    pub fn montgomery_mul(a: u64, b: u64, p: u64, r: u64, p_inv: u64) -> u64 {
-        let t = a * b;
-        let m = (t.wrapping_mul(p_inv)) & (r - 1);
-        let u = (t + m * p) >> (r.trailing_zeros());
-        if u >= p {
-            u - p
-        } else {
-            u
-        }
+        let a = u128::from(a);
+        let b = u128::from(b);
+        let p = u128::from(p);
+        let res = (a * b) % p;
+        res as u64
     }
 
     pub fn div(a: u64, b: u64, p: u64) -> u64 {
@@ -67,10 +51,10 @@ pub mod fmath {
     
         while exponent > 0 {
             if exponent % 2 == 1 { // If exponent is odd
-                result = (result * base) % p; // Multiply result by base
+                result = mul(result, base, p); // Multiply result by base
             }
             exponent >>= 1; // Divide exponent by 2
-            base = (base * base) % p; // Square the base
+            base = mul(base, base, p); // Square the base
         }
     
         result
@@ -147,16 +131,17 @@ mod tests {
 
     #[test]
     fn test_mul() {
+        assert_eq!(fmath::mul(1, 3, 11), 3);
+        assert_eq!(fmath::mul(0, 3, 11), 0);
+
         assert_eq!(fmath::mul(5, 3, 10), 5); // 15 mod 10 = 5
         assert_eq!(fmath::mul(4, 3, 10), 2); // 12 mod 10 = 2
         assert_eq!(fmath::mul(10, 5, 10), 0); // 50 mod 10 = 0
-    }
 
-    #[test]
-    fn test_mul_u128() {
-        assert_eq!(fmath::mul_u128(14250023927781300767, 14250023927781300767, 14250023927781300767), 0);
-        assert_eq!(fmath::mul_u128(14250023927781300767, 14210023927721320969, 14250023927781300767), 0);
-        assert_eq!(fmath::mul_u128(14220023927781300767, 14210023927721320969, 14250023927781300767), 3929830246445089526);
+
+        assert_eq!(fmath::mul(14250023927781300767, 14250023927781300767, 14250023927781300767), 0);
+        assert_eq!(fmath::mul(14250023927781300767, 14210023927721320969, 14250023927781300767), 0);
+        assert_eq!(fmath::mul(14220023927781300767, 14210023927721320969, 14250023927781300767), 3929830246445089526);
     }
 
     #[test]

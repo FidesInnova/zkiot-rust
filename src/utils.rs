@@ -76,11 +76,12 @@ pub fn get_points_set(seq: &[u64], n: &[u64]) -> Vec<Point> {
 
     assert!(
         seq.len() == n.len(),
-        "sets are not equal => {:?} & {:?}",
-        seq,
-        n
+        "The lengths of the two sets are not equal. Expected length: {} but found: {}",
+        n.len(),
+        seq.len()
     );
 
+    
     for point in n.iter().zip(seq.iter()) {
         points.push((*point.0, *point.1));
     }
@@ -448,7 +449,7 @@ pub fn read_json_file<T: serde::de::DeserializeOwned>(path: &str) -> Result<T> {
 #[macro_export]
 macro_rules! print_dbg {
     ($fmt:expr $(, $arg:expr)*) => {
-        // #[cfg(debug_assertions)]
+        #[cfg(debug_assertions)]
         print!("{}", format_args!($fmt $(, $arg)*));
     }
 }
@@ -472,11 +473,11 @@ macro_rules! print_dbg {
 #[macro_export]
 macro_rules! println_dbg {
     () => {
-        // #[cfg(debug_assertions)]
+        #[cfg(debug_assertions)]
         println!()
     };
     ($fmt:expr $(, $arg:expr)*) => {
-        // #[cfg(debug_assertions)]
+        #[cfg(debug_assertions)]
         println!("{}", format_args!($fmt $(, $arg)*));
     }
 }

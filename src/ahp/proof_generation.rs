@@ -298,7 +298,7 @@ impl ProofGeneration {
         println_dbg!("P Mat C:");
         println_dbg!("{}", mat_c);
 
-        println!("{:?}", z_vec);
+        println_dbg!("{:?}", z_vec);
 
         let points_px = program_params.get_points_px(&set_k, p);
 
@@ -309,7 +309,6 @@ impl ProofGeneration {
         let random_b = 2;
 
         // Generate and interpolate points for matrices az, bz, cz
-        // FIXME: vector_mul check
         let (poly_z_hat_a, poly_z_hat_b, poly_z_hat_c) = Self::generate_oz_interpolations(
             [
                 matrix_fmath::vector_mul(&mat_a, &z_vec, p),

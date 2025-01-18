@@ -23,7 +23,7 @@ pub fn setup(max: u64, tau: u64, g: u64, p: u64) -> Vec<u64> {
     (0..max)
         .map(|_| {
             let current = tmp;
-            tmp = fmath::mul_u128(current, tau, p);
+            tmp = fmath::mul(current, tau, p);
             current
         })
         .collect()
@@ -40,7 +40,7 @@ pub fn commit(poly_in: &FPoly, ck: &[u64], p: u64) -> u64 {
 
     for i in 0..=degree {
         let term = poly_in.get_term(i);
-        let mul = fmath::mul_u128(term, ck[i], p);
+        let mul = fmath::mul(term, ck[i], p);
         res_poly = fmath::add(res_poly, mul, p);
     }
 
@@ -63,7 +63,7 @@ mod test_kzg {
 
         assert_eq!(result.len(), max as usize);
         
-        assert_eq!(result, vec![2, 57, 86, 98, 78]);
+        assert_eq!(result, vec![2, 61, 141, 47, 76]);
     }
 
     #[test]

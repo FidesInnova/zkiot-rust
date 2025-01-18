@@ -221,7 +221,7 @@ impl Verification {
         let tmp_mul = poly_fmath::mul(&self.data.get_poly(Polys::WHat as usize), &van_poly_vh1, p);
         let poly_z_hat_x = poly_fmath::add(&tmp_mul, &poly_x_hat, p); // Combine polynomials
 
-        println!("poly_z_hat_x\n{}", poly_z_hat_x);
+        println_dbg!("poly_z_hat_x\n{}", poly_z_hat_x);
 
         // Check the third verification equation
         Self::check_equation_3(
@@ -599,7 +599,7 @@ impl Verification {
         println_dbg!("val_commit_poly_px: {val_commit_poly_px}, val_y_p: {val_y_p}, vk: {vk}, val_commit_poly_qx: {val_commit_poly_qx}");
 
         // Evaluate the first equation component
-        let tmp_x = fmath::mul_u128(g, val_y_p, p);
+        let tmp_x = fmath::mul(g, val_y_p, p);
         let e_1 = e_func(
             fmath::sub(val_commit_poly_px, tmp_x, p),
             g,
@@ -608,7 +608,7 @@ impl Verification {
         );
 
         // Evaluate the second equation component
-        let tmp_x = fmath::mul_u128(g, z, p);
+        let tmp_x = fmath::mul(g, z, p);
         let e_2 = e_func(
             val_commit_poly_qx,
             fmath::sub(vk, tmp_x, p),
