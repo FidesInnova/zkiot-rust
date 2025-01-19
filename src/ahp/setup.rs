@@ -100,11 +100,11 @@ impl SetupJson {
 
     /// Gets commitment keys as `u64`.
     pub fn get_ck(&self) -> Vec<u64> {
-        self.ck.iter().map(|v| u64::from(*v)).collect() // Convert u64 to u64
+        self.ck.clone()
     }
 
     /// Gets verifying key as `u64`
     pub fn get_vk(&self) -> u64 {
-        u64::from(self.vk) // Convert u64 to u64
+        self.vk
     }
 }

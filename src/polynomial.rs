@@ -16,6 +16,7 @@ use poly_fmath::first_nonzero_index;
 
 use crate::field::fmath;
 
+// Macro to create a new polynomial from given coefficients
 #[macro_export]
 macro_rules! fpoly {
     ( $( $x:expr ),* ) => {
@@ -41,7 +42,7 @@ pub struct FPoly {
 }
 
 impl FPoly {
-    // FIXME: should i use % p here?
+    /// Create a new polynomial with the given terms
     pub fn new(terms: Vec<u64>) -> Self {
         let mut terms = terms;
         if terms.len() == 0 {
@@ -50,18 +51,22 @@ impl FPoly {
         Self { terms }
     }
 
+    /// Create a zero polynomial
     pub fn zero() -> Self {
         Self { terms: vec![0] }
     }
 
+    /// Create a polynomial representing the number one
     pub fn one() -> Self {
         Self { terms: vec![1] }
     }
 
+    /// Create a polynomial representing x + 1
     pub fn one_x() -> Self {
         Self { terms: vec![1, 0] }
     }
 
+    /// Get the degree of the polynomial
     pub fn degree(&self) -> usize {
         let index = first_nonzero_index(&self.terms);
         if index == self.terms.len() {
@@ -71,6 +76,7 @@ impl FPoly {
         }
     }
 
+    /// Add a term with a given coefficient and degree to the polynomial
     pub fn add_term(&mut self, coeff: u64, degree: usize) {
         if self.terms.len() < degree + 1 {
             let added_zeros = degree + 1 - self.terms.len();
@@ -81,7 +87,7 @@ impl FPoly {
         self.terms[index] += coeff;
     }
 
-    // Evaluate the polynomial at a given value of x
+    /// Evaluate the polynomial at a given value of x
     pub fn evaluate(&self, x: u64, p: u64) -> u64 {
         self.terms
             .iter()
@@ -94,6 +100,7 @@ impl FPoly {
             .fold(0, |acc, x| fmath::add(acc, x, p))
     }
 
+    /// Trim leading zeros from the polynomial
     pub fn trim(&mut self) {
         let inx = poly_fmath::first_nonzero_index(&self.terms);
         if inx != 0 {
@@ -101,10 +108,12 @@ impl FPoly {
         }
     }
 
+    /// Check if the polynomial is zero
     pub fn is_zero(&self) -> bool {
         self.degree() == 0
     }
 
+    /// Get the coefficient of a term at a given degree
     pub fn get_term(&self, degree: usize) -> u64 {
         assert!(
             degree < self.terms.len(),
@@ -115,6 +124,7 @@ impl FPoly {
 }
 
 impl std::fmt::Display for FPoly {
+    // Format the polynomial for display
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut result = String::new();
         let deg = self.degree();

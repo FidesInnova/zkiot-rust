@@ -137,7 +137,7 @@ pub enum Instructions {
     Addi,
     // Sub,
     Mul,
-    Div,
+    // Div,
 }
 
 /// Represents a gate with its parameters.

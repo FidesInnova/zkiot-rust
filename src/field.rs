@@ -16,10 +16,12 @@
 
 #[macro_use]
 pub mod fmath {
+    /// Add two numbers modulo p
     pub fn add(a: u64, b: u64, p: u64) -> u64 {
         (a + b) % p
     }
 
+    /// Subtract two numbers modulo p
     pub fn sub(a: u64, b: u64, p: u64) -> u64 {
         match a >= b {
             true => (a - b) % p,
@@ -27,6 +29,8 @@ pub mod fmath {
         }
     }
 
+
+    /// Multiply two numbers modulo p
     pub fn mul(a: u64, b: u64, p: u64) -> u64 {
         let a = u128::from(a);
         let b = u128::from(b);
@@ -35,11 +39,13 @@ pub mod fmath {
         res as u64
     }
 
+    /// Divide a by b modulo p using multiplicative inverse
     pub fn div(a: u64, b: u64, p: u64) -> u64 {
         let b_inverse = inverse_mul(b, p);
         mul(a, b_inverse, p)
     }
 
+    /// Raise a to the power of b modulo p
     pub fn pow(a: u64, b: u64, p: u64) -> u64 {
         if p == 1 {
             return 0; // Any number mod 1 is 0
@@ -60,14 +66,17 @@ pub mod fmath {
         result
     }
 
+    /// Calculate the multiplicative inverse
     pub fn inverse_mul(a: u64, p: u64) -> u64 {
         pow(a, p - 2, p)
     }
 
+    /// Calculate the additive inverse
     pub fn inverse_add(a: u64, p: u64) -> u64 {
         p - (a % p)
     }
 
+    /// Macro to add multiple values
     #[macro_export]
     macro_rules! add_many {
         ($p:expr, $x:expr) => {
@@ -78,6 +87,7 @@ pub mod fmath {
         };
     }
 
+    /// Macro to multiply multiple values
     #[macro_export]
     macro_rules! mul_many {
         ($p:expr, $x:expr) => {

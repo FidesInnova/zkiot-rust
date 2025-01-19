@@ -90,48 +90,48 @@ impl Commitment {
         let mut gate_res = vec![];
         for gate in gates.clone() {
             match gate.instr {
-                Instructions::Div => {
-                    let des = gate.des_reg;
-                    let lhs = gate.reg_left;
-                    let rhs = gate.reg_right;
+                // Instructions::Div => {
+                //     let des = gate.des_reg;
+                //     let lhs = gate.reg_left;
+                //     let rhs = gate.reg_right;
 
-                    let add_to_gate = vec![
-                        Gate::new(
-                            gate.val_left,
-                            gate.val_right,
-                            des,
-                            lhs,
-                            rhs,
-                            Instructions::Mul,
-                        ),
-                        Gate::new(
-                            gate.val_left,
-                            gate.val_right,
-                            des,
-                            lhs,
-                            rhs,
-                            Instructions::Mul,
-                        ),
-                        Gate::new(
-                            gate.val_left,
-                            gate.val_right,
-                            des,
-                            lhs,
-                            rhs,
-                            Instructions::Mul,
-                        ),
-                        Gate::new(
-                            gate.val_left,
-                            gate.val_right,
-                            des,
-                            lhs,
-                            rhs,
-                            Instructions::Add,
-                        ),
-                    ];
+                //     let add_to_gate = vec![
+                //         Gate::new(
+                //             gate.val_left,
+                //             gate.val_right,
+                //             des,
+                //             lhs,
+                //             rhs,
+                //             Instructions::Mul,
+                //         ),
+                //         Gate::new(
+                //             gate.val_left,
+                //             gate.val_right,
+                //             des,
+                //             lhs,
+                //             rhs,
+                //             Instructions::Mul,
+                //         ),
+                //         Gate::new(
+                //             gate.val_left,
+                //             gate.val_right,
+                //             des,
+                //             lhs,
+                //             rhs,
+                //             Instructions::Mul,
+                //         ),
+                //         Gate::new(
+                //             gate.val_left,
+                //             gate.val_right,
+                //             des,
+                //             lhs,
+                //             rhs,
+                //             Instructions::Add,
+                //         ),
+                //     ];
 
-                    gate_res.extend(add_to_gate.iter());
-                }
+                //     gate_res.extend(add_to_gate.iter());
+                // }
                 _ => gate_res.push(gate.clone()),
             }
         }
@@ -359,9 +359,9 @@ impl CommitmentBuilder {
                     a_mat[(_inx, _li)] = left_val % p;
                     b_mat[(_inx, _ri)] = right_val % p;
                 }
-                Instructions::Div => {
-                    println_dbg!("Gate: Div");
-                }
+                // Instructions::Div => {
+                //     println_dbg!("Gate: Div");
+                // }
                 _ => {}
             }
         }

@@ -20,15 +20,18 @@ pub struct FMatrix {
 }
 
 impl FMatrix {
+    /// Create a new FMatrix with the given data
     pub fn new(data: Vec<Vec<u64>>) -> Self {
         Self { data }
     }
 
+    /// Create a new FMatrix filled with zeros
     pub fn zeros(rows: usize, cols: usize) -> Self {
         let data = vec![vec![0; cols]; rows];
         Self { data }
     }
 
+    /// Get the size of the matrix
     pub fn size(&self) -> usize {
         let size = self.data.len();
         assert_eq!(self.data[0].len(), size);
@@ -36,6 +39,7 @@ impl FMatrix {
     }
 }
 
+// Indexing for immutable access to matrix elements
 impl std::ops::Index<(usize, usize)> for FMatrix {
     type Output = u64;
 
@@ -45,6 +49,7 @@ impl std::ops::Index<(usize, usize)> for FMatrix {
     }
 }
 
+// Indexing for mutable access to matrix elements
 impl std::ops::IndexMut<(usize, usize)> for FMatrix {
     fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
         let (row, col) = index;
@@ -52,6 +57,7 @@ impl std::ops::IndexMut<(usize, usize)> for FMatrix {
     }
 }
 
+// Formatting the matrix for display
 impl std::fmt::Display for FMatrix {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for i in 0..self.size() {
@@ -69,6 +75,7 @@ pub mod matrix_fmath {
 
     use super::FMatrix;
 
+    /// Add two matrices element-wise modulo p
     pub fn add(a: &FMatrix, b: &FMatrix, p: u64) -> FMatrix {
         let size = a.data.len();
         assert_eq!(
@@ -88,6 +95,7 @@ pub mod matrix_fmath {
         result
     }
 
+    /// Multiply two matrices modulo p
     pub fn mul(a: &FMatrix, b: &FMatrix, p: u64) -> FMatrix {
         let size = a.data.len();
         assert_eq!(
@@ -112,6 +120,7 @@ pub mod matrix_fmath {
         result
     }
 
+    /// Component-wise multiplication of two matrices modulo p
     pub fn component_mul(a: &FMatrix, b: &FMatrix, p: u64) -> FMatrix {
         let size = a.data.len();
         assert_eq!(
@@ -131,7 +140,7 @@ pub mod matrix_fmath {
         result
     }
 
-    
+    /// Multiply a matrix by a vector modulo p
     pub fn vector_mul(a: &FMatrix, b: &Vec<u64>, p: u64) -> Vec<u64> {
         let n = a.size();
         let mut result = vec![0; n];
