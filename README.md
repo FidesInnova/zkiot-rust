@@ -15,7 +15,7 @@
 Welcome to the zk-IoT repository! This repository contains the source code for the smart contracts that power the zk-IoT framework within the Fidesinnova platform. These smart contracts are designed to facilitate secure, transparent, and efficient interactions in decentralized IoT environments.
 
 ## Function-hiding functional commitment
-This repository is a C++ library for the **function-hiding functional commitment zero-knowledge proof (ZKP)** scheme. This scheme is a tuple _(setup, commit, eval)_ that utilizes the following three protocols:
+This repository is a RUST crate for the **function-hiding functional commitment zero-knowledge proof (ZKP)** scheme. This scheme is a tuple _(setup, commit, eval)_ that utilizes the following three protocols:
 ### 1- A polynomial commitment scheme
 ### 2- A proof of function relation (PFR)
 ### 3- An algebraic holographic proof (AHP)
